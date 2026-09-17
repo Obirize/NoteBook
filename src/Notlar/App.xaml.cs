@@ -17,6 +17,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         L10n.Use(L10n.Detect(DataDirectory));
+        AttachmentStore.CleanTemporary();
         var files = e.Args.Where(a => a.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) && File.Exists(a)).Select(Path.GetFullPath).ToList();
         bool fresh = e.Args.Contains("--new", StringComparer.OrdinalIgnoreCase);
         mutex = new Mutex(true, "Local\\" + InstanceName, out bool owns);

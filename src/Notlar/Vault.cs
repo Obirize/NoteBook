@@ -32,8 +32,17 @@ public sealed class VaultSession : IDisposable
     public string FilePath { get; }
     public bool Disposed { get; private set; }
     public bool IsDeviceProtected => envelope.Version == 2;
+    // Encrypted photo and video files: "attachments" beside the vault, or "<backup>.files" beside a portable backup.
+    public AttachmentStore Attachments { get; private set; }
     private VaultSession(string path, VaultEnvelope header, byte[] secret, Notebook book)
-    { FilePath = path; envelope = header; key = secret; Book = book; }
+    { FilePath = path; envelope = header; key = secret; Book = book; Attachments = new AttachmentStore(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, "attachments")); }
+    private static Notebook ParseNotebook(byte[] plain)
+    {
+        var book = JsonSerializer.Deserialize<Notebook>(plain) ?? throw new InvalidDataException();
+        if (book.SchemaVersion is < 1 or > Notebook.CurrentSchema || book.Notes == null) throw new InvalidDataException();
+        foreach (var note in book.Notes) { note.Attachments ??= []; note.Attachments.RemoveAll(a => a == null || a.Id.Length == 0 || a.Key.Length != 32); }
+        return book;
+    }
 
     private static byte[] Aad(VaultEnvelope e, string purpose) => Encoding.UTF8.GetBytes("Notlar/v" + e.Version + "/" + e.Id + "/" + purpose);
     public static int ReadVersion(string path) => (JsonSerializer.Deserialize<VaultEnvelope>(File.ReadAllBytes(path)) ?? throw new InvalidDataException()).Version;
@@ -58,8 +67,7 @@ public sealed class VaultSession : IDisposable
         {
             secret = ProtectedData.Unprotect(e.DeviceKey, Aad(e, "device"), DataProtectionScope.CurrentUser);
             plain = Unseal(secret, e.Content, Aad(e, "content"));
-            var book = JsonSerializer.Deserialize<Notebook>(plain) ?? throw new InvalidDataException();
-            if (book.SchemaVersion != 1 || book.Notes == null) throw new InvalidDataException();
+            var book = ParseNotebook(plain);
             var session = new VaultSession(targetPath ?? path, e, secret, book); secret = null; return session;
         }
         finally { if (secret != null) CryptographicOperations.ZeroMemory(secret); if (plain != null) CryptographicOperations.ZeroMemory(plain); }
@@ -122,8 +130,7 @@ public sealed class VaultSession : IDisposable
             if (wrapping.Length != 32) throw new CryptographicException();
             secret = Unseal(wrapping, recovery ? e.RecoveryKey : e.PasswordKey, Aad(e, recovery ? "recovery" : "password"));
             plain = Unseal(secret, e.Content, Aad(e, "content"));
-            var book = JsonSerializer.Deserialize<Notebook>(plain) ?? throw new InvalidDataException();
-            if (book.SchemaVersion != 1 || book.Notes == null) throw new InvalidDataException();
+            var book = ParseNotebook(plain);
             var session = new VaultSession(targetPath ?? path, e, secret, book);
             secret = null;
             return session;
@@ -135,7 +142,9 @@ public sealed class VaultSession : IDisposable
             if (secret != null) CryptographicOperations.ZeroMemory(secret);
         }
     }
+    public static string BackupFilesDirectory(string backupPath) => backupPath + ".files";
     // A password-protected copy with its own random content key: opens on any PC, independent of Windows DPAPI.
+    // Attachment files go to "<backup>.files" beside it, unchanged: their keys travel inside the encrypted notebook.
     public void ExportPortable(string path, string password)
     {
         ObjectDisposedException.ThrowIf(Disposed, this);
@@ -143,6 +152,7 @@ public sealed class VaultSession : IDisposable
         var e = new VaultEnvelope();
         var secret = RandomNumberGenerator.GetBytes(32);
         var wrapping = Derive(password, e);
+        Book.SchemaVersion = Notebook.CurrentSchema;
         byte[] plain = JsonSerializer.SerializeToUtf8Bytes(Book);
         try
         {
@@ -159,13 +169,19 @@ public sealed class VaultSession : IDisposable
             if (File.Exists(path)) File.Replace(temp, path, null, true); else File.Move(temp, path);
         }
         finally { if (File.Exists(temp)) File.Delete(temp); }
+        var files = new AttachmentStore(BackupFilesDirectory(path));
+        if (Book.Notes.Any(n => n.Attachments.Count > 0)) files.CopyMissing(Book, Attachments);
+        files.Sweep(Book);
     }
     // Opens either kind of backup read-only: a portable (password) file or a same-account (DPAPI) copy.
     public static VaultSession OpenBackup(string path, string? password)
     {
-        if (ReadVersion(path) == 2) return OpenDevice(path);
-        if (string.IsNullOrEmpty(password)) throw new CryptographicException("Password required.");
-        return Open(path, password);
+        VaultSession session;
+        if (ReadVersion(path) == 2) session = OpenDevice(path);
+        else if (string.IsNullOrEmpty(password)) throw new CryptographicException("Password required.");
+        else session = Open(path, password);
+        if (Directory.Exists(BackupFilesDirectory(path))) session.Attachments = new AttachmentStore(BackupFilesDirectory(path));
+        return session;
     }
     // Merges notes by id; the higher revision (then the later update) wins, nothing is ever dropped.
     public static (int Added, int Updated) Merge(Notebook into, Notebook from)
@@ -179,17 +195,20 @@ public sealed class VaultSession : IDisposable
             {
                 existing.Title = note.Title; existing.Text = note.Text; existing.Created = note.Created; existing.Updated = note.Updated;
                 existing.Pinned = note.Pinned; existing.Deleted = note.Deleted; existing.DeletedAt = note.DeletedAt; existing.Revision = note.Revision;
+                existing.Attachments = note.Attachments.Select(Clone).ToList();
                 updated++;
             }
         }
         foreach (var pair in from.LegacyArchive) into.LegacyArchive.TryAdd(pair.Key, pair.Value);
         return (added, updated);
     }
-    private static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision };
+    private static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision, Attachments = n.Attachments.Select(Clone).ToList() };
+    private static Attachment Clone(Attachment a) => new() { Id = a.Id, Name = a.Name, MediaType = a.MediaType, Size = a.Size, Key = (byte[])a.Key.Clone(), Sha256 = (byte[])a.Sha256.Clone(), Width = a.Width, Height = a.Height, Added = a.Added };
     public void Save() => Save(false);
     public void Save(bool redactBackup)
     {
         ObjectDisposedException.ThrowIf(Disposed, this);
+        Book.SchemaVersion = Notebook.CurrentSchema;
         byte[] plain = JsonSerializer.SerializeToUtf8Bytes(Book);
         try { envelope.Content = Seal(key, plain, Aad(envelope, "content")); }
         finally { CryptographicOperations.ZeroMemory(plain); }
@@ -239,15 +258,18 @@ public sealed class VaultSession : IDisposable
     public static bool SameNotebook(byte[] storedPlain, Notebook book)
     {
         byte[]? normalized = null; byte[]? expected = null;
+        int schema = book.SchemaVersion;
         try
         {
             var parsed = JsonSerializer.Deserialize<Notebook>(storedPlain);
             if (parsed == null) return false;
+            // The schema number only says which build wrote the file; the contents are what must match.
+            parsed.SchemaVersion = book.SchemaVersion = Notebook.CurrentSchema;
             normalized = JsonSerializer.SerializeToUtf8Bytes(parsed); expected = JsonSerializer.SerializeToUtf8Bytes(book);
             return CryptographicOperations.FixedTimeEquals(normalized, expected);
         }
         catch (JsonException) { return false; }
-        finally { if (normalized != null) CryptographicOperations.ZeroMemory(normalized); if (expected != null) CryptographicOperations.ZeroMemory(expected); }
+        finally { book.SchemaVersion = schema; if (normalized != null) CryptographicOperations.ZeroMemory(normalized); if (expected != null) CryptographicOperations.ZeroMemory(expected); }
     }
     public void Dispose()
     {

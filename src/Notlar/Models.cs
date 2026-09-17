@@ -14,8 +14,12 @@ public sealed class Note
     public bool Deleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public long Revision { get; set; } = 1;
+    // Photos and videos; the encrypted files live beside the vault, their keys only here.
+    public List<Attachment> Attachments { get; set; } = [];
     [JsonIgnore] public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? L10n.T("NewNote") : Title;
-    [JsonIgnore] public string Preview => string.IsNullOrWhiteSpace(Text) ? L10n.T("StartWriting") : Text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+    [JsonIgnore] public string Preview => !string.IsNullOrWhiteSpace(Text) ? Text.Replace('\r', ' ').Replace('\n', ' ').Trim() : Attachments.Count > 0 ? AttachmentLabel : L10n.T("StartWriting");
+    [JsonIgnore] public string AttachmentLabel => Attachments.Count == 0 ? "" : L10n.Count("AttachmentCountOne", "AttachmentCountMany", Attachments.Count);
+    [JsonIgnore] public bool HasAttachments => Attachments.Count > 0;
     [JsonIgnore] public string DateLabel => Updated.LocalDateTime.Date == DateTime.Today ? Updated.LocalDateTime.ToString("t", L10n.Culture) : Updated.LocalDateTime.ToString("d MMM", L10n.Culture);
     [JsonIgnore] public string TrashLabel
     {
@@ -26,6 +30,22 @@ public sealed class Note
             return days <= 0 ? L10n.T("TrashLabelToday") : L10n.T("TrashLabelDays", days);
         }
     }
+}
+
+public sealed class Attachment
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Name { get; set; } = "";
+    public string MediaType { get; set; } = "application/octet-stream";
+    public long Size { get; set; }
+    public byte[] Key { get; set; } = [];
+    public byte[] Sha256 { get; set; } = [];
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public DateTimeOffset Added { get; set; } = DateTimeOffset.UtcNow;
+    [JsonIgnore] public bool IsImage => MediaType.StartsWith("image/", StringComparison.Ordinal);
+    [JsonIgnore] public bool IsVideo => MediaType.StartsWith("video/", StringComparison.Ordinal);
+    [JsonIgnore] public string SizeLabel => Size < 1024 * 1024 ? Math.Max(1, Size / 1024) + " KB" : Size < 1024L * 1024 * 1024 ? (Size / (1024.0 * 1024)).ToString("0.#", L10n.Culture) + " MB" : (Size / (1024.0 * 1024 * 1024)).ToString("0.##", L10n.Culture) + " GB";
 }
 
 public static class TrashPolicy
@@ -65,7 +85,9 @@ public static class TrashPolicy
 
 public sealed class Notebook
 {
-    public int SchemaVersion { get; set; } = 1;
+    // 2 added attachments; older builds refuse the file instead of silently dropping their keys.
+    public const int CurrentSchema = 2;
+    public int SchemaVersion { get; set; } = CurrentSchema;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public List<Note> Notes { get; set; } = [];
     // Preserve the complete original files (including rich text) inside encryption.
@@ -76,6 +98,6 @@ public static class NoteQuery
 {
     public static List<Note> Find(Notebook book, string query, bool trash) => book.Notes
         .Where(n => n.Deleted == trash && (string.IsNullOrWhiteSpace(query) ||
-            L10n.Culture.CompareInfo.IndexOf(n.Title + "\n" + n.Text, query.Trim(), CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0))
+            L10n.Culture.CompareInfo.IndexOf(n.Title + "\n" + n.Text + "\n" + string.Join("\n", n.Attachments.Select(a => a.Name)), query.Trim(), CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0))
         .OrderByDescending(n => n.Pinned).ThenByDescending(n => n.Updated).ToList();
 }

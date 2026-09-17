@@ -138,6 +138,71 @@ static class Program
         Shot(window, "notlar-scroll-dark.png");
         window.Close();
     }
+    static BitmapSource Bitmap(int width, int height, Color color)
+    {
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen()) { dc.DrawRectangle(new SolidColorBrush(color), null, new Rect(0, 0, width, height)); dc.DrawEllipse(Brushes.White, null, new Point(width / 2.0, height / 2.0), width / 4.0, height / 4.0); }
+        var bmp = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32); bmp.Render(visual); return bmp;
+    }
+    static byte[] Png(int width, int height, Color color)
+    {
+        var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(Bitmap(width, height, color)));
+        using var stream = new MemoryStream(); png.Save(stream); return stream.ToArray();
+    }
+    static void AttachmentFlow(string root)
+    {
+        string dir = Path.Combine(root, "attachments-store");
+        var store = new AttachmentStore(Path.Combine(dir, "attachments"));
+        byte[] photo = Png(640, 400, Colors.SteelBlue);
+        string photoPath = Path.Combine(dir, "Tatil fotoğrafı.png"); Directory.CreateDirectory(dir); File.WriteAllBytes(photoPath, photo);
+        var big = new byte[(int)(2.5 * AttachmentStore.ChunkSize)]; RandomNumberGenerator.Fill(big);
+        string videoPath = Path.Combine(dir, "klip.mp4"); File.WriteAllBytes(videoPath, big);
+        var a = store.Import(photoPath); var v = store.Import(videoPath);
+        Check(a.IsImage && a.Width == 640 && a.Height == 400 && a.Size == photo.Length && a.MediaType == "image/png" && a.Key.Length == 32 && a.Sha256.SequenceEqual(SHA256.HashData(photo)), "Imported photo records size, pixel dimensions, media type, hash and its own key");
+        Check(v.IsVideo && v.Size == big.Length && v.MediaType == "video/mp4" && !v.Key.SequenceEqual(a.Key), "Imported video gets a different random key");
+        var stored = File.ReadAllBytes(store.PathFor(a));
+        Check(stored.Length == photo.Length + 24 + 16 && stored.AsSpan().IndexOf(photo.AsSpan(0, 8)) < 0, "Encrypted attachment has only a header and tag of overhead and no plaintext signature");
+        Check(store.ReadAll(a).SequenceEqual(photo) && store.ReadAll(v).SequenceEqual(big), "Attachments decrypt back to the original bytes across several chunks");
+        string exported = Path.Combine(dir, "kopya.mp4"); store.Export(v, exported);
+        Check(File.ReadAllBytes(exported).SequenceEqual(big), "Exported copy equals the original file");
+        string temp = store.WriteTemporary(a);
+        Check(File.Exists(temp) && File.ReadAllBytes(temp).SequenceEqual(photo) && Path.GetExtension(temp) == ".png", "Temporary decrypted copy for the player keeps the extension");
+        Check(AttachmentStore.DeleteTemporary(temp) && !File.Exists(temp), "Temporary copy is deleted after viewing");
+        string leftover = store.WriteTemporary(a); AttachmentStore.CleanTemporary(); Check(!File.Exists(leftover), "Leftover temporary copies are cleaned at startup");
+        var empty = store.Import(new MemoryStream(), "boş.jpg", "image/jpeg");
+        Check(empty.Size == 0 && store.ReadAll(empty).Length == 0, "An empty file round-trips");
+        byte[] valid = File.ReadAllBytes(store.PathFor(v));
+        var tampered = (byte[])valid.Clone(); tampered[24 + AttachmentStore.ChunkSize + 100] ^= 1; File.WriteAllBytes(store.PathFor(v), tampered);
+        Reject(() => store.ReadAll(v), "A flipped byte in a middle chunk is rejected");
+        File.WriteAllBytes(store.PathFor(v), valid[..(24 + 2 * (AttachmentStore.ChunkSize + 16))]);
+        Reject(() => store.ReadAll(v), "A truncated attachment (last chunk missing) is rejected");
+        File.WriteAllBytes(store.PathFor(v), valid.Concat(new byte[] { 7 }).ToArray());
+        Reject(() => store.ReadAll(v), "Trailing data after the last chunk is rejected");
+        File.WriteAllBytes(store.PathFor(v), valid);
+        var wrongKey = new Attachment { Id = v.Id, Key = RandomNumberGenerator.GetBytes(32), Size = v.Size };
+        Reject(() => store.ReadAll(wrongKey), "Wrong key is rejected");
+        var wrongId = new Attachment { Id = "other-id", Key = v.Key, Size = v.Size }; File.Copy(store.PathFor(v), store.PathFor(wrongId));
+        Reject(() => store.ReadAll(wrongId), "A file swapped under another attachment id is rejected");
+        Check(store.ReadAll(v).SequenceEqual(big), "Original attachment still decrypts after tamper checks");
+        var book = new Notebook { Notes = [new Note { Title = "Ekli", Attachments = [a, v] }, new Note { Title = "Silinmiş ama ekli", Deleted = true, DeletedAt = DateTimeOffset.UtcNow, Attachments = [empty] }] };
+        int swept = store.Sweep(book);
+        Check(swept == 1 && !File.Exists(store.PathFor(wrongId)) && File.Exists(store.PathFor(a)) && File.Exists(store.PathFor(v)) && File.Exists(store.PathFor(empty)), "Sweep removes only files no note (not even a trashed one) refers to");
+        string vaultPath = Path.Combine(dir, "notes.vault");
+        using (var vault = VaultSession.CreateDevice(vaultPath, book)) { vault.Save(); vault.VerifySaved(); }
+        string vaultText = File.ReadAllText(vaultPath);
+        Check(!vaultText.Contains(Convert.ToBase64String(a.Key)) && !vaultText.Contains("Tatil"), "Attachment keys and names are only inside the encrypted notebook");
+        using (var vault = VaultSession.OpenDevice(vaultPath))
+        {
+            var loaded = vault.Book.Notes[0].Attachments;
+            Check(loaded.Count == 2 && loaded[0].Key.SequenceEqual(a.Key) && loaded[0].Name == "Tatil fotoğrafı.png" && vault.Attachments.Directory == store.Directory, "Attachment metadata survives the vault round-trip and the store sits beside the vault");
+            Check(vault.Attachments.ReadAll(loaded[0]).SequenceEqual(photo) && vault.Book.SchemaVersion == Notebook.CurrentSchema, "A reopened vault decrypts its attachments; the schema version is current");
+        }
+        var other = new AttachmentStore(Path.Combine(dir, "other"));
+        Check(other.CopyMissing(book, store) == 3 && other.CopyMissing(book, store) == 0 && other.ReadAll(v).SequenceEqual(big), "Copying encrypted files between stores needs no re-encryption and is idempotent");
+        var merged = new Notebook { Notes = [new Note { Id = book.Notes[0].Id, Title = "old", Revision = 0 }] };
+        VaultSession.Merge(merged, book);
+        Check(merged.Notes[0].Attachments.Count == 2 && merged.Notes[0].Attachments[1].Key.SequenceEqual(v.Key) && !ReferenceEquals(merged.Notes[0].Attachments[1], v), "Merge carries attachments (as copies) with the winning revision");
+    }
     static void GateFlow(string root)
     {
         var folder = Path.Combine(root, "gate");
@@ -300,6 +365,7 @@ static class Program
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/Notlar;component/Styles.xaml") });
             if (!args.Contains("--preview")) DeviceFlow(root);
             if (!args.Contains("--preview")) GateFlow(root);
+            if (!args.Contains("--preview")) AttachmentFlow(root);
             var window = new MainWindow(session); window.Show(); Pump();
             window.Activate();
             var title = Find<TextBox>(window, "TitleInput"); var body = Find<TextBox>(window, "BodyInput");
@@ -397,6 +463,50 @@ static class Program
             int dropped = window.ImportDropped([drop1, drop2]);
             Check(dropped == 2 && session.Book.Notes.Count(n => n.Title.StartsWith("Bırakılan")) == 2 && Find<TextBlock>(window, "StatusText").Text == L10n.T("TxtImportedMany", 2), "Dropping TXT files imports each one as a note");
             Check(window.AllowDrop, "Main window accepts file drops");
+            // Photos and videos on a note.
+            var photoNote = (Note)Find<ListBox>(window, "NoteList").SelectedItem;
+            string photoFile = Path.Combine(root, "Deniz kenarı.png"); File.WriteAllBytes(photoFile, Png(800, 500, Colors.DarkOrange));
+            string videoFile = Path.Combine(root, "yürüyüş.mp4"); var clip = new byte[3 * 1024 * 1024 + 123]; RandomNumberGenerator.Fill(clip); File.WriteAllBytes(videoFile, clip);
+            var attaching = window.AttachFilesAsync([photoFile, videoFile, drop1]);
+            while (!attaching.IsCompleted) { Pump(); Thread.Sleep(10); }
+            Check(attaching.Result == 2 && photoNote.Attachments.Count == 2 && Find<TextBlock>(window, "StatusText").Text == L10n.T("AttachmentSelectFile"), "Attaching a photo and a video reports the unsupported file and keeps the two media files");
+            var panel = Find<WrapPanel>(window, "AttachmentPanel");
+            Check(Find<ScrollViewer>(window, "AttachmentScroll").Visibility == Visibility.Visible && panel.Children.Count == 2, "Attachment strip shows one tile per file");
+            var thumbnail = Visuals<Image>(panel).First();
+            var thumbWatch = Stopwatch.StartNew(); while (thumbnail.Source == null && thumbWatch.ElapsedMilliseconds < 5000) { Pump(); Thread.Sleep(20); }
+            Check(thumbnail.Source is BitmapSource thumb && thumb.PixelWidth == 264, "Photo tile decodes a small thumbnail from the encrypted file");
+            Check(session.Attachments.Exists(photoNote.Attachments[0]) && session.Attachments.Directory == Path.Combine(Path.GetDirectoryName(path)!, "attachments"), "Encrypted attachment files live in the attachments folder beside the vault");
+            using (var reopened = VaultSession.Open(path, "replacement test passphrase")) Check(reopened.Book.Notes.Single(n => n.Id == photoNote.Id).Attachments.Count == 2, "Attachment metadata is saved with the note");
+            search.Text = "yürüyüş.mp4"; Pump();
+            Check(Find<ListBox>(window, "NoteList").Items.Count == 1 && photoNote.AttachmentLabel == L10n.T("AttachmentCountMany", 2), "Search finds notes by attachment name; the card shows the attachment count");
+            search.Clear(); Pump();
+            Shot(window, "notlar-attachments.png");
+            var viewer = new AttachmentWindow(window, session.Attachments, photoNote.Attachments[0]); viewer.Show(); Pump();
+            Check(Find<Image>(viewer, "Picture").Source is BitmapSource full && full.PixelWidth == 800 && Find<TextBlock>(viewer, "NameText").Text == "Deniz kenarı.png", "Viewer shows the full decrypted photo");
+            Shot(viewer, "notlar-viewer.png"); viewer.Close(); Pump();
+            string copy = Path.Combine(root, "kopya.mp4");
+            Check(window.SaveAttachmentCopy(photoNote.Attachments[1], copy) && File.ReadAllBytes(copy).SequenceEqual(clip), "Save a copy writes the decrypted original");
+            Check(window.AttachImage(Bitmap(200, 120, Colors.Teal)) && photoNote.Attachments.Count == 3 && photoNote.Attachments[2].MediaType == "image/png" && photoNote.Attachments[2].Width == 200, "A pasted picture becomes a PNG attachment");
+            string attachedBackup = Path.Combine(root, "with-files.vault");
+            Check(window.ExportBackup(attachedBackup, "portable backup passphrase 42") && Directory.GetFiles(VaultSession.BackupFilesDirectory(attachedBackup)).Length == 3, "Portable backup carries the encrypted attachment files beside it");
+            string restoreRoot = Path.Combine(root, "restore-target"); Directory.CreateDirectory(restoreRoot);
+            using (var target = VaultSession.CreateDevice(Path.Combine(restoreRoot, "notes.vault")))
+            {
+                target.Save();
+                var targetWindow = new MainWindow(target); targetWindow.Show(); Pump();
+                Check(targetWindow.RestoreBackup(attachedBackup, "portable backup passphrase 42") && target.Attachments.ReadAll(target.Book.Notes.Single(n => n.Id == photoNote.Id).Attachments[1]).SequenceEqual(clip), "Restoring a backup on another vault brings the attachments along and decrypts them there");
+                targetWindow.Close();
+            }
+            var removed = photoNote.Attachments[1]; string removedPath = session.Attachments.PathFor(removed);
+            window.ConfirmRemoveAttachment = _ => false;
+            Check(!window.RemoveAttachment(removed) && photoNote.Attachments.Count == 3 && File.Exists(removedPath), "Declining the removal prompt keeps the attachment");
+            window.ConfirmRemoveAttachment = _ => true;
+            Check(window.RemoveAttachment(removed) && photoNote.Attachments.Count == 2 && !File.Exists(removedPath) && panel.Children.Count == 2 && Find<TextBlock>(window, "StatusText").Text == L10n.T("AttachmentRemoved"), "Removing an attachment deletes its encrypted file");
+            Click(window, "DeleteButton"); Click(window, "TrashFilter"); Pump();
+            Check(Find<Button>(window, "AttachButton").Visibility == Visibility.Collapsed && File.Exists(session.Attachments.PathFor(photoNote.Attachments[0])), "A note in Recently deleted cannot take attachments but keeps its files");
+            window.ConfirmDestructive = _ => true; Click(window, "PurgeButton");
+            Check(!session.Book.Notes.Contains(photoNote) && !File.Exists(session.Attachments.PathFor(photoNote.Attachments[0])) && Directory.GetFiles(session.Attachments.Directory, "*.bin").Length == 0, "Permanently deleting a note removes its attachment files");
+            Click(window, "AllFilter"); Pump();
             var passwordDialog = new PasswordDialog(window, L10n.T("BackupPasswordTitle"), L10n.T("BackupPasswordCreate"), true); passwordDialog.Show(); Pump();
             Find<PasswordBox>(passwordDialog, "Password").Password = "short"; Click(passwordDialog, "Submit");
             Check(passwordDialog.IsVisible && Find<TextBlock>(passwordDialog, "Error").Visibility == Visibility.Visible, "Password dialog refuses short passwords");

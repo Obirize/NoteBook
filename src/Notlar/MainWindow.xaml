@@ -75,6 +75,10 @@
                   <TextBlock Text="{Binding Preview}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,6,0,8"/>
                   <StackPanel Orientation="Horizontal">
                     <TextBlock Text="{Binding DateLabel}" Foreground="{DynamicResource Muted}" FontSize="11"/>
+                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAttachments}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                      <TextBlock Text="&#xE723;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Foreground="{DynamicResource Muted}" FontSize="11" Margin="0,1,4,0"/>
+                      <TextBlock Text="{Binding AttachmentLabel}" Foreground="{DynamicResource Muted}" FontSize="11"/>
+                    </StackPanel>
                     <TextBlock Text="{Binding TrashLabel}" Foreground="{DynamicResource Muted}" FontSize="11" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Deleted}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
                   </StackPanel>
                 </StackPanel>
@@ -104,6 +108,7 @@
             <Button x:Name="RestoreButton" Content="{local:T Restore}" FontSize="12" Foreground="{DynamicResource Accent}" Visibility="Collapsed" Click="RestoreClick"/>
             <Button x:Name="PurgeButton" Content="{local:T DeletePermanently}" FontSize="12" Foreground="{DynamicResource Danger}" Visibility="Collapsed" ToolTip="{local:T DeletePermanentlyHint}" Click="PurgeClick"/>
             <Button x:Name="ExportButton" Content="&#xE898;" Style="{StaticResource IconButton}" ToolTip="{local:T ExportTxt}" AutomationProperties.Name="{local:T ExportTxt}" Click="ExportClick"/>
+            <Button x:Name="AttachButton" Content="&#xE723;" Style="{StaticResource IconButton}" ToolTip="{local:T AttachAdd}" AutomationProperties.Name="{local:T AttachAdd}" Click="AttachClick"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <Button Content="&#xE921;" Style="{StaticResource IconButton}" Focusable="False" AutomationProperties.Name="{local:T Minimize}" Click="MinimizeClick"/>
@@ -112,13 +117,16 @@
           </StackPanel>
         </Grid>
         <Grid Grid.Row="1" x:Name="EditorArea" Margin="48,14,12,0">
-          <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
           <TextBlock x:Name="DateText" HorizontalAlignment="Center" FontSize="11" Foreground="{DynamicResource Muted}"/>
           <Grid Grid.Row="1" Margin="0,12,0,22">
             <TextBlock x:Name="TitleHint" Text="{local:T NewNote}" FontSize="30" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" IsHitTestVisible="False"/>
             <TextBox x:Name="TitleInput" Margin="0,0,36,0" FontSize="30" FontWeight="SemiBold" MaxLength="500" AutomationProperties.Name="{local:T NoteTitle}" TextChanged="EditorChanged" KeyDown="TitleKeyDown"/>
           </Grid>
-          <Grid Grid.Row="2">
+          <ScrollViewer x:Name="AttachmentScroll" Grid.Row="2" Margin="0,0,36,0" MaxHeight="292" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
+            <WrapPanel x:Name="AttachmentPanel" Margin="0,0,0,18" AutomationProperties.Name="{local:T AttachDropHint}"/>
+          </ScrollViewer>
+          <Grid Grid.Row="3">
             <TextBlock x:Name="BodyHint" Margin="0,0,36,0" Text="{local:T BodyHint}" FontSize="16" Foreground="{DynamicResource Muted}" IsHitTestVisible="False"/>
             <TextBox x:Name="BodyInput" Padding="0,0,36,0" FontSize="16" TextBlock.LineHeight="28" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" IsUndoEnabled="True" UndoLimit="100" SpellCheck.IsEnabled="False" AutomationProperties.Name="{local:T NoteBody}" TextChanged="EditorChanged"/>
           </Grid>

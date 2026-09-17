@@ -19,6 +19,7 @@ An Apple Notes–style notebook for Windows: local, dark, and encrypted at rest.
 - Smooth pixel-based wheel scrolling in both the list and the editor, following the Windows "lines per notch" setting.
 - Multi-select: delete, restore or permanently delete many notes at once. Permanent deletion always asks first.
 - Import `.txt` files as notes (open, or drag and drop onto the window), export any note as UTF-8 `.txt` named after its title.
+- Photos and videos on a note: the paperclip button, drag and drop, or Ctrl+V with a picture on the clipboard. Thumbnails above the text; click one for a full-size viewer with video playback. Every file is stored encrypted with its own key.
 - Context menus, keyboard shortcuts, custom dark chrome, themed scrollbars.
 - Single instance: opening a file or a new note while the app runs is forwarded to the open window.
 - Automatic updates from GitHub Releases (the only network request the app makes).
@@ -46,6 +47,8 @@ Portable use also works: unzip, keep `Not Defteri.exe` next to the `app` folder,
 | Ctrl+N | New note |
 | Ctrl+O | Open a TXT file as a new note |
 | Ctrl+Shift+S | Save the open note as an unencrypted TXT copy |
+| Ctrl+Shift+A | Add photos or videos to the open note |
+| Ctrl+V (picture or media files on the clipboard) | Attach it to the open note |
 | Ctrl+K / Ctrl+F | Search |
 | Ctrl+S | Save now / retry a failed save |
 | Ctrl+Z / Ctrl+Y | Undo / redo text edits |
@@ -58,6 +61,8 @@ Portable use also works: unzip, keep `Not Defteri.exe` next to the `app` folder,
 
 Note text, titles, dates and imported legacy files are encrypted with AES-256-GCM. A random 256-bit content key is wrapped with Windows DPAPI (`CurrentUser`) and stored in the vault; it is never written in the clear, and every save uses a fresh nonce. Any modification of the content or the key fails authentication.
 
+Photos and videos are not put into the vault file. Each attachment is written to `data/attachments/<id>.bin`, encrypted in 1 MB chunks with AES-256-GCM under its own random 256-bit key; the key, name, size and hash live only inside the encrypted notebook. Every chunk authenticates the file header, the attachment id, its index and a "last chunk" flag, so chunks cannot be reordered, dropped, truncated or moved between files. Because the file never has to be re-encrypted, a backup (or, later, another device) receives it byte for byte. Playing a video hands the player a decrypted copy in the temp folder that is deleted when the viewer closes.
+
 There is no separate application password, setup screen or idle lock: the normal Windows sign-in protects your notes. The goal is that **someone who copies the vault file alone cannot read it**. A program running under the same Windows account, or a person at your unlocked session, can open the notes. This is not a defense against malware with administrator rights, keyloggers or memory dumps.
 
 References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope), [AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm). No telemetry. Not yet independently audited.
@@ -66,12 +71,13 @@ References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/s
 
 - `data/notes.vault` — the encrypted notebook.
 - `data/notes.vault.bak` — the previous encrypted save.
+- `data/attachments/` — encrypted photos and videos, one file per attachment.
 
-**Backup** (the box icon in the sidebar) → *Create backup…* writes a single `.vault` file protected by a password you choose (PBKDF2 600k + AES-256-GCM, with its own random key). It opens on any PC with that password — it does not depend on your Windows account. *Restore from backup…* merges a backup into your notebook: notes missing locally are added, the newer revision of each note wins, and nothing is ever removed. Restoring also accepts a plain copy of `notes.vault` from the same Windows account.
+**Backup** (the box icon in the sidebar) → *Create backup…* writes a single `.vault` file protected by a password you choose (PBKDF2 600k + AES-256-GCM, with its own random key). It opens on any PC with that password — it does not depend on your Windows account. *Restore from backup…* merges a backup into your notebook: notes missing locally are added, the newer revision of each note wins, and nothing is ever removed. Restoring also accepts a plain copy of `notes.vault` from the same Windows account. When the notebook has attachments, the backup gets a `<name>.vault.files` folder beside it with the encrypted files; keep the two together. Restoring copies the files it lacks.
 
 If the main file cannot be opened, the app offers to try the previous save; damaged files are kept as `.damaged-…`, never silently replaced with empty notes.
 
-Notes moved to Recently deleted are purged after 30 days (each card shows the remaining time). "Delete permanently" removes a note from the vault, the rolling backup and any imported legacy archive at once.
+Notes moved to Recently deleted are purged after 30 days (each card shows the remaining time). "Delete permanently" removes a note from the vault, the rolling backup and any imported legacy archive at once, together with its attachment files.
 
 ## Opening TXT files
 

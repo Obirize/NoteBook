@@ -8,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
@@ -18,19 +19,22 @@ public partial class MainWindow : Window
     private readonly VaultSession session;
     private Note? current;
     private List<Note> lastDeleted = [];
-    private bool loading, dirty, trash, selecting, purged;
+    private bool loading, dirty, trash, selecting, purged, sweep, importing;
+    private readonly Dictionary<string, BitmapSource> thumbnails = [];
     private readonly DispatcherTimer saveTimer = new() { Interval = TimeSpan.FromMilliseconds(650) };
     private readonly DispatcherTimer idleTimer = new() { Interval = TimeSpan.FromSeconds(15) };
     private DateTime lastInput = DateTime.UtcNow;
     public bool LockRequested { get; private set; }
     // Permanent deletion asks before proceeding; tests replace this to avoid a modal dialog.
     public Func<string, bool> ConfirmDestructive { get; set; }
+    public Func<string, bool> ConfirmRemoveAttachment { get; set; }
     private Updater.Release? update;
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
     public MainWindow(VaultSession vault)
     {
         session = vault;
         ConfirmDestructive = message => MessageDialog.Ask(this, L10n.T("DeletePermanently"), message, L10n.T("DeletePermanently"), danger: true);
+        ConfirmRemoveAttachment = message => MessageDialog.Ask(this, L10n.T("RemoveAttachmentTitle"), message, L10n.T("RemoveAttachmentTitle"), danger: true);
         AskPassword = confirm =>
         {
             var dialog = new PasswordDialog(this, L10n.T("BackupPasswordTitle"), L10n.T(confirm ? "BackupPasswordCreate" : "BackupPasswordOpen"), confirm);
@@ -50,12 +54,14 @@ public partial class MainWindow : Window
         {
             saveTimer.Stop(); idleTimer.Stop(); SystemEvents.SessionSwitch -= SessionSwitch; SystemEvents.PowerModeChanged -= PowerChanged;
             loading = true; TitleInput.Clear(); BodyInput.Clear(); ClearUndo(BodyInput); ClearUndo(TitleInput); SearchInput.Clear(); NoteList.ItemsSource = null;
-            current = null; lastDeleted = [];
+            current = null; lastDeleted = []; thumbnails.Clear(); AttachmentPanel.Children.Clear();
         };
         SourceInitialized += (_, _) => { int rounded = 2; DwmSetWindowAttribute(new WindowInteropHelper(this).Handle, 33, ref rounded, 4); };
         WindowPlacement.Attach(this);
         SystemEvents.SessionSwitch += SessionSwitch; SystemEvents.PowerModeChanged += PowerChanged;
         PurgeExpired();
+        // Files left behind by a crash or by an older save no note refers to any more.
+        session.Attachments.Sweep(session.Book);
         RefreshList(session.Book.Notes.Where(n => !n.Deleted).OrderByDescending(n => n.Updated).FirstOrDefault()?.Id);
         if (!session.IsDeviceProtected) idleTimer.Start();
         VersionText.Text = L10n.T("OnThisPc") + " · " + Updater.CurrentLabel;
@@ -92,7 +98,7 @@ public partial class MainWindow : Window
         var now = DateTimeOffset.UtcNow;
         bool changed = TrashPolicy.InitializeDates(session.Book, now);
         var expired = TrashPolicy.Expired(session.Book, now);
-        if (expired.Count > 0) { TrashPolicy.Purge(session.Book, expired); purged = true; changed = true; }
+        if (expired.Count > 0) { TrashPolicy.Purge(session.Book, expired); purged = true; sweep = true; changed = true; }
         if (changed) { dirty = true; SaveNow(); }
     }
     private void SessionSwitch(object sender, SessionSwitchEventArgs e) { if (e.Reason == SessionSwitchReason.SessionLock) Dispatcher.BeginInvoke(() => { if (session.IsDeviceProtected) SaveNow(); else Lock(); }); }
@@ -106,7 +112,10 @@ public partial class MainWindow : Window
         if (Keyboard.Modifiers == ModifierKeys.Shift && e.Key == Key.Delete && Keyboard.FocusedElement is not TextBoxBase && (selecting || current != null)) { PurgeClick(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Escape && selecting) { SetSelecting(false); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S) { ExportClick(this, e); e.Handled = true; return; }
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.A) { AttachClick(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
+        // Ctrl+V with a picture or media files on the clipboard (and no text) attaches instead of pasting nothing.
+        if (e.Key == Key.V && PasteAttachment()) { e.Handled = true; return; }
         if (e.Key == Key.O) { ImportClick(this, e); e.Handled = true; }
         if (e.Key == Key.N) { NewNote(); e.Handled = true; }
         if (e.Key == Key.A && selecting) { SelectAllClick(this, e); e.Handled = true; }
@@ -143,6 +152,7 @@ public partial class MainWindow : Window
         TitleInput.Text = note?.Title ?? ""; BodyInput.Text = note?.Text ?? "";
         ClearUndo(TitleInput); ClearUndo(BodyInput);
         BodyInput.CaretIndex = 0;
+        RenderAttachments();
         loading = false; UpdateState();
     }
     private void UpdateState()
@@ -156,7 +166,8 @@ public partial class MainWindow : Window
         TitleInput.IsReadOnly = BodyInput.IsReadOnly = trash;
         TitleHint.Visibility = TitleInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         BodyHint.Visibility = BodyInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        PinButton.Visibility = DeleteButton.Visibility = ExportButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        PinButton.Visibility = DeleteButton.Visibility = ExportButton.Visibility = AttachButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        AttachButton.IsEnabled = !importing;
         RestoreButton.Visibility = PurgeButton.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
         PinButton.ToolTip = L10n.T(current?.Pinned == true ? "UnpinNote" : "PinNote");
         System.Windows.Automation.AutomationProperties.SetName(PinButton, (string)PinButton.ToolTip);
@@ -200,7 +211,12 @@ public partial class MainWindow : Window
     {
         saveTimer.Stop();
         if (!dirty) return true;
-        try { session.Save(purged); purged = false; dirty = false; StatusText.Text = L10n.T("SavedEncrypted"); RefreshList(); return true; }
+        try
+        {
+            session.Save(purged); purged = false; dirty = false; StatusText.Text = L10n.T("SavedEncrypted");
+            if (sweep) { session.Attachments.Sweep(session.Book); sweep = false; }
+            RefreshList(); return true;
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
         { StatusText.Text = L10n.T("SaveFailed"); return false; }
     }
@@ -311,7 +327,7 @@ public partial class MainWindow : Window
         if (notes.Count == 0 || !SaveNow()) return;
         string message = notes.Count == 1 ? L10n.T("ConfirmPurgeOne", notes[0].DisplayTitle) : L10n.T("ConfirmPurgeMany", notes.Count);
         if (!ConfirmDestructive(message)) return;
-        TrashPolicy.Delete(notes, DateTimeOffset.UtcNow); TrashPolicy.Purge(session.Book, notes); purged = true; dirty = true;
+        TrashPolicy.Delete(notes, DateTimeOffset.UtcNow); TrashPolicy.Purge(session.Book, notes); purged = true; sweep = true; dirty = true;
         if (!SaveNow()) return;
         StatusText.Text = L10n.Count("PurgedOne", "PurgedMany", notes.Count);
         lastDeleted.RemoveAll(notes.Contains);
@@ -413,10 +429,17 @@ public partial class MainWindow : Window
         try
         {
             (int added, int updated) result;
-            using (var backup = VaultSession.OpenBackup(path, password)) result = VaultSession.Merge(session.Book, backup.Book);
-            if (result.added == 0 && result.updated == 0) { StatusText.Text = L10n.T("RestoreNothing"); return true; }
+            int copied;
+            using (var backup = VaultSession.OpenBackup(path, password))
+            {
+                result = VaultSession.Merge(session.Book, backup.Book);
+                // Encrypted attachment files travel as they are; their keys arrived inside the merged notes.
+                copied = session.Attachments.CopyMissing(session.Book, backup.Attachments);
+            }
+            if (result.added == 0 && result.updated == 0 && copied == 0) { StatusText.Text = L10n.T("RestoreNothing"); return true; }
             dirty = true;
             if (!SaveNow()) return false;
+            RenderAttachments();
             if (selecting) SetSelecting(false);
             RefreshList();
             StatusText.Text = L10n.T("RestoreResult", result.added, result.updated);
@@ -425,19 +448,25 @@ public partial class MainWindow : Window
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or FormatException)
         { StatusText.Text = L10n.T(ex is System.Security.Cryptography.CryptographicException ? "PasswordWrong" : "RestoreFailed"); return false; }
     }
-    private static string[] DroppedTextFiles(DragEventArgs e) =>
-        e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] files
-            ? files.Where(f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)).ToArray() : [];
+    private static string[] DroppedFiles(DragEventArgs e) =>
+        e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] files ? files : [];
+    private static string[] TextFilesOf(string[] files) => files.Where(f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)).ToArray();
+    private string[] MediaFilesOf(string[] files) => CanAttach ? files.Where(AttachmentStore.IsSupported).ToArray() : [];
+    private bool CanAttach => current != null && !trash && !selecting && !importing;
     private void FileDragOver(object sender, DragEventArgs e)
     {
-        if (DroppedTextFiles(e).Length == 0) return;
+        var files = DroppedFiles(e);
+        if (TextFilesOf(files).Length == 0 && MediaFilesOf(files).Length == 0) return;
         e.Effects = DragDropEffects.Copy; e.Handled = true;
     }
     private void FileDrop(object sender, DragEventArgs e)
     {
-        var files = DroppedTextFiles(e);
-        if (files.Length == 0) return;
-        e.Handled = true; ImportDropped(files);
+        var files = DroppedFiles(e);
+        var media = MediaFilesOf(files); var text = TextFilesOf(files);
+        if (media.Length == 0 && text.Length == 0) return;
+        e.Handled = true;
+        if (media.Length > 0) _ = AttachFilesAsync(media);
+        if (text.Length > 0) ImportDropped(text);
     }
     // Imports each dropped .txt as a note; reports how many succeeded.
     public int ImportDropped(string[] files)
@@ -450,6 +479,172 @@ public partial class MainWindow : Window
         }
         StatusText.Text = error ?? (count == 1 ? L10n.T("TxtImported") : L10n.T("TxtImportedMany", count));
         return count;
+    }
+    // ----- Photos and videos -----
+    private void AttachClick(object sender, RoutedEventArgs e)
+    {
+        if (!CanAttach) return;
+        string patterns = string.Join(";", AttachmentStore.ImageExtensions.Concat(AttachmentStore.VideoExtensions).Select(x => "*" + x));
+        var dialog = new OpenFileDialog { Title = L10n.T("AttachAdd"), Filter = L10n.T("AttachFilterMedia") + " (" + patterns + ")|" + patterns + "|" + L10n.T("AllFiles") + " (*.*)|*.*", Multiselect = true, CheckFileExists = true };
+        if (dialog.ShowDialog(this) != true) return;
+        _ = AttachFilesAsync(dialog.FileNames);
+    }
+    // Encrypts each file into the store off the UI thread, then adds it to the open note. Returns how many succeeded.
+    public async Task<int> AttachFilesAsync(IEnumerable<string> paths)
+    {
+        if (!CanAttach || !SaveNow()) return 0;
+        var note = current!; var files = paths.ToList(); var added = new List<Attachment>(); string? error = null;
+        importing = true; UpdateState(); StatusText.Text = L10n.T("Saving");
+        await Task.Run(() =>
+        {
+            foreach (string path in files)
+            {
+                try { added.Add(session.Attachments.Import(path)); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or System.Security.Cryptography.CryptographicException)
+                { error = ex is InvalidDataException ? ex.Message : L10n.T("AttachmentFailed"); }
+            }
+        });
+        // Resume explicitly on the UI thread: without a synchronization context (tests) the continuation may land elsewhere.
+        await Dispatcher.InvokeAsync(() => { importing = false; note.Attachments.AddRange(added); FinishAttach(note, added.Count, error); });
+        return added.Count;
+    }
+    private void FinishAttach(Note note, int count, string? error)
+    {
+        if (count > 0)
+        {
+            note.Updated = DateTimeOffset.UtcNow; note.Revision++; dirty = true;
+            if (!SaveNow()) { UpdateState(); return; }
+            if (current == note) RenderAttachments();
+        }
+        UpdateState();
+        StatusText.Text = error ?? (count == 1 ? L10n.T("AttachmentAdded") : L10n.T("AttachmentAddedMany", count));
+    }
+    // A picture (or media files) on the clipboard becomes an attachment; text on the clipboard keeps normal paste.
+    public bool PasteAttachment()
+    {
+        if (!CanAttach) return false;
+        try
+        {
+            if (Clipboard.ContainsFileDropList())
+            {
+                var files = Clipboard.GetFileDropList().Cast<string>().Where(AttachmentStore.IsSupported).ToArray();
+                if (files.Length == 0) return false;
+                _ = AttachFilesAsync(files); return true;
+            }
+            if (Clipboard.ContainsText() || !Clipboard.ContainsImage()) return false;
+            var image = Clipboard.GetImage();
+            if (image == null) return false;
+            return AttachImage(image);
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or System.Runtime.InteropServices.ExternalException) { return false; }
+    }
+    public bool AttachImage(BitmapSource image)
+    {
+        if (!CanAttach || !SaveNow()) return false;
+        var note = current!;
+        using var buffer = new MemoryStream();
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(image)); encoder.Save(buffer);
+        buffer.Position = 0;
+        try { note.Attachments.Add(session.Attachments.Import(buffer, "Image " + DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss") + ".png", "image/png", (image.PixelWidth, image.PixelHeight))); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException) { FinishAttach(note, 0, L10n.T("AttachmentFailed")); return false; }
+        FinishAttach(note, 1, null); return true;
+    }
+    public bool RemoveAttachment(Attachment attachment)
+    {
+        if (!CanAttach || !current!.Attachments.Contains(attachment) || !SaveNow()) return false;
+        if (!ConfirmRemoveAttachment(L10n.T("ConfirmRemoveAttachment", attachment.Name))) return false;
+        current.Attachments.Remove(attachment); thumbnails.Remove(attachment.Id);
+        Touch(); sweep = true;
+        if (!SaveNow()) return false;
+        RenderAttachments(); UpdateState();
+        StatusText.Text = L10n.T("AttachmentRemoved");
+        return true;
+    }
+    public bool SaveAttachmentCopy(Attachment attachment, string? targetPath = null)
+    {
+        if (targetPath == null)
+        {
+            var dialog = new SaveFileDialog { Title = L10n.T("AttachmentSaveTitle"), FileName = attachment.Name, Filter = L10n.T("AllFiles") + " (*.*)|*.*", DefaultExt = Path.GetExtension(attachment.Name) };
+            if (dialog.ShowDialog(this) != true) return false;
+            targetPath = dialog.FileName;
+        }
+        try { session.Attachments.Export(attachment, targetPath); StatusText.Text = L10n.T("AttachmentSaved"); return true; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or ArgumentException)
+        { StatusText.Text = L10n.T(ex is System.Security.Cryptography.CryptographicException or FileNotFoundException ? "AttachmentOpenFailed" : "AttachmentSaveFailed"); return false; }
+    }
+    private void OpenAttachment(Attachment attachment)
+    {
+        if (!SaveNow()) return;
+        if (!session.Attachments.Exists(attachment)) { StatusText.Text = L10n.T("AttachmentOpenFailed"); return; }
+        var viewer = new AttachmentWindow(this, session.Attachments, attachment) { SaveCopy = () => SaveAttachmentCopy(attachment) };
+        viewer.ShowDialog();
+    }
+    private void RenderAttachments()
+    {
+        AttachmentPanel.Children.Clear();
+        var note = current;
+        AttachmentScroll.Visibility = note != null && note.Attachments.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (note == null) return;
+        foreach (var attachment in note.Attachments) AttachmentPanel.Children.Add(BuildTile(attachment));
+    }
+    private FrameworkElement BuildTile(Attachment attachment)
+    {
+        const double size = 132;
+        bool present = session.Attachments.Exists(attachment);
+        var icons = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
+        var content = new Grid { Clip = new RectangleGeometry(new Rect(0, 0, size, size), 10, 10) };
+        var icon = new TextBlock { Text = !present ? "\uE7BA" : attachment.IsVideo ? "\uE714" : "\uEB9F", FontFamily = icons, FontSize = 30, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        icon.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+        var picture = new Image { Stretch = Stretch.UniformToFill };
+        RenderOptions.SetBitmapScalingMode(picture, BitmapScalingMode.HighQuality);
+        var caption = new Border { VerticalAlignment = VerticalAlignment.Bottom, Padding = new Thickness(9, 14, 9, 7), Background = new LinearGradientBrush(Color.FromArgb(0, 0, 0, 0), Color.FromArgb(200, 0, 0, 0), 90) };
+        var name = new TextBlock { Text = attachment.Name, FontSize = 11, Foreground = Brushes.White, TextTrimming = TextTrimming.CharacterEllipsis };
+        var detail = new TextBlock { Text = present ? attachment.SizeLabel : L10n.T("AttachmentMissing"), FontSize = 10, Foreground = new SolidColorBrush(Color.FromRgb(0xC8, 0xC7, 0xCC)) };
+        caption.Child = new StackPanel { Children = { name, detail } };
+        content.Children.Add(icon); content.Children.Add(picture); content.Children.Add(caption);
+        var tile = new Border { Width = size, Height = size, Margin = new Thickness(0, 0, 10, 10), CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1), Child = content, Cursor = Cursors.Hand, Focusable = true, Tag = attachment, ToolTip = attachment.Name + " · " + attachment.SizeLabel + (attachment.Width > 0 ? " · " + attachment.Width + "×" + attachment.Height : "") };
+        tile.SetResourceReference(Border.BackgroundProperty, "Surface"); tile.SetResourceReference(Border.BorderBrushProperty, "Rule");
+        System.Windows.Automation.AutomationProperties.SetName(tile, attachment.Name);
+        tile.MouseEnter += (_, _) => tile.SetResourceReference(Border.BorderBrushProperty, "Accent");
+        tile.MouseLeave += (_, _) => tile.SetResourceReference(Border.BorderBrushProperty, "Rule");
+        tile.MouseLeftButtonUp += (_, _) => OpenAttachment(attachment);
+        tile.KeyDown += (_, e) => { if (e.Key == Key.Enter) { OpenAttachment(attachment); e.Handled = true; } else if (e.Key == Key.Delete && !trash) { RemoveAttachment(attachment); e.Handled = true; } };
+        var menu = new ContextMenu();
+        var open = new MenuItem { Header = L10n.T("AttachmentOpen") }; open.Click += (_, _) => OpenAttachment(attachment); menu.Items.Add(open);
+        var save = new MenuItem { Header = L10n.T("AttachmentSaveAs") }; save.Click += (_, _) => SaveAttachmentCopy(attachment); menu.Items.Add(save);
+        if (!trash)
+        {
+            menu.Items.Add(new Separator());
+            var remove = new MenuItem { Header = L10n.T("AttachmentRemove"), Style = (Style)FindResource("DangerMenuItem") }; remove.Click += (_, _) => RemoveAttachment(attachment); menu.Items.Add(remove);
+        }
+        tile.ContextMenu = menu;
+        if (present && attachment.IsImage) LoadThumbnail(attachment, picture, icon);
+        return tile;
+    }
+    private void LoadThumbnail(Attachment attachment, Image target, TextBlock placeholder)
+    {
+        if (thumbnails.TryGetValue(attachment.Id, out var cached)) { target.Source = cached; placeholder.Visibility = Visibility.Collapsed; return; }
+        _ = Task.Run(() =>
+        {
+            BitmapSource bitmap;
+            try
+            {
+                using var stream = new MemoryStream(session.Attachments.ReadAll(attachment));
+                var image = new BitmapImage();
+                image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad; image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile; image.StreamSource = stream;
+                if (attachment.Width >= attachment.Height) image.DecodePixelWidth = 264; else image.DecodePixelHeight = 264;
+                image.EndInit(); image.Freeze();
+                bitmap = image;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or NotSupportedException or FileFormatException or ArgumentException or InvalidOperationException or ObjectDisposedException) { return; }
+            // Decoding ran on the pool; the control belongs to the UI thread.
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (thumbnails.Count > 200) thumbnails.Clear();
+                thumbnails[attachment.Id] = bitmap;
+                target.Source = bitmap; placeholder.Visibility = Visibility.Collapsed;
+            });
+        });
     }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {

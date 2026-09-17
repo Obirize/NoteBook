@@ -21,6 +21,8 @@ Windows için sade, yerel ve arka planda şifrelenen not defteri. C# / WPF ve .N
 | Ctrl+N | Yeni not |
 | Ctrl+O | TXT dosyasını yeni not olarak aç |
 | Ctrl+Shift+S | Açık notu şifresiz TXT kopyası olarak kaydet |
+| Ctrl+Shift+A | Açık nota fotoğraf veya video ekle |
+| Ctrl+V (panoda resim veya medya dosyası varken) | Açık nota ek olarak yapıştır |
 | Ctrl+K / Ctrl+F | Arama |
 | Ctrl+S | Hemen kaydet / hatalı kaydı yeniden dene |
 | Ctrl+Z / Ctrl+Y | Metin düzenlemesini geri al / yinele |
@@ -68,6 +70,8 @@ Arayüz 13 dilde: Türkçe, İngilizce, İspanyolca, Çince, Hintçe, Arapça (s
 
 Not içeriği, başlıklar, tarihler ve eski dosya arşivleri AES-256-GCM ile şifrelenir. Rastgele 256 bit içerik anahtarı, Windows DPAPI `CurrentUser` ile korunarak kasaya yazılır. Anahtar dosyada açık olarak bulunmaz; her kayıtta yeni nonce kullanılır. İçerik veya anahtar değiştirildiğinde doğrulama başarısız olur.
 
+Fotoğraf ve videolar kasa dosyasına konmaz. Her ek `data/attachments/<id>.bin` olarak, kendi rastgele 256 bit anahtarıyla 1 MB'lık parçalar halinde AES-256-GCM ile şifrelenir; anahtar, dosya adı, boyut ve özet yalnızca şifreli not defterinin içinde durur. Her parça dosya başlığını, ek kimliğini, parça sırasını ve "son parça" işaretini doğrular; parçalar yeniden sıralanamaz, atılamaz, kesilemez veya başka dosyaya taşınamaz. Dosyanın yeniden şifrelenmesi gerekmediği için yedek (ileride başka bir cihaz) dosyayı olduğu gibi, bayt bayt alır. Video oynatılırken oynatıcıya geçici klasörde çözülmüş bir kopya verilir; görüntüleyici kapanınca silinir.
+
 Uygulama için ayrı parola, kurulum ekranı veya beş dakikada bir kilit yoktur. Normal Windows oturum koruması geçerlidir. Bu, **not dosyasını tek başına kopyalayan kişinin doğrudan okumasını önlemeye** yöneliktir. Aynı Windows hesabı altında çalışan bir program veya açık oturumunuza erişen kişi notları açabilir. Zararlı yazılım, yönetici yetkisiyle hesabın ele geçirilmesi, ekran/klavye kaydı veya bellek dökümüne karşı mutlak koruma değildir.
 
 DPAPI dayanağı: [Microsoft DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope). İçerik şifreleme: [Microsoft AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm).
@@ -94,10 +98,15 @@ Dosya silme işlemi eski disk kalıntılarını, SSD kurtarma olasılığını v
 
 - `data/notes.vault`: ana şifreli kayıt.
 - `data/notes.vault.bak`: önceki şifreli kayıt.
+- `data/attachments/`: şifreli fotoğraf ve videolar, her ek için bir dosya.
 
-**Yedek** (kenar çubuğundaki kutu simgesi) → *Yedek al…*, seçtiğiniz parolayla korunan tek bir `.vault` dosyası yazar (PBKDF2 600k + AES-256-GCM, kendi rastgele anahtarıyla). Bu dosya o parolayla **her bilgisayarda** açılır; Windows hesabına bağlı değildir. *Yedekten geri yükle…* yedeği notlarınızla birleştirir: yerelde olmayan notlar eklenir, her notun daha yeni revizyonu kazanır, hiçbir şey silinmez. Aynı Windows hesabından alınmış düz `notes.vault` kopyası da geri yüklenebilir.
+**Yedek** (kenar çubuğundaki kutu simgesi) → *Yedek al…*, seçtiğiniz parolayla korunan tek bir `.vault` dosyası yazar (PBKDF2 600k + AES-256-GCM, kendi rastgele anahtarıyla). Bu dosya o parolayla **her bilgisayarda** açılır; Windows hesabına bağlı değildir. *Yedekten geri yükle…* yedeği notlarınızla birleştirir: yerelde olmayan notlar eklenir, her notun daha yeni revizyonu kazanır, hiçbir şey silinmez. Aynı Windows hesabından alınmış düz `notes.vault` kopyası da geri yüklenebilir. Not defterinde ek varsa yedeğin yanına `<ad>.vault.files` klasörü yazılır; ikisini birlikte saklayın. Geri yükleme eksik dosyaları kopyalar.
 
 TXT dosyaları pencereye sürükleyip bırakarak da eklenebilir.
+
+## Fotoğraf ve video
+
+Bir not açıkken üst çubuktaki ataş düğmesi (Ctrl+Shift+A), pencereye sürükleyip bırakma veya panoda resim varken Ctrl+V nota fotoğraf ya da video ekler. Küçük resimler metnin üstünde görünür; tıklayınca tam boy görüntüleyici açılır, videolar uygulama içinde oynatılır (boşluk tuşu duraklatır, Esc kapatır). Sağ tık menüsünden dosyanın şifresiz bir kopyası kaydedilebilir veya ek nottan kaldırılabilir. Diskteki orijinal dosya hiçbir zaman değiştirilmez veya silinmez.
 
 Ana kayıt açılamazsa uygulama önceki şifreli kaydı denemeyi sorar. Doğrulanmış yedek atomik olarak geri yüklenir; hasarlı kayıt `.damaged-...` olarak korunur. Bozuk dosyalar sessizce boş notlara dönüştürülmez. Disk doluluğu/izin hatasında son değişiklik açık tutulur ve hata gösterilir.
 
