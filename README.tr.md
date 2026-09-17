@@ -34,8 +34,6 @@ Windows için sade, yerel ve arka planda şifrelenen not defteri. C# / WPF ve .N
 
 `Not Defteri.exe --new` doğrudan yeni bir not açar (masaüstü sağ tık menüsündeki “Yeni not (Notlar)” bunu kullanır).
 
-Taşınabilir kullanımda `txt-kaydet.cmd`, Notlar'ı `.txt` için "Birlikte aç" listesine ekler (yalnızca geçerli Windows hesabı, yönetici gerekmez). Varsayılan yapmak için *Ayarlar → Uygulamalar → Varsayılan uygulamalar → Dosya türüne göre → .txt → Notlar* seçilir; Windows bu son adımı yalnızca kullanıcıya bırakır. `txt-kaydi-kaldir.cmd` kaydı geri alır. Windows Not Defteri'ni kaldırmak önerilmez; bazı programlar ve betikler `notepad.exe`'yi doğrudan çağırır.
-
 ## Kurulum paketi
 
 `build-setup.cmd`, [Inno Setup 6](https://jrsoftware.org/isdl.php) ile `dist/NoteBook-Setup-<sürüm>.exe` üretir (`setup/Notlar.iss`). Kurulum kullanıcı düzeyindedir: yönetici izni istemez, `%LocalAppData%\Programs\Notlar` altına kurulur, notlar `…\Notlar\data` içinde tutulur ve kaldırmada silinmez. Kurulumda seçilebilen bütünleşmeler:
