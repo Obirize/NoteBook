@@ -1,0 +1,141 @@
+using System.IO;
+using System.IO.Pipes;
+using System.Text;
+using System.Threading;
+using System.Windows;
+
+namespace Notlar;
+
+public partial class App : Application
+{
+    public static string DataDirectory { get; } = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "data"));
+    private static readonly string InstanceName = "Notlar-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(DataDirectory)))[..20];
+    private Mutex? mutex;
+    private CancellationTokenSource? pipeStop;
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+        var files = e.Args.Where(a => a.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) && File.Exists(a)).Select(Path.GetFullPath).ToList();
+        bool fresh = e.Args.Contains("--new", StringComparer.OrdinalIgnoreCase);
+        mutex = new Mutex(true, "Local\\" + InstanceName, out bool owns);
+        if (!owns)
+        {
+            // Hand the request to the running window instead of showing a second copy.
+            if (!Forward(files, fresh)) MessageBox.Show("Notlar zaten açık. Görev çubuğundan açık pencereye geçebilirsiniz.", "Notlar");
+            Shutdown(); return;
+        }
+        try
+        {
+            using var session = OpenNotes();
+            if (session == null) { Shutdown(); return; }
+            var editor = new MainWindow(session);
+            MainWindow = editor;
+            pipeStop = new CancellationTokenSource();
+            _ = Listen(editor, pipeStop.Token);
+            editor.Loaded += (_, _) => { foreach (string file in files) Open(editor, file); if (fresh) editor.CreateNote(); };
+            editor.ShowDialog();
+            pipeStop.Cancel();
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or ArgumentException)
+        { MessageBox.Show("Notlar açılamadı. Mevcut data klasörünüzü silmeyin. Bu notları oluşturduğunuz Windows hesabını kullandığınızdan ve klasöre erişebildiğinizden emin olun.", "Notlar", MessageBoxButton.OK, MessageBoxImage.Information); }
+        finally { mutex.ReleaseMutex(); mutex.Dispose(); }
+        Shutdown();
+    }
+    private static void Open(MainWindow editor, string file)
+    {
+        try { editor.ImportTextFile(file); }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
+        { MessageBox.Show(editor, ex is InvalidDataException ? ex.Message : "Dosya açılamadı: " + file, "Notlar"); }
+    }
+    private static bool Forward(List<string> files, bool fresh)
+    {
+        try
+        {
+            using var pipe = new NamedPipeClientStream(".", InstanceName, PipeDirection.Out);
+            pipe.Connect(3000);
+            using var writer = new StreamWriter(pipe, new UTF8Encoding(false));
+            writer.WriteLine("activate");
+            foreach (string file in files) writer.WriteLine("open " + file);
+            if (fresh) writer.WriteLine("new");
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException) { return false; }
+    }
+    private static async Task Listen(MainWindow editor, CancellationToken stop)
+    {
+        while (!stop.IsCancellationRequested)
+        {
+            try
+            {
+                using var pipe = new NamedPipeServerStream(InstanceName, PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                await pipe.WaitForConnectionAsync(stop);
+                using var reader = new StreamReader(pipe, Encoding.UTF8);
+                string? line;
+                while ((line = await reader.ReadLineAsync(stop)) != null)
+                {
+                    string command = line;
+                    await editor.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (editor.WindowState == WindowState.Minimized) editor.WindowState = WindowState.Normal;
+                        editor.Activate();
+                        if (command.StartsWith("open ") && File.Exists(command[5..])) Open(editor, command[5..]);
+                        else if (command == "new") editor.CreateNote();
+                    });
+                }
+            }
+            catch (OperationCanceledException) { return; }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
+    }
+    private VaultSession? OpenNotes()
+    {
+        string path = Path.Combine(DataDirectory, "notes.vault");
+        if (!File.Exists(path) && !File.Exists(path + ".bak"))
+        {
+            var created = VaultSession.CreateDevice(path, LegacyImport.Read(DataDirectory));
+            try { created.Save(); created.VerifySaved(); created.Save(); CleanLegacy(created); return created; }
+            catch { created.Dispose(); throw; }
+        }
+        string source = File.Exists(path) ? path : path + ".bak";
+        VaultSession? session = null;
+        try
+        {
+            if (VaultSession.ReadVersion(source) == 1)
+            {
+                // Only an already encrypted, older vault requires its existing secret once.
+                var gate = new GateWindow(DataDirectory); MainWindow = gate;
+                if (gate.ShowDialog() != true) return null;
+                session = gate.Session!; session.UseDeviceProtection();
+            }
+            else session = VaultSession.OpenDevice(source, path);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or ArgumentException)
+        {
+            session?.Dispose();
+            if (!File.Exists(path + ".bak") || source.EndsWith(".bak") ||
+                MessageBox.Show("Notlar açılamadı. Önceki şifreli kayıt denensin mi? Son değişiklikler bu kayıtta olmayabilir.", "Notlar", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) throw;
+            session = VaultSession.OpenDevice(path + ".bak", path);
+            source = path + ".bak";
+        }
+        try
+        {
+            if (source.EndsWith(".bak"))
+            {
+                // Preserve both existing encrypted files until the replacement is durable.
+                if (File.Exists(path)) File.Copy(path, path + ".damaged-" + DateTime.UtcNow.Ticks);
+                var temp = path + ".restore";
+                using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+                { stream.Write(File.ReadAllBytes(source)); stream.Flush(true); }
+                if (File.Exists(path)) File.Replace(temp, path, null, true); else File.Move(temp, path);
+            }
+            session!.VerifySaved(); CleanLegacy(session); return session;
+        }
+        catch { session?.Dispose(); throw; }
+    }
+    private static void CleanLegacy(VaultSession session)
+    {
+        try { LegacyImport.RemoveVerifiedOriginals(DataDirectory, session); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { MessageBox.Show("Notlarınız şifreli olarak kaydedildi; eski şifresiz dosyalar kaldırılamadı. Eski uygulamayı kapatıp yeniden deneyin.", "Notlar"); }
+    }
+}

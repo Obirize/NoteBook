@@ -1,0 +1,11 @@
+.tools/
+**/bin/
+**/obj/
+app/
+data/
+artifacts/
+*.exe
+*.pdb
+
+dist/
+Tasarım örneği

@@ -1,0 +1,31 @@
+# Bir sürüm etiketi (örn. v1.1.0) push edildiğinde kurulum dosyasını üretir ve GitHub Release'e ekler.
+# Uygulama, Releases/latest üzerinden yeni sürümü görür ve kullanıcıya "Güncelle" düğmesi gösterir.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Sürümü etiketten al
+        shell: pwsh
+        run: '"NOTLAR_VERSION=$($env:GITHUB_REF_NAME.TrimStart(''v''))" | Out-File -Append $env:GITHUB_ENV'
+      - name: Derle ve paketle
+        shell: cmd
+        run: build-setup.cmd
+      - name: SHA-256
+        shell: pwsh
+        run: Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() | Out-File -NoNewline -Encoding ascii "$($_.FullName).sha256" }
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
