@@ -379,6 +379,16 @@ static class Program
             title.Text = "Yarın için birkaç fikir"; window.SaveNow();
             window.Width = 800; window.Height = 560; Pump();
             Check(body.ActualWidth > 300 && body.ActualHeight > 200, "Editor remains usable at minimum window size");
+            window.WindowState = WindowState.Maximized; Pump(); Thread.Sleep(300); Pump();
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+            bool placed = WindowPlacement.GetWindowRect(hwnd, out var rect) & WindowPlacement.TryGetWorkArea(hwnd, out var work, out _);
+            Check(placed && rect.Left >= work.Left && rect.Top >= work.Top && rect.Right <= work.Right && rect.Bottom <= work.Bottom
+                && rect.Bottom - rect.Top >= work.Bottom - work.Top - 2, "Maximized window fills exactly the work area: nothing hidden under the taskbar or off-screen");
+            var countText = Find<TextBlock>(window, "CountText");
+            var countBottom = countText.PointToScreen(new Point(0, countText.ActualHeight));
+            Check(countText.IsVisible && countBottom.Y <= work.Bottom && Find<Button>(window, "LanguageButton").PointToScreen(new Point(0, 0)).Y < work.Bottom, "Sidebar bottom row stays on screen when maximized");
+            Shot(window, "notlar-maximized.png");
+            window.WindowState = WindowState.Normal; Pump();
             window.Width = 1900; window.Height = 1000; Pump();
             var editorArea = Find<Grid>(window, "EditorArea");
             var editorLeft = editorArea.TranslatePoint(new Point(0, 0), window).X;

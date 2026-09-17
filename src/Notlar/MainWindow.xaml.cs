@@ -48,6 +48,7 @@ public partial class MainWindow : Window
             current = null; lastDeleted = [];
         };
         SourceInitialized += (_, _) => { int rounded = 2; DwmSetWindowAttribute(new WindowInteropHelper(this).Handle, 33, ref rounded, 4); };
+        WindowPlacement.Attach(this);
         SystemEvents.SessionSwitch += SessionSwitch; SystemEvents.PowerModeChanged += PowerChanged;
         PurgeExpired();
         RefreshList(session.Book.Notes.Where(n => !n.Deleted).OrderByDescending(n => n.Updated).FirstOrDefault()?.Id);
