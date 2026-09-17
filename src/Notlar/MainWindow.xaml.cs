@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -93,7 +94,8 @@ public partial class MainWindow : Window
     private void Shortcut(object sender, KeyEventArgs e)
     {
         lastInput = DateTime.UtcNow;
-        if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Delete && NoteList.IsKeyboardFocusWithin)
+        // Delete acts on the list unless a text box (search, title, body) owns the keyboard.
+        if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Delete && Keyboard.FocusedElement is not TextBoxBase && (selecting || NoteList.IsKeyboardFocusWithin || current != null))
         { if (trash) PurgeClick(this, e); else DeleteClick(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Escape && selecting) { SetSelecting(false); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S) { ExportClick(this, e); e.Handled = true; return; }

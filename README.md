@@ -1,8 +1,8 @@
-# NoteBook (Notlar)
+﻿# NoteBook (Notlar)
 
-An Apple Notes–style notebook for Windows: local, dark, and encrypted at rest. Built with C# / WPF on .NET 10. No browser, no account, no internet required.
+An Apple Notesâ€“style notebook for Windows: local, dark, and encrypted at rest. Built with C# / WPF on .NET 10. No browser, no account, no internet required.
 
-[Türkçe](README.tr.md)
+[TÃ¼rkÃ§e](README.tr.md)
 
 ![Notes](docs/screenshot.png)
 
@@ -17,18 +17,18 @@ An Apple Notes–style notebook for Windows: local, dark, and encrypted at rest.
 - Context menus, keyboard shortcuts, custom dark chrome, themed scrollbars.
 - Single instance: opening a file or a new note while the app runs is forwarded to the open window.
 - Automatic updates from GitHub Releases (the only network request the app makes).
-- 13 languages: English, Türkçe, Español, 中文, हिन्दी, العربية (right-to-left), Português, Русский, 日本語, Deutsch, Français, Bahasa Indonesia, 한국어. The app follows the Windows display language; the globe button in the sidebar switches it.
+- 13 languages: English, TÃ¼rkÃ§e, EspaÃ±ol, ä¸­æ–‡, à¤¹à¤¿à¤¨à¥à¤¦à¥€, Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© (right-to-left), PortuguÃªs, Ğ ÑƒÑÑĞºĞ¸Ğ¹, æ—¥æœ¬èª, Deutsch, FranÃ§ais, Bahasa Indonesia, í•œêµ­ì–´. The app follows the Windows display language; the globe button in the sidebar switches it.
 
 ## Install
 
-Download `NoteBook-Setup-<version>.exe` from [Releases](https://github.com/Obirize/NoteBook/releases). The installer is per-user: no administrator rights, installs to `%LocalAppData%\Programs\Notlar`, keeps your notes in `…\Notlar\data` and never deletes them on uninstall.
+Download `NoteBook-Setup-<version>.exe` from [Releases](https://github.com/Obirize/NoteBook/releases). The installer is per-user: no administrator rights, installs to `%LocalAppData%\Programs\Notlar`, keeps your notes in `â€¦\Notlar\data` and never deletes them on uninstall.
 
 Optional integrations offered by the installer:
 
-- **"Open with" for `.txt` and a Default Apps entry.** Windows Notepad is left untouched; NoteBook is added next to it. Windows only lets the *user* pick a file type's default, so the last wizard page offers to open *Settings → Default apps*, where you choose `.txt → Notlar` once.
-- **Right-click → "New note (Notlar)"** on the desktop and in folder backgrounds. It opens a new note directly; no file is created. Windows' own "New → Text Document" stays as it is.
+- **"Open with" for `.txt` and a Default Apps entry.** Windows Notepad is left untouched; NoteBook is added next to it. Windows only lets the *user* pick a file type's default, so the last wizard page offers to open *Settings â†’ Default apps*, where you choose `.txt â†’ Notlar` once.
+- **Right-click â†’ "New note (Notlar)"** on the desktop and in folder backgrounds. It opens a new note directly; no file is created. Windows' own "New â†’ Text Document" stays as it is.
 
-The installer is not code-signed yet, so the browser download may show a SmartScreen prompt on first run ("More info → Run anyway"). In-app updates do not show it.
+The installer is not code-signed yet, so the browser download may show a SmartScreen prompt on first run ("More info â†’ Run anyway"). In-app updates do not show it.
 
 Portable use also works: unzip, keep `Not Defteri.exe` next to the `app` folder, notes live in `data` beside them.
 
@@ -42,7 +42,7 @@ Portable use also works: unzip, keep `Not Defteri.exe` next to the `app` folder,
 | Ctrl+K / Ctrl+F | Search |
 | Ctrl+S | Save now / retry a failed save |
 | Ctrl+Z / Ctrl+Y | Undo / redo text edits |
-| Delete (list focused) | Move to Recently deleted; in Recently deleted, permanently delete (asks first) |
+| Delete (outside a text box) | Move the open or checked notes to Recently deleted; in Recently deleted, permanently delete (asks first) |
 | Ctrl+A (select mode) | Select all |
 | Esc (select mode) | Leave select mode |
 
@@ -56,10 +56,10 @@ References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/s
 
 ## Files, backup and recovery
 
-- `data/notes.vault` — the encrypted notebook.
-- `data/notes.vault.bak` — the previous encrypted save.
+- `data/notes.vault` â€” the encrypted notebook.
+- `data/notes.vault.bak` â€” the previous encrypted save.
 
-The backup button copies the encrypted file. **That copy is tied to the DPAPI keys of the same Windows account**; it is not a portable backup for another PC or account. Individual notes can be exported as TXT. If the main file cannot be opened, the app offers to try the previous save; damaged files are kept as `.damaged-…`, never silently replaced with empty notes.
+The backup button copies the encrypted file. **That copy is tied to the DPAPI keys of the same Windows account**; it is not a portable backup for another PC or account. Individual notes can be exported as TXT. If the main file cannot be opened, the app offers to try the previous save; damaged files are kept as `.damaged-â€¦`, never silently replaced with empty notes.
 
 Notes moved to Recently deleted are purged after 30 days (each card shows the remaining time). "Delete permanently" removes a note from the vault, the rolling backup and any imported legacy archive at once.
 
@@ -69,7 +69,7 @@ Notes moved to Recently deleted are purged after 30 days (each card shows the re
 
 ## Automatic updates
 
-On startup the app asks the GitHub Releases API for the latest version. If a newer installer exists, a **"Version x.y.z ready · Update"** button appears in the status bar. Clicking it downloads the installer, verifies its SHA-256 against the published checksum, installs silently and relaunches the app. Your notes stay in place.
+On startup the app asks the GitHub Releases API for the latest version. If a newer installer exists, a **"Version x.y.z ready Â· Update"** button appears in the status bar. Clicking it downloads the installer, verifies its SHA-256 against the published checksum, installs silently and relaunches the app. Your notes stay in place.
 
 This is the only network request the application makes; it carries no identifying data. To opt out, create an empty file named `guncelleme-kapali` in the `data` folder.
 
@@ -81,9 +81,9 @@ UI strings live in `src/Notlar/Languages/<code>.json` and are embedded at build 
 
 Requires the .NET 10 SDK and Windows. Source is in `src/Notlar/`.
 
-- `build.cmd` — publishes a self-contained x64 build to `app/` and compiles the root launcher.
-- `test.cmd` — runs the test program with temporary data: encryption, tamper detection, migration, save failures, autosave, search, trash policy, bulk actions, smooth scrolling and UI layout. Screenshots land in `artifacts/`.
-- `build-setup.cmd` — builds the installer with [Inno Setup 6](https://jrsoftware.org/isdl.php) into `dist/`.
+- `build.cmd` â€” publishes a self-contained x64 build to `app/` and compiles the root launcher.
+- `test.cmd` â€” runs the test program with temporary data: encryption, tamper detection, migration, save failures, autosave, search, trash policy, bulk actions, smooth scrolling and UI layout. Screenshots land in `artifacts/`.
+- `build-setup.cmd` â€” builds the installer with [Inno Setup 6](https://jrsoftware.org/isdl.php) into `dist/`.
 
 ### Releasing
 
@@ -102,4 +102,4 @@ git push --tags
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT â€” see [LICENSE](LICENSE).

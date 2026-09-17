@@ -339,6 +339,13 @@ static class Program
             Click(window, "BulkDeleteButton");
             Check(session.Book.Notes.Count(n => n.Deleted) == 2 && session.Book.Notes.Where(n => n.Deleted).All(n => n.DeletedAt != null) && noteList.SelectionMode == SelectionMode.Single, "Bulk delete moves the checked notes to trash with timestamps and leaves select mode");
             Click(window, "UndoDelete"); Check(session.Book.Notes.All(n => !n.Deleted), "Undo restores every bulk-deleted note");
+            Click(window, "SelectButton"); Click(window, "SelectAllButton"); Find<Button>(window, "SelectAllButton").Focus(); Pump();
+            window.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window), 0, Key.Delete) { RoutedEvent = UIElement.PreviewKeyDownEvent }); Pump();
+            Check(session.Book.Notes.Count(n => n.Deleted) == 4 && noteList.SelectionMode == SelectionMode.Single, "Delete key removes the checked notes even when a toolbar button has focus");
+            Click(window, "UndoDelete"); Check(session.Book.Notes.All(n => !n.Deleted), "Undo after keyboard bulk delete restores everything");
+            body.Focus(); Pump();
+            window.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window), 0, Key.Delete) { RoutedEvent = UIElement.PreviewKeyDownEvent }); Pump();
+            Check(session.Book.Notes.All(n => !n.Deleted), "Delete key inside the editor edits text instead of deleting the note");
             Click(window, "SelectButton"); Click(window, "SelectAllButton"); Click(window, "BulkDeleteButton");
             Check(session.Book.Notes.Count(n => n.Deleted) == 4, "Select all then delete empties the list");
             Click(window, "TrashFilter");
