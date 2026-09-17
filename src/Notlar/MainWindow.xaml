@@ -32,6 +32,7 @@
           <DockPanel Margin="2,10,0,0">
             <Button x:Name="SelectButton" Content="{local:T Select}" FontSize="12" Padding="8,4" DockPanel.Dock="Right" Click="SelectModeClick"/>
             <Button x:Name="SelectAllButton" Content="{local:T SelectAll}" FontSize="12" Padding="8,4" DockPanel.Dock="Right" Click="SelectAllClick" Visibility="Collapsed"/>
+            <Button x:Name="SelectionDeleteButton" Content="{local:T Delete}" FontSize="12" Padding="8,4" DockPanel.Dock="Right" Foreground="{DynamicResource Danger}" Click="DeleteClick" Visibility="Collapsed"/>
             <TextBlock x:Name="SelectionCount" FontSize="11" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
           </DockPanel>
           <TextBlock x:Name="TrashNotice" Text="" FontSize="11" Foreground="{DynamicResource Muted}" Margin="4,8,0,0" Visibility="Collapsed" TextWrapping="Wrap"/>
@@ -41,7 +42,7 @@
             <ListBox.ContextMenu><ContextMenu>
               <MenuItem x:Name="MenuPin" Header="{local:T Pin}" Click="PinClick"/>
               <MenuItem x:Name="MenuExport" Header="{local:T ExportTxtMenu}" InputGestureText="Ctrl+Shift+S" Click="ExportClick"/>
-              <MenuItem x:Name="MenuDelete" Header="{local:T MoveToTrash}" InputGestureText="Delete" Click="DeleteClick"/>
+              <MenuItem x:Name="MenuDelete" Header="{local:T Delete}" InputGestureText="Delete" Click="DeleteClick"/>
               <MenuItem x:Name="MenuRestore" Header="{local:T Restore}" Click="RestoreClick"/>
               <MenuItem x:Name="MenuPurge" Header="{local:T DeletePermanentlyMenu}" Style="{StaticResource DangerMenuItem}" Click="PurgeClick"/>
             </ContextMenu></ListBox.ContextMenu>
@@ -99,7 +100,7 @@
         <Grid Grid.Row="0" Margin="16,0,8,0">
           <StackPanel x:Name="NoteActions" Orientation="Horizontal" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <Button x:Name="PinButton" Content="&#xE718;" Style="{StaticResource IconButton}" ToolTip="{local:T PinNote}" AutomationProperties.Name="{local:T PinNote}" Click="PinClick"/>
-            <Button x:Name="DeleteButton" Content="&#xE74D;" Style="{StaticResource IconButton}" ToolTip="{local:T MoveToTrash}" AutomationProperties.Name="{local:T DeleteNote}" Click="DeleteClick"/>
+            <Button x:Name="DeleteButton" Content="&#xE74D;" Style="{StaticResource IconButton}" ToolTip="{local:T Delete}" AutomationProperties.Name="{local:T DeleteNote}" Click="DeleteClick"/>
             <Button x:Name="RestoreButton" Content="{local:T Restore}" FontSize="12" Foreground="{DynamicResource Accent}" Visibility="Collapsed" Click="RestoreClick"/>
             <Button x:Name="PurgeButton" Content="{local:T DeletePermanently}" FontSize="12" Foreground="{DynamicResource Danger}" Visibility="Collapsed" ToolTip="{local:T DeletePermanentlyHint}" Click="PurgeClick"/>
             <Button x:Name="ExportButton" Content="&#xE898;" Style="{StaticResource IconButton}" ToolTip="{local:T ExportTxt}" AutomationProperties.Name="{local:T ExportTxt}" Click="ExportClick"/>
@@ -134,9 +135,9 @@
           <TextBlock x:Name="SelectionHeading" Text="{local:T SelectionPrompt}" FontSize="25" FontWeight="SemiBold" TextAlignment="Center"/>
           <TextBlock x:Name="SelectionDescription" Text="" FontSize="14" Foreground="{DynamicResource Muted}" TextWrapping="Wrap" TextAlignment="Center" LineHeight="23" Margin="0,12,0,24"/>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button x:Name="BulkDeleteButton" Content="{local:T MoveToTrash}" Style="{StaticResource Primary}" Click="DeleteClick"/>
+            <Button x:Name="BulkDeleteButton" Content="{local:T Delete}" Style="{StaticResource Primary}" Click="DeleteClick"/>
             <Button x:Name="BulkRestoreButton" Content="{local:T Restore}" Style="{StaticResource Primary}" Visibility="Collapsed" Click="RestoreClick"/>
-            <Button x:Name="BulkPurgeButton" Content="{local:T DeletePermanently}" Foreground="{DynamicResource Danger}" Padding="20,13" Margin="8,0,0,0" Visibility="Collapsed" Click="PurgeClick"/>
+            <Button x:Name="BulkPurgeButton" Content="{local:T DeletePermanentlyMenu}" Foreground="{DynamicResource Danger}" Padding="20,13" Margin="8,0,0,0" Click="PurgeClick"/>
           </StackPanel>
           <TextBlock Text="{local:T SelectAllHint}" FontSize="11" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center" Margin="0,12,0,0"/>
         </StackPanel>

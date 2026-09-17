@@ -24,6 +24,7 @@
   "Pin": "고정",
   "MoveToTrash": "최근 삭제된 항목으로 이동",
   "DeleteNote": "메모 삭제",
+  "Delete": "삭제",
   "Restore": "복원",
   "DeletePermanently": "영구 삭제",
   "DeletePermanentlyMenu": "영구 삭제…",

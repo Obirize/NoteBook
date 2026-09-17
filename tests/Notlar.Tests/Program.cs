@@ -343,6 +343,12 @@ static class Program
             window.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window), 0, Key.Delete) { RoutedEvent = UIElement.PreviewKeyDownEvent }); Pump();
             Check(session.Book.Notes.Count(n => n.Deleted) == 4 && noteList.SelectionMode == SelectionMode.Single, "Delete key removes the checked notes even when a toolbar button has focus");
             Click(window, "UndoDelete"); Check(session.Book.Notes.All(n => !n.Deleted), "Undo after keyboard bulk delete restores everything");
+            Check(Find<Button>(window, "BulkDeleteButton").Content as string == L10n.T("Delete") && Find<Button>(window, "DeleteButton").ToolTip as string == L10n.T("Delete"), "The primary bulk action is plainly labeled Delete");
+            Click(window, "NewButton"); title.Text = "Geçici"; window.SaveNow();
+            Click(window, "SelectButton"); noteList.SelectedItems.Add(session.Book.Notes.First(n => n.Title == "Geçici")); Pump();
+            Check(Find<Button>(window, "SelectionDeleteButton").IsVisible && Find<Button>(window, "BulkPurgeButton").IsVisible && Find<Button>(window, "BulkPurgeButton").IsEnabled, "Select mode offers Delete in the sidebar and permanent delete from All notes too");
+            window.ConfirmDestructive = _ => true; Click(window, "BulkPurgeButton");
+            Check(session.Book.Notes.Count == 4 && session.Book.Notes.All(n => n.Title != "Geçici") && noteList.SelectionMode == SelectionMode.Single, "Permanent delete from All notes removes the checked note outright");
             body.Focus(); Pump();
             window.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window), 0, Key.Delete) { RoutedEvent = UIElement.PreviewKeyDownEvent }); Pump();
             Check(session.Book.Notes.All(n => !n.Deleted), "Delete key inside the editor edits text instead of deleting the note");

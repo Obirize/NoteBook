@@ -97,6 +97,7 @@ public partial class MainWindow : Window
         // Delete acts on the list unless a text box (search, title, body) owns the keyboard.
         if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Delete && Keyboard.FocusedElement is not TextBoxBase && (selecting || NoteList.IsKeyboardFocusWithin || current != null))
         { if (trash) PurgeClick(this, e); else DeleteClick(this, e); e.Handled = true; return; }
+        if (Keyboard.Modifiers == ModifierKeys.Shift && e.Key == Key.Delete && Keyboard.FocusedElement is not TextBoxBase && (selecting || current != null)) { PurgeClick(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Escape && selecting) { SetSelecting(false); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S) { ExportClick(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
@@ -169,7 +170,9 @@ public partial class MainWindow : Window
         SelectionHeading.Text = count == 0 ? L10n.T("SelectionPrompt") : L10n.Count("SelectedCountOne", "SelectedCountMany", count);
         SelectionDescription.Text = trash ? L10n.T("SelectionDescriptionTrash") : L10n.T("SelectionDescription", TrashPolicy.RetentionDays);
         BulkDeleteButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
-        BulkRestoreButton.Visibility = BulkPurgeButton.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
+        BulkRestoreButton.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
+        SelectionDeleteButton.Visibility = selecting && !trash ? Visibility.Visible : Visibility.Collapsed;
+        SelectionDeleteButton.IsEnabled = count > 0;
         BulkDeleteButton.IsEnabled = BulkRestoreButton.IsEnabled = BulkPurgeButton.IsEnabled = count > 0;
     }
     private void Touch()
@@ -261,8 +264,8 @@ public partial class MainWindow : Window
         MenuPin.Visibility = MenuExport.Visibility = single ? Visibility.Visible : Visibility.Collapsed;
         MenuPin.Header = L10n.T(targets[0].Pinned ? "UnpinNote" : "Pin");
         MenuDelete.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
-        MenuRestore.Visibility = MenuPurge.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
-        MenuDelete.Header = targets.Count == 1 ? L10n.T("MoveToTrash") : L10n.T("MoveManyToTrash", targets.Count);
+        MenuRestore.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
+        MenuDelete.Header = targets.Count == 1 ? L10n.T("Delete") : L10n.T("MoveManyToTrash", targets.Count);
         MenuRestore.Header = targets.Count == 1 ? L10n.T("Restore") : L10n.T("RestoreMany", targets.Count);
         MenuPurge.Header = targets.Count == 1 ? L10n.T("DeletePermanentlyMenu") : L10n.T("PurgeMany", targets.Count);
     }
@@ -297,10 +300,10 @@ public partial class MainWindow : Window
     private void PurgeClick(object sender, RoutedEventArgs e)
     {
         var notes = Targets();
-        if (notes.Count == 0 || !trash || !SaveNow()) return;
+        if (notes.Count == 0 || !SaveNow()) return;
         string message = notes.Count == 1 ? L10n.T("ConfirmPurgeOne", notes[0].DisplayTitle) : L10n.T("ConfirmPurgeMany", notes.Count);
         if (!ConfirmDestructive(message)) return;
-        TrashPolicy.Purge(session.Book, notes); purged = true; dirty = true;
+        TrashPolicy.Delete(notes, DateTimeOffset.UtcNow); TrashPolicy.Purge(session.Book, notes); purged = true; dirty = true;
         if (!SaveNow()) return;
         StatusText.Text = L10n.Count("PurgedOne", "PurgedMany", notes.Count);
         lastDeleted.RemoveAll(notes.Contains);
