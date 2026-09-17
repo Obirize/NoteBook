@@ -1,5 +1,5 @@
-# Bir sürüm etiketi (örn. v1.1.0) push edildiğinde kurulum dosyasını üretir ve GitHub Release'e ekler.
-# Uygulama, Releases/latest üzerinden yeni sürümü görür ve kullanıcıya "Güncelle" düğmesi gösterir.
+# Pushing a version tag (e.g. v1.1.0) builds the installer and attaches it to a GitHub Release.
+# The app checks Releases/latest and offers the update in its status bar.
 name: Release
 on:
   push:
@@ -16,16 +16,27 @@ jobs:
           dotnet-version: 10.0.x
       - name: Inno Setup
         run: choco install innosetup --no-progress -y
-      - name: Sürümü etiketten al
+      - name: Version from tag
         shell: pwsh
         run: '"NOTLAR_VERSION=$($env:GITHUB_REF_NAME.TrimStart(''v''))" | Out-File -Append $env:GITHUB_ENV'
-      - name: Derle ve paketle
+      - name: Build and package
         shell: cmd
         run: build-setup.cmd
       - name: SHA-256
         shell: pwsh
         run: Get-ChildItem dist\*.exe | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() | Out-File -NoNewline -Encoding ascii "$($_.FullName).sha256" }
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
-          generate_release_notes: true
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $files = Get-ChildItem dist\* | ForEach-Object { $_.FullName }
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --title "NoteBook $tag" --generate-notes
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --draft=false
