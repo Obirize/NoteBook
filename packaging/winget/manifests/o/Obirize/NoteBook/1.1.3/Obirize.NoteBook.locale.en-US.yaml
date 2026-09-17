@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: Obirize.NoteBook
+PackageVersion: 1.1.3
+PackageLocale: en-US
+Publisher: Obirize
+PublisherUrl: https://github.com/Obirize
+PublisherSupportUrl: https://github.com/Obirize/NoteBook/issues
+PackageName: NoteBook
+PackageUrl: https://github.com/Obirize/NoteBook
+License: MIT
+LicenseUrl: https://github.com/Obirize/NoteBook/blob/main/LICENSE
+ShortDescription: Apple Notes–style encrypted notebook for Windows. Local, dark, no account.
+Description: |-
+  NoteBook is a local, dark-themed notebook for Windows in the spirit of Apple Notes.
+  Every note is encrypted at rest with AES-256-GCM; the key is protected by Windows for the current user, so there is no password to remember and no account.
+  Search, pin, multi-select, a 30-day Recently deleted folder, TXT import/export, 13 interface languages and automatic updates.
+Moniker: notebook
+Tags:
+- notes
+- note-taking
+- notepad
+- encrypted
+- privacy
+- markdown-free
+- wpf
+ReleaseNotesUrl: https://github.com/Obirize/NoteBook/releases/tag/v1.1.3
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

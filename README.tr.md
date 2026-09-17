@@ -95,7 +95,9 @@ Dosya silme işlemi eski disk kalıntılarını, SSD kurtarma olasılığını v
 - `data/notes.vault`: ana şifreli kayıt.
 - `data/notes.vault.bak`: önceki şifreli kayıt.
 
-Yedek düğmesi şifreli dosyanın kopyasını alır. **Bu yedek aynı Windows hesabının DPAPI anahtarlarına bağlıdır; tek başına başka PC/hesap için taşınabilir yedek değildir.** Windows'u yeniden kurmak veya kullanıcı profilini kaybetmek bu kopyaların açılamamasına neden olabilir. Taşınabilir şifreli kurtarma henüz yoktur; tekil notlar TXT olarak dışa aktarılabilir. Yedeğin hesap bağımlılığı kaydetme penceresinin başlığında belirtilir.
+**Yedek** (kenar çubuğundaki kutu simgesi) → *Yedek al…*, seçtiğiniz parolayla korunan tek bir `.vault` dosyası yazar (PBKDF2 600k + AES-256-GCM, kendi rastgele anahtarıyla). Bu dosya o parolayla **her bilgisayarda** açılır; Windows hesabına bağlı değildir. *Yedekten geri yükle…* yedeği notlarınızla birleştirir: yerelde olmayan notlar eklenir, her notun daha yeni revizyonu kazanır, hiçbir şey silinmez. Aynı Windows hesabından alınmış düz `notes.vault` kopyası da geri yüklenebilir.
+
+TXT dosyaları pencereye sürükleyip bırakarak da eklenebilir.
 
 Ana kayıt açılamazsa uygulama önceki şifreli kaydı denemeyi sorar. Doğrulanmış yedek atomik olarak geri yüklenir; hasarlı kayıt `.damaged-...` olarak korunur. Bozuk dosyalar sessizce boş notlara dönüştürülmez. Disk doluluğu/izin hatasında son değişiklik açık tutulur ve hata gösterilir.
 

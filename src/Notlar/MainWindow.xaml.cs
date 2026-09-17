@@ -31,6 +31,11 @@ public partial class MainWindow : Window
     {
         session = vault;
         ConfirmDestructive = message => MessageBox.Show(this, message, L10n.T("DeletePermanently"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        AskPassword = confirm =>
+        {
+            var dialog = new PasswordDialog(this, L10n.T("BackupPasswordTitle"), L10n.T(confirm ? "BackupPasswordCreate" : "BackupPasswordOpen"), confirm);
+            return dialog.ShowDialog() == true ? dialog.Result : null;
+        };
         if (L10n.Current.RightToLeft) FlowDirection = FlowDirection.RightToLeft;
         InitializeComponent();
         BuildLanguageMenu();
@@ -189,6 +194,8 @@ public partial class MainWindow : Window
         current.Title = TitleInput.Text; current.Text = BodyInput.Text;
         Touch(); UpdateState();
     }
+    // For callers that edited the notebook directly (restore, tests).
+    public void MarkChanged() { dirty = true; SaveNow(); }
     public bool SaveNow()
     {
         saveTimer.Stop();
@@ -364,19 +371,85 @@ public partial class MainWindow : Window
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
         { StatusText.Text = L10n.T("TxtSaveFailed"); }
     }
-    private void BackupClick(object sender, RoutedEventArgs e)
+    // Backup password prompts go through here so tests can supply a password without a dialog.
+    public Func<bool, string?> AskPassword { get; set; }
+    private void BackupMenuClick(object sender, RoutedEventArgs e)
+    {
+        BackupMenu.PlacementTarget = BackupButton;
+        BackupMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+        BackupMenu.IsOpen = true;
+    }
+    private void BackupCreateClick(object sender, RoutedEventArgs e)
     {
         if (!SaveNow()) return;
-        var dialog = new SaveFileDialog { Title = L10n.T(session.IsDeviceProtected ? "BackupTitleDevice" : "BackupTitle"), Filter = L10n.T("BackupFilter"), FileName = "NoteBook-" + DateTime.Now.ToString("yyyy-MM-dd") + ".vault" };
+        var dialog = new SaveFileDialog { Title = L10n.T("BackupTitle"), Filter = L10n.T("BackupFilter"), DefaultExt = ".vault", FileName = L10n.T("BackupFileName", DateTime.Now.ToString("yyyy-MM-dd")) + ".vault" };
         if (dialog.ShowDialog(this) != true) return;
+        string target = Path.GetFullPath(dialog.FileName);
+        if (string.Equals(target, session.FilePath, StringComparison.OrdinalIgnoreCase) || target.StartsWith(session.FilePath + ".", StringComparison.OrdinalIgnoreCase))
+        { StatusText.Text = L10n.T("BackupSameLocation"); return; }
+        string? password = AskPassword(true);
+        if (password == null) return;
+        ExportBackup(target, password);
+    }
+    public bool ExportBackup(string target, string password)
+    {
+        try { session.ExportPortable(target, password); StatusText.Text = L10n.T("BackupSaved"); return true; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { StatusText.Text = L10n.T("BackupFailed"); return false; }
+    }
+    private void BackupRestoreClick(object sender, RoutedEventArgs e)
+    {
+        if (!SaveNow()) return;
+        var dialog = new OpenFileDialog { Title = L10n.T("RestoreTitle"), Filter = L10n.T("BackupFilter"), CheckFileExists = true };
+        if (dialog.ShowDialog(this) != true) return;
+        string path = Path.GetFullPath(dialog.FileName);
+        string? password = null;
+        try { if (VaultSession.ReadVersion(path) == 1) { password = AskPassword(false); if (password == null) return; } }
+        catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or InvalidDataException or UnauthorizedAccessException) { StatusText.Text = L10n.T("RestoreFailed"); return; }
+        RestoreBackup(path, password);
+    }
+    // Merges a backup into the open notebook: newer revisions win, nothing is removed.
+    public bool RestoreBackup(string path, string? password)
+    {
         try
         {
-            string target = Path.GetFullPath(dialog.FileName);
-            if (string.Equals(target, session.FilePath, StringComparison.OrdinalIgnoreCase) || target.StartsWith(session.FilePath + ".", StringComparison.OrdinalIgnoreCase))
-            { StatusText.Text = L10n.T("BackupSameLocation"); return; }
-            File.Copy(session.FilePath, target, true); StatusText.Text = L10n.T("BackupSaved");
+            (int added, int updated) result;
+            using (var backup = VaultSession.OpenBackup(path, password)) result = VaultSession.Merge(session.Book, backup.Book);
+            if (result.added == 0 && result.updated == 0) { StatusText.Text = L10n.T("RestoreNothing"); return true; }
+            dirty = true;
+            if (!SaveNow()) return false;
+            if (selecting) SetSelecting(false);
+            RefreshList();
+            StatusText.Text = L10n.T("RestoreResult", result.added, result.updated);
+            return true;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusText.Text = L10n.T("BackupFailed"); }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or FormatException)
+        { StatusText.Text = L10n.T(ex is System.Security.Cryptography.CryptographicException ? "PasswordWrong" : "RestoreFailed"); return false; }
+    }
+    private static string[] DroppedTextFiles(DragEventArgs e) =>
+        e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] files
+            ? files.Where(f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)).ToArray() : [];
+    private void FileDragOver(object sender, DragEventArgs e)
+    {
+        if (DroppedTextFiles(e).Length == 0) return;
+        e.Effects = DragDropEffects.Copy; e.Handled = true;
+    }
+    private void FileDrop(object sender, DragEventArgs e)
+    {
+        var files = DroppedTextFiles(e);
+        if (files.Length == 0) return;
+        e.Handled = true; ImportDropped(files);
+    }
+    // Imports each dropped .txt as a note; reports how many succeeded.
+    public int ImportDropped(string[] files)
+    {
+        int count = 0; string? error = null;
+        foreach (string file in files)
+        {
+            try { if (ImportTextFile(file)) count++; }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException) { error = ex is InvalidDataException ? ex.Message : L10n.T("TxtOpenFailed"); }
+        }
+        StatusText.Text = error ?? (count == 1 ? L10n.T("TxtImported") : L10n.T("TxtImportedMany", count));
+        return count;
     }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {

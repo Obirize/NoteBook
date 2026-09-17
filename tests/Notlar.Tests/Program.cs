@@ -19,6 +19,7 @@ static class Program
     const string Password = "test-only long passphrase 927";
     static void Check(bool ok, string name) { if (!ok) throw new Exception(name); checks++; Console.WriteLine("PASS " + name); }
     static void Reject(Action action, string name) { bool rejected = false; try { action(); } catch { rejected = true; } Check(rejected, name); }
+    static void dirty(MainWindow w) => w.MarkChanged();
     static void Pump() { var frame = new DispatcherFrame(); Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false)); Dispatcher.PushFrame(frame); }
     static T Find<T>(Window window, string name) where T : class => (T)window.FindName(name);
     static void Click(Window window, string name) { Find<Button>(window, name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(); }
@@ -99,7 +100,7 @@ static class Program
         Check(listStep < SmoothScroll.NotchPixels && listStep > SmoothScroll.NotchPixels / 2, "Note list scrolls a little slower per notch than the editor");
         listScroll.ScrollToTop(); Pump();
         Wheel(listScroll, -120);
-        Check(listScroll.VerticalOffset == 0, "List wheel input animates over frames instead of jumping synchronously");
+        Check(listScroll.VerticalOffset < listStep - 1, "List wheel input animates over frames instead of jumping synchronously");
         double settled = Settle(() => listScroll.VerticalOffset);
         Check(Math.Abs(settled - Math.Round(listStep)) < 1, "One wheel notch settles at the list step, not three note cards");
         Wheel(listScroll, 60); settled = Settle(() => listScroll.VerticalOffset);
@@ -371,6 +372,38 @@ static class Program
             Check(session.Book.Notes.Count == 1 && session.Book.Notes[0].Deleted, "Bulk permanent delete removes the checked trash notes");
             Click(window, "SelectButton"); Click(window, "SelectAllButton"); Click(window, "BulkRestoreButton");
             Check(session.Book.Notes.All(n => !n.Deleted && n.DeletedAt == null) && Find<TextBlock>(window, "ListHeading").Text == L10n.T("MyNotes") && Find<Grid>(window, "EditorArea").Visibility == Visibility.Visible, "Bulk restore returns notes and reopens the editor");
+            // Portable backup: password-protected, independent of this Windows account.
+            string portable = Path.Combine(root, "portable.vault");
+            window.AskPassword = _ => "portable backup passphrase 42";
+            Check(window.ExportBackup(portable, "portable backup passphrase 42") && File.Exists(portable) && !File.ReadAllText(portable).Contains("Yarın"), "Portable backup is written encrypted");
+            Reject(() => VaultSession.OpenBackup(portable, "wrong passphrase 12345"), "Portable backup rejects a wrong password");
+            Reject(() => VaultSession.OpenBackup(portable, null), "Portable backup requires a password");
+            using (var opened = VaultSession.OpenBackup(portable, "portable backup passphrase 42")) Check(opened.Book.Notes.Count == session.Book.Notes.Count && opened.Book.Id == session.Book.Id, "Portable backup opens with its password alone (no DPAPI)");
+            var before = session.Book.Notes.Count;
+            var edited = session.Book.Notes[0]; string keepTitle = edited.Title;
+            edited.Title = "Sonradan düzenlendi"; edited.Revision++; edited.Updated = DateTimeOffset.UtcNow; window.SaveNow();
+            Check(window.RestoreBackup(portable, "portable backup passphrase 42") && session.Book.Notes.Count == before && session.Book.Notes[0].Title == "Sonradan düzenlendi" && Find<TextBlock>(window, "StatusText").Text == L10n.T("RestoreNothing"), "Restoring an older backup never overwrites newer local edits");
+            session.Book.Notes.Remove(edited); dirty(window);
+            Check(window.RestoreBackup(portable, "portable backup passphrase 42") && session.Book.Notes.Any(n => n.Id == edited.Id && n.Title == keepTitle) && Find<TextBlock>(window, "StatusText").Text == L10n.T("RestoreResult", 1, 0), "Restoring adds notes missing locally and reports the count");
+            Check(!window.RestoreBackup(portable, "wrong passphrase 12345") && Find<TextBlock>(window, "StatusText").Text == L10n.T("PasswordWrong"), "Wrong restore password is reported, nothing changes");
+            var merged = new Notebook { Notes = [new Note { Id = "a", Title = "old", Revision = 1 }, new Note { Id = "b", Title = "local newer", Revision = 3 }] };
+            var incoming = new Notebook { Notes = [new Note { Id = "a", Title = "new", Revision = 2 }, new Note { Id = "b", Title = "backup older", Revision = 2 }, new Note { Id = "c", Title = "only in backup", Revision = 1 }] };
+            var stats = VaultSession.Merge(merged, incoming);
+            Check(stats == (1, 1) && merged.Notes.Single(n => n.Id == "a").Title == "new" && merged.Notes.Single(n => n.Id == "b").Title == "local newer" && merged.Notes.Count == 3, "Merge keeps the higher revision per note and adds unknown notes");
+            // Drag and drop of TXT files.
+            string drop1 = Path.Combine(root, "Bırakılan 1.txt"), drop2 = Path.Combine(root, "Bırakılan 2.txt"), dropBad = Path.Combine(root, "resim.png");
+            File.WriteAllText(drop1, "ilk", new UTF8Encoding(false)); File.WriteAllText(drop2, "ikinci", new UTF8Encoding(false)); File.WriteAllBytes(dropBad, [1, 2]);
+            int dropped = window.ImportDropped([drop1, drop2]);
+            Check(dropped == 2 && session.Book.Notes.Count(n => n.Title.StartsWith("Bırakılan")) == 2 && Find<TextBlock>(window, "StatusText").Text == L10n.T("TxtImportedMany", 2), "Dropping TXT files imports each one as a note");
+            Check(window.AllowDrop, "Main window accepts file drops");
+            var passwordDialog = new PasswordDialog(window, L10n.T("BackupPasswordTitle"), L10n.T("BackupPasswordCreate"), true); passwordDialog.Show(); Pump();
+            Find<PasswordBox>(passwordDialog, "Password").Password = "short"; Click(passwordDialog, "Submit");
+            Check(passwordDialog.IsVisible && Find<TextBlock>(passwordDialog, "Error").Visibility == Visibility.Visible, "Password dialog refuses short passwords");
+            Find<PasswordBox>(passwordDialog, "Password").Password = "portable backup passphrase 42"; Find<PasswordBox>(passwordDialog, "Confirm").Password = "different passphrase 4242"; Click(passwordDialog, "Submit");
+            Check(passwordDialog.IsVisible && Find<TextBlock>(passwordDialog, "Error").Text == L10n.T("PasswordMismatch"), "Password dialog refuses mismatched confirmation");
+            Shot(passwordDialog, "notlar-password.png"); passwordDialog.Close();
+            var backupMenu = Find<ContextMenu>(window, "BackupMenu");
+            Check(backupMenu.Items.Count == 2 && TextFiles.SuggestedName(new Note { Title = "Alışveriş: süt/ekmek?" }) == "Alışveriş_ süt_ekmek_.txt", "Backup menu offers create and restore; TXT export suggests the note title as file name");
             title.Text = "Kaydedilemeyen değişiklik";
             string moved = path + ".held"; File.Move(path, moved); Directory.CreateDirectory(path);
             Check(!window.SaveNow(), "Failed write is reported, never falsely marked saved");

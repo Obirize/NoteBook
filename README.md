@@ -18,7 +18,7 @@ An Apple Notes–style notebook for Windows: local, dark, and encrypted at rest.
 - Everything is encrypted with AES-256-GCM. The content key is protected by Windows DPAPI for the current user, so the app never asks for a password.
 - Smooth pixel-based wheel scrolling in both the list and the editor, following the Windows "lines per notch" setting.
 - Multi-select: delete, restore or permanently delete many notes at once. Permanent deletion always asks first.
-- Import `.txt` files as notes, export any note as UTF-8 `.txt`.
+- Import `.txt` files as notes (open, or drag and drop onto the window), export any note as UTF-8 `.txt` named after its title.
 - Context menus, keyboard shortcuts, custom dark chrome, themed scrollbars.
 - Single instance: opening a file or a new note while the app runs is forwarded to the open window.
 - Automatic updates from GitHub Releases (the only network request the app makes).
@@ -67,7 +67,9 @@ References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/s
 - `data/notes.vault` — the encrypted notebook.
 - `data/notes.vault.bak` — the previous encrypted save.
 
-The backup button copies the encrypted file. **That copy is tied to the DPAPI keys of the same Windows account**; it is not a portable backup for another PC or account. Individual notes can be exported as TXT. If the main file cannot be opened, the app offers to try the previous save; damaged files are kept as `.damaged-…`, never silently replaced with empty notes.
+**Backup** (the box icon in the sidebar) → *Create backup…* writes a single `.vault` file protected by a password you choose (PBKDF2 600k + AES-256-GCM, with its own random key). It opens on any PC with that password — it does not depend on your Windows account. *Restore from backup…* merges a backup into your notebook: notes missing locally are added, the newer revision of each note wins, and nothing is ever removed. Restoring also accepts a plain copy of `notes.vault` from the same Windows account.
+
+If the main file cannot be opened, the app offers to try the previous save; damaged files are kept as `.damaged-…`, never silently replaced with empty notes.
 
 Notes moved to Recently deleted are purged after 30 days (each card shows the remaining time). "Delete permanently" removes a note from the vault, the rolling backup and any imported legacy archive at once.
 
@@ -104,7 +106,6 @@ git push --tags
 
 ## Roadmap
 
-- Portable, password-protected backup that opens on any PC.
 - Phone access: first a PWA that decrypts the vault in the browser (WebCrypto), later native iOS/Android apps with two-way sync. The data model (note ids, revisions, deletion timestamps) is already prepared for it.
 - Code signing for the installer.
 

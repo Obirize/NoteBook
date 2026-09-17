@@ -135,6 +135,57 @@ public sealed class VaultSession : IDisposable
             if (secret != null) CryptographicOperations.ZeroMemory(secret);
         }
     }
+    // A password-protected copy with its own random content key: opens on any PC, independent of Windows DPAPI.
+    public void ExportPortable(string path, string password)
+    {
+        ObjectDisposedException.ThrowIf(Disposed, this);
+        if (password.Length < 12) throw new ArgumentException("Use a password of at least 12 characters.");
+        var e = new VaultEnvelope();
+        var secret = RandomNumberGenerator.GetBytes(32);
+        var wrapping = Derive(password, e);
+        byte[] plain = JsonSerializer.SerializeToUtf8Bytes(Book);
+        try
+        {
+            e.PasswordKey = Seal(wrapping, secret, Aad(e, "password"));
+            e.Content = Seal(secret, plain, Aad(e, "content"));
+        }
+        finally { CryptographicOperations.ZeroMemory(secret); CryptographicOperations.ZeroMemory(wrapping); CryptographicOperations.ZeroMemory(plain); }
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(e);
+        string temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+            { stream.Write(bytes); stream.Flush(true); }
+            if (File.Exists(path)) File.Replace(temp, path, null, true); else File.Move(temp, path);
+        }
+        finally { if (File.Exists(temp)) File.Delete(temp); }
+    }
+    // Opens either kind of backup read-only: a portable (password) file or a same-account (DPAPI) copy.
+    public static VaultSession OpenBackup(string path, string? password)
+    {
+        if (ReadVersion(path) == 2) return OpenDevice(path);
+        if (string.IsNullOrEmpty(password)) throw new CryptographicException("Password required.");
+        return Open(path, password);
+    }
+    // Merges notes by id; the higher revision (then the later update) wins, nothing is ever dropped.
+    public static (int Added, int Updated) Merge(Notebook into, Notebook from)
+    {
+        int added = 0, updated = 0;
+        foreach (var note in from.Notes)
+        {
+            var existing = into.Notes.FirstOrDefault(n => n.Id == note.Id);
+            if (existing == null) { into.Notes.Add(Clone(note)); added++; continue; }
+            if (note.Revision > existing.Revision || (note.Revision == existing.Revision && note.Updated > existing.Updated))
+            {
+                existing.Title = note.Title; existing.Text = note.Text; existing.Created = note.Created; existing.Updated = note.Updated;
+                existing.Pinned = note.Pinned; existing.Deleted = note.Deleted; existing.DeletedAt = note.DeletedAt; existing.Revision = note.Revision;
+                updated++;
+            }
+        }
+        foreach (var pair in from.LegacyArchive) into.LegacyArchive.TryAdd(pair.Key, pair.Value);
+        return (added, updated);
+    }
+    private static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision };
     public void Save() => Save(false);
     public void Save(bool redactBackup)
     {
