@@ -94,6 +94,10 @@
         </ControlTemplate.Triggers>
       </ControlTemplate></Setter.Value></Setter>
     </Style>
+    <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource Primary}">
+      <Setter Property="Background" Value="{DynamicResource Danger}"/>
+      <Setter Property="Foreground" Value="#2A1C1C"/>
+    </Style>
     <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
       <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
       <Setter Property="FontSize" Value="16"/>

@@ -1,0 +1,12 @@
+<Window x:Class="Notlar.MessageDialog" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Style="{StaticResource {x:Type Window}}" Width="440" SizeToContent="Height" WindowStartupLocation="CenterOwner" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False">
+  <Border BorderBrush="{DynamicResource Rule}" BorderThickness="1" Padding="28,24">
+    <StackPanel>
+      <TextBlock x:Name="Heading" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap"/>
+      <TextBlock x:Name="Message" Foreground="{DynamicResource Muted}" TextWrapping="Wrap" LineHeight="21" Margin="0,10,0,0"/>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0">
+        <Button x:Name="Secondary" Padding="16,10" Margin="0,0,8,0" IsCancel="True"/>
+        <Button x:Name="Primary" Padding="20,10" IsDefault="True" Click="PrimaryClick"/>
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</Window>

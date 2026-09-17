@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -402,6 +403,13 @@ static class Program
             Find<PasswordBox>(passwordDialog, "Password").Password = "portable backup passphrase 42"; Find<PasswordBox>(passwordDialog, "Confirm").Password = "different passphrase 4242"; Click(passwordDialog, "Submit");
             Check(passwordDialog.IsVisible && Find<TextBlock>(passwordDialog, "Error").Text == L10n.T("PasswordMismatch"), "Password dialog refuses mismatched confirmation");
             Shot(passwordDialog, "notlar-password.png"); passwordDialog.Close();
+            Sounds.Enabled = false;
+            var confirm = new MessageDialog(window, L10n.T("DeletePermanently"), L10n.T("ConfirmPurgeOne", "Deneme"), L10n.T("DeletePermanently"), L10n.T("Cancel"), danger: true); confirm.Show(); Pump();
+            Check(Find<Button>(confirm, "Primary").Style == confirm.FindResource("DangerButton") && Find<Button>(confirm, "Secondary").IsKeyboardFocused && Visuals<Button>(confirm).Count() == 2, "Themed confirmation uses a red primary action and focuses Cancel by default");
+            Shot(confirm, "notlar-confirm.png"); confirm.Close();
+            Check(Assembly.GetAssembly(typeof(Sounds))!.GetManifestResourceStream("Notlar.Sounds.click.wav") is { Length: > 1000 }, "The click sound is embedded in the application");
+            Sounds.Enabled = true; Sounds.Click();
+            Check(!Directory.Exists("src") || Directory.GetFiles(Path.Combine("src", "Notlar"), "*.cs").Where(f => !f.EndsWith("GateWindow.xaml.cs")).All(f => !File.ReadAllText(f).Contains("MessageBox.Show")), "No system message boxes remain outside the legacy gate window");
             var backupMenu = Find<ContextMenu>(window, "BackupMenu");
             Check(backupMenu.Items.Count == 2 && TextFiles.SuggestedName(new Note { Title = "Alışveriş: süt/ekmek?" }) == "Alışveriş_ süt_ekmek_.txt", "Backup menu offers create and restore; TXT export suggests the note title as file name");
             title.Text = "Kaydedilemeyen değişiklik";

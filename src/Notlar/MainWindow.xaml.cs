@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     public MainWindow(VaultSession vault)
     {
         session = vault;
-        ConfirmDestructive = message => MessageBox.Show(this, message, L10n.T("DeletePermanently"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        ConfirmDestructive = message => MessageDialog.Ask(this, L10n.T("DeletePermanently"), message, L10n.T("DeletePermanently"), danger: true);
         AskPassword = confirm =>
         {
             var dialog = new PasswordDialog(this, L10n.T("BackupPasswordTitle"), L10n.T(confirm ? "BackupPasswordCreate" : "BackupPasswordOpen"), confirm);
@@ -453,7 +453,7 @@ public partial class MainWindow : Window
     }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
-        if (!SaveNow()) { e.Cancel = true; LockRequested = false; MessageBox.Show(this, L10n.T("CloseSaveFailed"), L10n.T("CloseSaveFailedTitle")); }
+        if (!SaveNow()) { e.Cancel = true; LockRequested = false; MessageDialog.Info(this, L10n.T("CloseSaveFailed"), L10n.T("CloseSaveFailedTitle")); }
     }
     private void Lock() { if (SaveNow()) { LockRequested = true; Close(); } }
     // Language is applied at window creation; choosing another one saves it and restarts the application.

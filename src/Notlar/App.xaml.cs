@@ -23,7 +23,7 @@ public partial class App : Application
         if (!owns)
         {
             // Hand the request to the running window instead of showing a second copy.
-            if (!Forward(files, fresh)) MessageBox.Show(L10n.T("AlreadyOpen"), L10n.T("AppName"));
+            if (!Forward(files, fresh)) MessageDialog.Info(null, L10n.T("AlreadyOpen"));
             Shutdown(); return;
         }
         try
@@ -40,7 +40,7 @@ public partial class App : Application
             restart = editor.RestartRequested;
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or ArgumentException)
-        { MessageBox.Show(L10n.T("OpenFailed"), L10n.T("AppName"), MessageBoxButton.OK, MessageBoxImage.Information); }
+        { MessageDialog.Info(null, L10n.T("OpenFailed")); }
         finally { mutex.ReleaseMutex(); mutex.Dispose(); }
         // A language change relaunches the application once the single-instance mutex is released.
         if (restart && Environment.ProcessPath is string self) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(self) { UseShellExecute = true });
@@ -50,7 +50,7 @@ public partial class App : Application
     {
         try { editor.ImportTextFile(file); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
-        { MessageBox.Show(editor, ex is InvalidDataException ? ex.Message : L10n.T("OpenFileFailed", file), L10n.T("AppName")); }
+        { MessageDialog.Info(editor, ex is InvalidDataException ? ex.Message : L10n.T("OpenFileFailed", file)); }
     }
     private static bool Forward(List<string> files, bool fresh)
     {
@@ -118,7 +118,7 @@ public partial class App : Application
         {
             session?.Dispose();
             if (!File.Exists(path + ".bak") || source.EndsWith(".bak") ||
-                MessageBox.Show(L10n.T("TryBackup"), L10n.T("AppName"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) throw;
+                !MessageDialog.Ask(null, L10n.T("AppName"), L10n.T("TryBackup"), L10n.T("OK"))) throw;
             session = VaultSession.OpenDevice(path + ".bak", path);
             source = path + ".bak";
         }
@@ -141,6 +141,6 @@ public partial class App : Application
     {
         try { LegacyImport.RemoveVerifiedOriginals(DataDirectory, session); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        { MessageBox.Show(L10n.T("LegacyCleanupFailed"), L10n.T("AppName")); }
+        { MessageDialog.Info(null, L10n.T("LegacyCleanupFailed")); }
     }
 }
