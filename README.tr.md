@@ -38,7 +38,7 @@ Taşınabilir kullanımda `txt-kaydet.cmd`, Notlar'ı `.txt` için "Birlikte aç
 
 ## Kurulum paketi
 
-`build-setup.cmd`, [Inno Setup 6](https://jrsoftware.org/isdl.php) ile `dist/Notlar-Kurulum-<sürüm>.exe` üretir (`setup/Notlar.iss`). Kurulum kullanıcı düzeyindedir: yönetici izni istemez, `%LocalAppData%\Programs\Notlar` altına kurulur, notlar `…\Notlar\data` içinde tutulur ve kaldırmada silinmez. Kurulumda seçilebilen bütünleşmeler:
+`build-setup.cmd`, [Inno Setup 6](https://jrsoftware.org/isdl.php) ile `dist/NoteBook-Setup-<sürüm>.exe` üretir (`setup/Notlar.iss`). Kurulum kullanıcı düzeyindedir: yönetici izni istemez, `%LocalAppData%\Programs\Notlar` altına kurulur, notlar `…\Notlar\data` içinde tutulur ve kaldırmada silinmez. Kurulumda seçilebilen bütünleşmeler:
 
 - **.txt için “Birlikte aç” ve Varsayılan uygulamalar kaydı.** Windows Not Defteri kaldırılmaz veya değiştirilmez; Notlar yanına eklenir. Windows, dosya türünün varsayılanını yalnızca kullanıcının seçmesine izin verir (kurulum programları bunu sessizce değiştiremez); kurulum sonunda Ayarlar sayfası açılabilir: *Varsayılan uygulamalar → Dosya türüne göre → .txt → Notlar*.
 - **Sağ tık → “Yeni not (Notlar)”** masaüstünde ve klasör arka planında. Dosya oluşturmaz; uygulamada yeni not açar. Windows'un “Yeni → Metin Belgesi” girdisi olduğu gibi kalır.
@@ -61,6 +61,10 @@ Bu, uygulamanın yaptığı **tek ağ isteğidir**; yalnızca sürüm bilgisi al
 4. GitHub Actions kurulum dosyasını derler (`NOTLAR_VERSION` etiketten alınır), SHA-256 dosyasını üretir ve Release'e ekler. Kullanıcılar bir sonraki açılışta güncellemeyi görür.
 
 Kurulum dosyası kod imzalı değildir; tarayıcıdan ilk indirmede SmartScreen uyarısı çıkabilir ("Daha fazla bilgi → Yine de çalıştır"). Uygulama içi güncellemede bu uyarı çıkmaz. İmza sertifikası (OV/EV) alındığında `release.yml` içinde `signtool` adımı eklenir.
+
+## Diller
+
+Arayüz 13 dilde: Türkçe, İngilizce, İspanyolca, Çince, Hintçe, Arapça (sağdan sola), Portekizce, Rusça, Japonca, Almanca, Fransızca, Endonezce, Korece. Uygulama Windows görüntü dilini izler; sol alttaki küre düğmesiyle değiştirilir ve `data/settings.json` içine kaydedilir. Metinler `src/Notlar/Languages/<kod>.json` dosyalarındadır; yeni dil için `en.json` kopyalanıp çevrilir ve `L10n.Languages` listesine bir satır eklenir.
 
 ## Şifreleme nasıl çalışıyor?
 

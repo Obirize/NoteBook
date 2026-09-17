@@ -39,7 +39,7 @@ public sealed class VaultSession : IDisposable
     public static int ReadVersion(string path) => (JsonSerializer.Deserialize<VaultEnvelope>(File.ReadAllBytes(path)) ?? throw new InvalidDataException()).Version;
     public static VaultSession CreateDevice(string path, Notebook? book = null)
     {
-        if (File.Exists(path) || File.Exists(path + ".bak")) throw new IOException("Bu konumda zaten notlar var.");
+        if (File.Exists(path) || File.Exists(path + ".bak")) throw new IOException("Notes already exist at this location.");
         var e = new VaultEnvelope { Version = 2, Salt = [], Iterations = 0 };
         var secret = RandomNumberGenerator.GetBytes(32);
         try
@@ -51,8 +51,8 @@ public sealed class VaultSession : IDisposable
     }
     public static VaultSession OpenDevice(string path, string? targetPath = null)
     {
-        var e = JsonSerializer.Deserialize<VaultEnvelope>(File.ReadAllBytes(path)) ?? throw new InvalidDataException("Notlar okunamadı.");
-        if (e.Version != 2 || e.Id.Length != 32 || e.DeviceKey.Length == 0) throw new InvalidDataException("Desteklenmeyen not biçimi.");
+        var e = JsonSerializer.Deserialize<VaultEnvelope>(File.ReadAllBytes(path)) ?? throw new InvalidDataException("The vault could not be read.");
+        if (e.Version != 2 || e.Id.Length != 32 || e.DeviceKey.Length == 0) throw new InvalidDataException("Unsupported vault format.");
         byte[]? secret = null; byte[]? plain = null;
         try
         {
@@ -93,8 +93,8 @@ public sealed class VaultSession : IDisposable
     }
     public static (VaultSession Session, string RecoveryCode) Create(string path, string password, Notebook? book = null)
     {
-        if (password.Length < 12) throw new ArgumentException("En az 12 karakterlik bir parola kullanın.");
-        if (File.Exists(path) || File.Exists(path + ".bak")) throw new IOException("Bu konumda zaten bir kasa var.");
+        if (password.Length < 12) throw new ArgumentException("Use a password of at least 12 characters.");
+        if (File.Exists(path) || File.Exists(path + ".bak")) throw new IOException("A vault already exists at this location.");
         var e = new VaultEnvelope();
         var secret = RandomNumberGenerator.GetBytes(32);
         var recovery = RandomNumberGenerator.GetBytes(32);
@@ -112,8 +112,8 @@ public sealed class VaultSession : IDisposable
     }
     public static VaultSession Open(string path, string password, bool recovery = false, string? targetPath = null)
     {
-        var e = JsonSerializer.Deserialize<VaultEnvelope>(File.ReadAllBytes(path)) ?? throw new InvalidDataException("Kasa okunamadı.");
-        if (e.Version != 1 || e.Salt.Length != 32 || e.Iterations != 600_000 || e.Id.Length != 32) throw new InvalidDataException("Desteklenmeyen kasa biçimi.");
+        var e = JsonSerializer.Deserialize<VaultEnvelope>(File.ReadAllBytes(path)) ?? throw new InvalidDataException("The vault could not be read.");
+        if (e.Version != 1 || e.Salt.Length != 32 || e.Iterations != 600_000 || e.Id.Length != 32) throw new InvalidDataException("Unsupported vault format.");
         byte[] wrapping = recovery ? Convert.FromHexString(password.Replace(" ", "").Replace("-", "").Trim()) : Derive(password, e);
         byte[]? secret = null;
         byte[]? plain = null;
@@ -161,7 +161,7 @@ public sealed class VaultSession : IDisposable
     public void ChangePassword(string password)
     {
         ObjectDisposedException.ThrowIf(Disposed, this);
-        if (password.Length < 12) throw new ArgumentException("En az 12 karakter kullanın.");
+        if (password.Length < 12) throw new ArgumentException("Use at least 12 characters.");
         var oldSalt = envelope.Salt; var oldWrap = envelope.PasswordKey;
         envelope.Salt = RandomNumberGenerator.GetBytes(32);
         var wrapping = Derive(password, envelope);
@@ -177,11 +177,11 @@ public sealed class VaultSession : IDisposable
         if (stored.Version == 2)
         {
             var restoredKey = ProtectedData.Unprotect(stored.DeviceKey, Aad(stored, "device"), DataProtectionScope.CurrentUser);
-            try { if (!CryptographicOperations.FixedTimeEquals(restoredKey, key)) throw new CryptographicException("Anahtar doğrulanamadı."); }
+            try { if (!CryptographicOperations.FixedTimeEquals(restoredKey, key)) throw new CryptographicException("Key verification failed."); }
             finally { CryptographicOperations.ZeroMemory(restoredKey); }
         }
         byte[] plain = Unseal(key, stored.Content, Aad(stored, "content"));
-        try { if (!SameNotebook(plain, Book)) throw new IOException("Kayıt doğrulanamadı."); }
+        try { if (!SameNotebook(plain, Book)) throw new IOException("Saved data verification failed."); }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }
     // Compare through the current model so a vault written by an older schema (missing newer fields) still verifies.
@@ -240,7 +240,7 @@ public static class LegacyImport
             }
             catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException or ArgumentOutOfRangeException) { }
         }
-        if (book.LegacyArchive.Count > 0 && !loaded) throw new InvalidDataException("Eski not dosyaları okunamadı. Dosyalar korunuyor; aktarım durduruldu.");
+        if (book.LegacyArchive.Count > 0 && !loaded) throw new InvalidDataException("Legacy note files could not be read. They were left untouched; import stopped.");
         return book;
     }
     public static void RemoveVerifiedOriginals(string directory, VaultSession session)
@@ -252,7 +252,7 @@ public static class LegacyImport
             string path = Path.Combine(directory, pair.Key);
             if (File.Exists(path))
             {
-                if (File.ReadAllText(path) != pair.Value) throw new IOException("Eski dosya aktarım sırasında değişti; dosya korundu.");
+                if (File.ReadAllText(path) != pair.Value) throw new IOException("A legacy file changed during import; it was left untouched.");
                 File.Delete(path);
             }
         }

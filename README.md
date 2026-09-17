@@ -17,10 +17,11 @@ An Apple Notes–style notebook for Windows: local, dark, and encrypted at rest.
 - Context menus, keyboard shortcuts, custom dark chrome, themed scrollbars.
 - Single instance: opening a file or a new note while the app runs is forwarded to the open window.
 - Automatic updates from GitHub Releases (the only network request the app makes).
+- 13 languages: English, Türkçe, Español, 中文, हिन्दी, العربية (right-to-left), Português, Русский, 日本語, Deutsch, Français, Bahasa Indonesia, 한국어. The app follows the Windows display language; the globe button in the sidebar switches it.
 
 ## Install
 
-Download `Notlar-Kurulum-<version>.exe` from [Releases](https://github.com/Obirize/NoteBook/releases). The installer is per-user: no administrator rights, installs to `%LocalAppData%\Programs\Notlar`, keeps your notes in `…\Notlar\data` and never deletes them on uninstall.
+Download `NoteBook-Setup-<version>.exe` from [Releases](https://github.com/Obirize/NoteBook/releases). The installer is per-user: no administrator rights, installs to `%LocalAppData%\Programs\Notlar`, keeps your notes in `…\Notlar\data` and never deletes them on uninstall.
 
 Optional integrations offered by the installer:
 
@@ -71,6 +72,10 @@ Notes moved to Recently deleted are purged after 30 days (each card shows the re
 On startup the app asks the GitHub Releases API for the latest version. If a newer installer exists, a **"Version x.y.z ready · Update"** button appears in the status bar. Clicking it downloads the installer, verifies its SHA-256 against the published checksum, installs silently and relaunches the app. Your notes stay in place.
 
 This is the only network request the application makes; it carries no identifying data. To opt out, create an empty file named `guncelleme-kapali` in the `data` folder.
+
+## Languages
+
+UI strings live in `src/Notlar/Languages/<code>.json` and are embedded at build time; English is the fallback for any missing key. To add a language, copy `en.json`, translate the values (keep the `{0}` placeholders), and add one line to `L10n.Languages` in `src/Notlar/L10n.cs` with the native name and culture. The test run verifies that every language has every key. The installer wizard is localized through Inno Setup's language files (`setup/Notlar.iss`).
 
 ## Development
 

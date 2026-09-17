@@ -7,9 +7,9 @@ public static class TextFiles
 {
     public static Note Read(string path)
     {
-        if (!string.Equals(Path.GetExtension(path), ".txt", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Bir .txt dosyası seçin.");
+        if (!string.Equals(Path.GetExtension(path), ".txt", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException(L10n.T("TxtSelectFile"));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (stream.Length > 8 * 1024 * 1024) throw new InvalidDataException("En fazla 8 MB büyüklüğünde bir metin dosyası açabilirsiniz.");
+        if (stream.Length > 8 * 1024 * 1024) throw new InvalidDataException(L10n.T("TxtTooLarge"));
         string text;
         try { using var reader = new StreamReader(stream, new UTF8Encoding(false, true), true, 4096, true); text = reader.ReadToEnd(); }
         catch (DecoderFallbackException)
@@ -20,7 +20,7 @@ public static class TextFiles
             using var reader = new StreamReader(stream, Encoding.GetEncoding(1254), false, 4096, true);
             text = reader.ReadToEnd();
         }
-        if (text.Contains('\0')) throw new InvalidDataException("Bu dosya düz metin olarak okunamıyor.");
+        if (text.Contains('\0')) throw new InvalidDataException(L10n.T("TxtNotText"));
         return new Note { Title = Path.GetFileNameWithoutExtension(path), Text = text };
     }
     public static string SuggestedName(Note note)
@@ -31,7 +31,7 @@ public static class TextFiles
     }
     public static void Write(string path, Note note)
     {
-        if (!string.Equals(Path.GetExtension(path), ".txt", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Dosya uzantısı .txt olmalı.");
+        if (!string.Equals(Path.GetExtension(path), ".txt", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException(L10n.T("TxtExtension"));
         string temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {

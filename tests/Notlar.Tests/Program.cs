@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -90,7 +91,7 @@ static class Program
         ScrollBar.PageDownCommand.Execute(null, scrollbar); Pump();
         Check(body.VerticalOffset > 0, "Styled scrollbar page command actually scrolls text");
         ScrollBar.PageUpCommand.Execute(null, scrollbar); Pump();
-        Check(body.VerticalOffset == 0, "Styled scrollbar can return to the start");
+        Check(Settle(() => body.VerticalOffset) == 0, "Styled scrollbar can return to the start");
         var list = Find<ListBox>(window, "NoteList");
         Check(Visuals<ScrollBar>(list).Any(b => b.IsVisible && Math.Abs(b.ActualWidth - 10) < 1), "Long note list uses same narrow scrollbar");
         var listScroll = Visuals<ScrollViewer>(list).First();
@@ -203,6 +204,27 @@ static class Program
         string root = Path.Combine(Path.GetTempPath(), "Notlar-tests-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         try
         {
+            // UI checks and README screenshots run in English regardless of the machine's display language.
+            L10n.Use("en");
+            var english = L10n.Load("en");
+            foreach (var language in L10n.Languages)
+            {
+                var table = L10n.Load(language.Code);
+                var missing = english.Keys.Where(k => !table.ContainsKey(k)).ToList();
+                var extra = table.Keys.Where(k => !english.ContainsKey(k)).ToList();
+                var placeholders = english.Keys.Where(k => table.ContainsKey(k) && !k.EndsWith("One") && System.Text.RegularExpressions.Regex.Matches(english[k], @"\{\d\}").Count != System.Text.RegularExpressions.Regex.Matches(table[k], @"\{\d\}").Count).ToList();
+                Check(missing.Count == 0 && extra.Count == 0 && placeholders.Count == 0 && table.Values.All(v => !string.IsNullOrWhiteSpace(v)) && !string.IsNullOrWhiteSpace(language.NativeName) && CultureInfo.GetCultureInfo(language.Culture) != null,
+                    "Language " + language.Code + " has every key with matching placeholders" + (missing.Count > 0 ? " (missing: " + string.Join(", ", missing) + ")" : "") + (placeholders.Count > 0 ? " (placeholders: " + string.Join(", ", placeholders) + ")" : ""));
+            }
+            Check(L10n.Languages.Length >= 12 && L10n.Languages.Select(l => l.Code).Distinct().Count() == L10n.Languages.Length, "At least twelve distinct languages are available");
+            L10n.Use("tr"); Check(L10n.T("MyNotes") == "Notlarım" && L10n.Count("SelectedCountOne", "SelectedCountMany", 3) == "3 not seçildi" && L10n.Culture.Name == "tr-TR", "Switching language changes strings and culture");
+            L10n.Use("ar"); Check(L10n.Current.RightToLeft && L10n.T("MyNotes") != "My notes", "Arabic is flagged right-to-left");
+            L10n.Use("xx"); Check(L10n.Current.Code == "en", "Unknown language code falls back to English");
+            L10n.Use("en"); Check(L10n.T("NoSuchKey") == "NoSuchKey" && L10n.T("UpdateReady", "2.0.0") == "Version 2.0.0 ready · Update", "Missing keys degrade to the key name; format arguments apply");
+            string settingsDir = Path.Combine(root, "settings"); Directory.CreateDirectory(settingsDir);
+            Check(L10n.Detect(settingsDir) == (L10n.Languages.Any(l => l.Code == CultureInfo.CurrentUICulture.TwoLetterISOLanguageName) ? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName : "en"), "Without a saved choice the Windows display language is used");
+            L10n.Save(settingsDir, "ja"); Check(L10n.Detect(settingsDir) == "ja", "A saved language choice is honored on the next start");
+            File.WriteAllText(Path.Combine(settingsDir, L10n.SettingsFile), "{broken"); Check(L10n.Detect(settingsDir) != null, "A corrupt settings file does not prevent startup");
             string path = Path.Combine(root, "notes.vault");
             var book = new Notebook { Notes = [new Note { Title = "Gizli başlık İstanbul", Text = "PRIVATE-CONTENT-98765", Pinned = true }] };
             var watch = Stopwatch.StartNew();
@@ -249,10 +271,10 @@ static class Program
             Check(VaultSession.SameNotebook(Encoding.UTF8.GetBytes(olderJson), older), "Vault written before the DeletedAt field still verifies after upgrade");
             older.Notes[0].Title = "Değişti";
             Check(!VaultSession.SameNotebook(Encoding.UTF8.GetBytes(olderJson), older) && !VaultSession.SameNotebook(Encoding.UTF8.GetBytes("not json"), older), "Verification still detects a real content mismatch or garbage");
-            string releaseJson = "{\"tag_name\":\"v9.4.1\",\"html_url\":\"https://github.com/x/notlar/releases/tag/v9.4.1\",\"assets\":[{\"name\":\"Notlar-Kurulum-9.4.1.exe\",\"browser_download_url\":\"https://github.com/x/notlar/releases/download/v9.4.1/Notlar-Kurulum-9.4.1.exe\"},{\"name\":\"Notlar-Kurulum-9.4.1.exe.sha256\",\"browser_download_url\":\"https://github.com/x/notlar/releases/download/v9.4.1/Notlar-Kurulum-9.4.1.exe.sha256\"}]}";
+            string releaseJson = "{\"tag_name\":\"v9.4.1\",\"html_url\":\"https://github.com/x/notlar/releases/tag/v9.4.1\",\"assets\":[{\"name\":\"NoteBook-Setup-9.4.1.exe\",\"browser_download_url\":\"https://github.com/x/notlar/releases/download/v9.4.1/NoteBook-Setup-9.4.1.exe\"},{\"name\":\"NoteBook-Setup-9.4.1.exe.sha256\",\"browser_download_url\":\"https://github.com/x/notlar/releases/download/v9.4.1/NoteBook-Setup-9.4.1.exe.sha256\"}]}";
             var parsedRelease = Updater.Parse(releaseJson);
             Check(parsedRelease != null && parsedRelease.Version == new Version(9, 4, 1) && parsedRelease.InstallerUrl.EndsWith("9.4.1.exe") && parsedRelease.ChecksumUrl != null && parsedRelease.Version > Updater.Current, "GitHub release JSON yields installer, checksum and a comparable version");
-            Check(Updater.Parse("{\"tag_name\":\"v9.4.1\",\"assets\":[{\"name\":\"Notlar-Kurulum.exe\",\"browser_download_url\":\"http://evil/x.exe\"}]}") == null && Updater.Parse("{\"message\":\"Not Found\"}") == null, "Non-HTTPS installer links and error responses are ignored");
+            Check(Updater.Parse("{\"tag_name\":\"v9.4.1\",\"assets\":[{\"name\":\"NoteBook-Setup.exe\",\"browser_download_url\":\"http://evil/x.exe\"}]}") == null && Updater.Parse("{\"message\":\"Not Found\"}") == null, "Non-HTTPS installer links and error responses are ignored");
             string checksumFile = Path.Combine(root, "sum.bin"); File.WriteAllBytes(checksumFile, [1, 2, 3]);
             Check(Updater.VerifyChecksum(checksumFile, Convert.ToHexString(SHA256.HashData(new byte[] { 1, 2, 3 })).ToLowerInvariant()) && !Updater.VerifyChecksum(checksumFile, new string('0', 64)), "Downloaded installer is verified against its SHA-256");
             Check(Updater.Enabled(root), "Update check is on for the published repository");
@@ -265,9 +287,10 @@ static class Program
             Check(TrashPolicy.Expired(stale, now).Single().Title == "Eski" && TrashPolicy.Expired(stale, now.AddDays(2)).Count == 2, "Only deletions older than 30 days expire");
             Check(TrashPolicy.Purge(stale, TrashPolicy.Expired(stale, now)) == 1 && stale.Notes.Count == 3 && !stale.LegacyArchive["notes.json"].Contains("legacy-secret") && stale.LegacyArchive["notes.json"].Contains("kept"), "Purge removes the note and its copy inside the legacy archive");
             Check(TrashPolicy.Purge(stale, [stale.Notes.First(n => n.Title == "Canlı")]) == 0 && stale.Notes.Count == 3, "Purge never removes a live note");
-            TrashPolicy.Delete([stale.Notes[2]], now); Check(stale.Notes[2].Deleted && stale.Notes[2].DeletedAt == now && stale.Notes[2].TrashLabel.Contains("30 gün"), "Delete records the deletion time and shows remaining days");
+            TrashPolicy.Delete([stale.Notes[2]], now); Check(stale.Notes[2].Deleted && stale.Notes[2].DeletedAt == now && stale.Notes[2].TrashLabel == L10n.T("TrashLabelDays", 30), "Delete records the deletion time and shows remaining days");
             TrashPolicy.Restore([stale.Notes[2]], now); Check(!stale.Notes[2].Deleted && stale.Notes[2].DeletedAt == null && stale.Notes[2].TrashLabel == "", "Restore clears the deletion time");
-            Check(NoteQuery.Find(book, "istanbul", false).Count == 1, "Turkish case-insensitive search");
+            Check(NoteQuery.Find(book, "istanbul", false).Count == 1 && NoteQuery.Find(book, "ISTANBUL", false).Count == 1, "Search ignores case and dotted/undotted i in any UI language");
+            L10n.Use("tr"); Check(NoteQuery.Find(book, "istanbul", false).Count == 1 && NoteQuery.Find(book, "ıstanbul", false).Count == 0, "Turkish culture keeps dotted and dotless i distinct"); L10n.Use("en");
             book.Notes[0].Deleted = true;
             Check(NoteQuery.Find(book, "", false).Count == 0 && NoteQuery.Find(book, "", true).Count == 1, "Deleted tombstone filtered from live notes");
             book.Notes[0].Deleted = false;
@@ -285,8 +308,8 @@ static class Program
             Check(title.IsKeyboardFocused, "New note focuses title for immediate typing");
             title.Text = "Hafta sonu"; body.Text = "Uzun bir yürüyüş.\nYarım kalan kitaba dön.\nKahveyi acele etmeden iç.";
             var autoSaveWatch = Stopwatch.StartNew();
-            while (Find<TextBlock>(window, "StatusText").Text == "Kaydediliyor…" && autoSaveWatch.ElapsedMilliseconds < 3000) { Pump(); Thread.Sleep(10); }
-            Check(Find<TextBlock>(window, "StatusText").Text == "Şifreli olarak kaydedildi", "Debounced automatic save completes without save command");
+            while (Find<TextBlock>(window, "StatusText").Text == L10n.T("Saving") && autoSaveWatch.ElapsedMilliseconds < 3000) { Pump(); Thread.Sleep(10); }
+            Check(Find<TextBlock>(window, "StatusText").Text == L10n.T("SavedEncrypted"), "Debounced automatic save completes without save command");
             Check(session.Book.Notes.Count == 2, "New note via real UI handler");
             var search = Find<TextBox>(window, "SearchInput"); search.Text = "yürüyüş"; Pump();
             Check(Find<ListBox>(window, "NoteList").Items.Count == 1, "UI searches note bodies");
@@ -308,10 +331,10 @@ static class Program
             Check(noteList.SelectionMode == SelectionMode.Multiple && Find<Grid>(window, "EditorArea").Visibility == Visibility.Collapsed && Find<StackPanel>(window, "SelectionState").Visibility == Visibility.Visible, "Select mode shows checkboxes and hides the editor");
             Check(Visuals<CheckBox>(noteList).Count(c => c.IsVisible) == 4 && !Find<Button>(window, "BulkDeleteButton").IsEnabled, "Every card gets a checkbox; bulk delete waits for a selection");
             Click(window, "SelectAllButton");
-            Check(noteList.SelectedItems.Count == 4 && Find<TextBlock>(window, "SelectionCount").Text == "4 not seçildi", "Select all checks every listed note");
+            Check(noteList.SelectedItems.Count == 4 && Find<TextBlock>(window, "SelectionCount").Text == L10n.Count("SelectedCountOne", "SelectedCountMany", 4), "Select all checks every listed note");
             Click(window, "SelectAllButton"); Check(noteList.SelectedItems.Count == 0, "Select all toggles back to none");
             noteList.SelectedItems.Add(noteList.Items[0]); noteList.SelectedItems.Add(noteList.Items[1]); Pump();
-            Check(Find<Button>(window, "BulkDeleteButton").IsEnabled && Find<TextBlock>(window, "SelectionHeading").Text == "2 not seçildi", "Checking cards enables bulk actions");
+            Check(Find<Button>(window, "BulkDeleteButton").IsEnabled && Find<TextBlock>(window, "SelectionHeading").Text == L10n.Count("SelectedCountOne", "SelectedCountMany", 2), "Checking cards enables bulk actions");
             Shot(window, "notlar-select.png");
             Click(window, "BulkDeleteButton");
             Check(session.Book.Notes.Count(n => n.Deleted) == 2 && session.Book.Notes.Where(n => n.Deleted).All(n => n.DeletedAt != null) && noteList.SelectionMode == SelectionMode.Single, "Bulk delete moves the checked notes to trash with timestamps and leaves select mode");
@@ -321,7 +344,7 @@ static class Program
             Click(window, "TrashFilter");
             Check(Find<TextBlock>(window, "TrashNotice").Visibility == Visibility.Visible && Find<Button>(window, "PurgeButton").Visibility == Visibility.Visible && Find<Button>(window, "ExportButton").Visibility == Visibility.Collapsed, "Trash explains the 30-day limit and offers permanent delete");
             var purgeTarget = session.Book.Notes.First(n => n.Text == "PURGE-ME-4411"); noteList.SelectedItem = purgeTarget; Pump();
-            Check(purgeTarget.TrashLabel.Contains("30 gün"), "Trash card shows remaining days");
+            Check(purgeTarget.TrashLabel == L10n.T("TrashLabelDays", 30), "Trash card shows remaining days");
             Shot(window, "notlar-trash.png");
             bool asked = false; window.ConfirmDestructive = _ => { asked = true; return false; };
             Click(window, "PurgeButton"); Check(asked && session.Book.Notes.Contains(purgeTarget), "Permanent delete asks first and a declined dialog keeps the note");
@@ -334,7 +357,7 @@ static class Program
             Click(window, "BulkPurgeButton");
             Check(session.Book.Notes.Count == 1 && session.Book.Notes[0].Deleted, "Bulk permanent delete removes the checked trash notes");
             Click(window, "SelectButton"); Click(window, "SelectAllButton"); Click(window, "BulkRestoreButton");
-            Check(session.Book.Notes.All(n => !n.Deleted && n.DeletedAt == null) && Find<TextBlock>(window, "ListHeading").Text == "Notlarım" && Find<Grid>(window, "EditorArea").Visibility == Visibility.Visible, "Bulk restore returns notes and reopens the editor");
+            Check(session.Book.Notes.All(n => !n.Deleted && n.DeletedAt == null) && Find<TextBlock>(window, "ListHeading").Text == L10n.T("MyNotes") && Find<Grid>(window, "EditorArea").Visibility == Visibility.Visible, "Bulk restore returns notes and reopens the editor");
             title.Text = "Kaydedilemeyen değişiklik";
             string moved = path + ".held"; File.Move(path, moved); Directory.CreateDirectory(path);
             Check(!window.SaveNow(), "Failed write is reported, never falsely marked saved");
@@ -350,10 +373,12 @@ static class Program
             Check(body.ActualWidth > window.ActualWidth - 304 - 48 - 12 - 2 && editorLeft < 400 && window.ActualWidth - bodyRight < 20, "Wide window stretches the editor to the right edge with its scrollbar at the edge");
             Shot(window, "notlar-wide.png");
             var textMenu = body.ContextMenu!; textMenu.PlacementTarget = body; textMenu.IsOpen = true; Pump();
-            Check(textMenu.Items.Count == 4 && textMenu.Items.OfType<Separator>().Count() == 0 && textMenu.Items.OfType<MenuItem>().Any(m => (string)m.Header == "Yapıştır") && textMenu.ActualWidth > 100, "Editor text boxes get the themed cut/copy/paste menu");
+            Check(textMenu.Items.Count == 4 && textMenu.Items.OfType<Separator>().Count() == 0 && textMenu.Items.OfType<MenuItem>().Any(m => (string)m.Header == L10n.T("Paste")) && textMenu.ActualWidth > 100, "Editor text boxes get the themed cut/copy/paste menu");
             var menuBmp = new RenderTargetBitmap((int)Math.Ceiling(textMenu.ActualWidth), (int)Math.Ceiling(textMenu.ActualHeight), 96, 96, PixelFormats.Pbgra32); menuBmp.Render(textMenu);
             using (var stream = File.Create(Path.Combine("artifacts", "notlar-menu.png"))) { var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(menuBmp)); png.Save(stream); }
             textMenu.IsOpen = false; Pump();
+            var languageMenu = Find<ContextMenu>(window, "LanguageMenu");
+            Check(languageMenu.Items.Count == L10n.Languages.Length && languageMenu.Items.OfType<MenuItem>().Single(m => m.IsChecked).Tag as string == "en", "Language menu lists every language and marks the current one");
             var listMenu = Find<ListBox>(window, "NoteList").ContextMenu!;
             Check(listMenu.Items.OfType<MenuItem>().Count() == 5, "Note cards get a themed action menu");
             window.Width = 1160; window.Height = 780; Pump();
@@ -379,6 +404,19 @@ static class Program
                 Check(Find<StackPanel>(emptyWindow, "EmptyState").Visibility == Visibility.Visible, "Fresh vault has a real empty state, no fake notes");
                 Shot(emptyWindow, "notlar-empty.png"); emptyWindow.Close();
                 var gate = new GateWindow(Path.Combine(root, "setup")); gate.Show(); Pump(); Shot(gate, "notlar-setup.png"); gate.Close();
+            }
+            if (!args.Contains("--preview"))
+            {
+                L10n.Use("ar");
+                var rtl = new MainWindow(emptySession); rtl.Show(); Pump();
+                Check(rtl.FlowDirection == FlowDirection.RightToLeft && Find<TextBlock>(rtl, "ListHeading").Text == L10n.T("MyNotes"), "Arabic window mirrors the layout and shows Arabic labels");
+                Shot(rtl, "notlar-arabic.png"); rtl.Close();
+                L10n.Use("ja");
+                var ja = new MainWindow(emptySession); ja.Show(); Pump();
+                Check(ja.FlowDirection == FlowDirection.LeftToRight && Find<TextBlock>(ja, "ListHeading").Text == "マイノート", "Japanese window shows Japanese labels");
+                ja.ChangeLanguage("de");
+                Check(ja.RestartRequested && !ja.IsVisible && L10n.Detect(Path.GetDirectoryName(emptySession.FilePath)!) == "de", "Choosing a language saves it and asks for a restart");
+                L10n.Use("en");
             }
             Console.WriteLine("PASS TOTAL: " + checks);
             return 0;

@@ -29,8 +29,10 @@ public partial class MainWindow : Window
     public MainWindow(VaultSession vault)
     {
         session = vault;
-        ConfirmDestructive = message => MessageBox.Show(this, message, "Kalıcı sil", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        ConfirmDestructive = message => MessageBox.Show(this, message, L10n.T("DeletePermanently"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+        if (L10n.Current.RightToLeft) FlowDirection = FlowDirection.RightToLeft;
         InitializeComponent();
+        BuildLanguageMenu();
         LockButton.Visibility = session.IsDeviceProtected ? Visibility.Collapsed : Visibility.Visible;
         saveTimer.Tick += (_, _) => SaveNow();
         idleTimer.Tick += (_, _) => { if (DateTime.UtcNow - lastInput >= TimeSpan.FromMinutes(5)) Lock(); };
@@ -49,7 +51,7 @@ public partial class MainWindow : Window
         PurgeExpired();
         RefreshList(session.Book.Notes.Where(n => !n.Deleted).OrderByDescending(n => n.Updated).FirstOrDefault()?.Id);
         if (!session.IsDeviceProtected) idleTimer.Start();
-        VersionText.Text = "Bu bilgisayarda · " + Updater.CurrentLabel;
+        VersionText.Text = L10n.T("OnThisPc") + " · " + Updater.CurrentLabel;
         if (Updater.Enabled(Path.GetDirectoryName(session.FilePath)!)) Loaded += (_, _) => _ = CheckUpdates();
     }
     private async Task CheckUpdates()
@@ -58,7 +60,7 @@ public partial class MainWindow : Window
         {
             update = await Updater.CheckAsync();
             if (update == null || !IsLoaded) return;
-            UpdateButton.Content = "Sürüm " + update.Version.ToString(3) + " hazır · Güncelle";
+            UpdateButton.Content = L10n.T("UpdateReady", update.Version.ToString(3));
             UpdateButton.Visibility = Visibility.Visible;
         }
         catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TaskCanceledException or IOException or System.Text.Json.JsonException) { }
@@ -69,14 +71,14 @@ public partial class MainWindow : Window
         UpdateButton.IsEnabled = false;
         try
         {
-            var progress = new Progress<double>(p => StatusText.Text = "Güncelleme indiriliyor… %" + (int)(p * 100));
+            var progress = new Progress<double>(p => StatusText.Text = L10n.T("UpdateDownloading", (int)(p * 100)));
             string installer = await Updater.DownloadAsync(update, progress);
-            StatusText.Text = "Güncelleme kuruluyor; uygulama yeniden açılacak.";
+            StatusText.Text = L10n.T("UpdateInstalling");
             Updater.Install(installer);
             Close();
         }
         catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TaskCanceledException or IOException or InvalidDataException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
-        { StatusText.Text = ex is InvalidDataException ? ex.Message : "Güncelleme indirilemedi. Daha sonra yeniden deneyin."; UpdateButton.IsEnabled = true; }
+        { StatusText.Text = ex is InvalidDataException ? ex.Message : L10n.T("UpdateFailed"); UpdateButton.IsEnabled = true; }
     }
     private void PurgeExpired()
     {
@@ -119,11 +121,11 @@ public partial class MainWindow : Window
         // Autosave refreshes the list while reading; keep the reader's place instead of jumping to the top.
         if (scroll != null && offset > 0) { NoteList.UpdateLayout(); scroll.ScrollToVerticalOffset(offset); }
         if (current != selected) OpenNote(selected);
-        CountText.Text = notes.Count + " not";
+        CountText.Text = L10n.Count("NoteCountOne", "NoteCountMany", notes.Count);
         NoResults.Visibility = notes.Count == 0 && SearchInput.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         AllFilter.SetResourceReference(BackgroundProperty, trash ? "Side" : "Surface");
         TrashFilter.SetResourceReference(BackgroundProperty, trash ? "Surface" : "Side");
-        ListHeading.Text = trash ? "Son silinenler" : "Notlarım";
+        ListHeading.Text = L10n.T(trash ? "RecentlyDeleted" : "MyNotes");
         UpdateState();
     }
     private void OpenNote(Note? note)
@@ -147,23 +149,23 @@ public partial class MainWindow : Window
         BodyHint.Visibility = BodyInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         PinButton.Visibility = DeleteButton.Visibility = ExportButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
         RestoreButton.Visibility = PurgeButton.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
-        PinButton.ToolTip = current?.Pinned == true ? "Sabitlemeyi kaldır" : "Notu sabitle";
+        PinButton.ToolTip = L10n.T(current?.Pinned == true ? "UnpinNote" : "PinNote");
         System.Windows.Automation.AutomationProperties.SetName(PinButton, (string)PinButton.ToolTip);
         PinButton.SetResourceReference(ForegroundProperty, current?.Pinned == true ? "Accent" : "Muted");
-        DateText.Text = current?.Updated.LocalDateTime.ToString("d MMMM yyyy, HH:mm", CultureInfo.GetCultureInfo("tr-TR")) ?? "";
-        EmptyHeading.Text = trash ? "Burada hiçbir şey yok." : SearchInput.Text.Length > 0 ? "Bir başka kelime deneyin." : "Bir düşünceyle başlar.";
-        EmptyDescription.Text = trash ? "Sildiğiniz notlar " + TrashPolicy.RetentionDays + " gün boyunca burada kalır ve geri yüklenebilir." : SearchInput.Text.Length > 0 ? "Başlıklarda ve not içeriklerinde arama yapabilirsiniz." : "Küçük bir fikir, uzun bir gün, unutmamak istediğiniz bir şey.";
-        EmptyNew.Content = session.Book.Notes.Any(n => !n.Deleted) ? "Yeni not yazın" : "İlk notunuzu yazın";
+        DateText.Text = current?.Updated.LocalDateTime.ToString("f", L10n.Culture) ?? "";
+        EmptyHeading.Text = L10n.T(trash ? "EmptyTrashHeading" : SearchInput.Text.Length > 0 ? "EmptySearchHeading" : "EmptyHeading");
+        EmptyDescription.Text = trash ? L10n.T("EmptyTrashDescription", TrashPolicy.RetentionDays) : L10n.T(SearchInput.Text.Length > 0 ? "EmptySearchDescription" : "EmptyDescription");
+        EmptyNew.Content = L10n.T(session.Book.Notes.Any(n => !n.Deleted) ? "WriteNewNote" : "WriteFirstNote");
         EmptyNew.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
-        TrashNotice.Text = "Silinen notlar " + TrashPolicy.RetentionDays + " gün sonra kalıcı olarak silinir.";
+        TrashNotice.Text = L10n.T("TrashNotice", TrashPolicy.RetentionDays);
         TrashNotice.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
-        SelectButton.Content = selecting ? "Vazgeç" : "Seç";
+        SelectButton.Content = L10n.T(selecting ? "Cancel" : "Select");
         SelectButton.Visibility = selecting || NoteList.Items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         SelectAllButton.Visibility = selecting && NoteList.Items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        SelectAllButton.Content = count > 0 && count == NoteList.Items.Count ? "Seçimi kaldır" : "Tümünü seç";
-        SelectionCount.Text = selecting ? count == 0 ? "Seçili not yok" : count + " not seçildi" : "";
-        SelectionHeading.Text = count == 0 ? "Not seçin" : count + " not seçildi";
-        SelectionDescription.Text = trash ? "Seçili notları geri yükleyebilir veya geri alınamaz şekilde kalıcı olarak silebilirsiniz." : "Seçili notlar son silinenlere taşınır; " + TrashPolicy.RetentionDays + " gün içinde geri alabilirsiniz.";
+        SelectAllButton.Content = L10n.T(count > 0 && count == NoteList.Items.Count ? "DeselectAll" : "SelectAll");
+        SelectionCount.Text = selecting ? count == 0 ? L10n.T("NoSelection") : L10n.Count("SelectedCountOne", "SelectedCountMany", count) : "";
+        SelectionHeading.Text = count == 0 ? L10n.T("SelectionPrompt") : L10n.Count("SelectedCountOne", "SelectedCountMany", count);
+        SelectionDescription.Text = trash ? L10n.T("SelectionDescriptionTrash") : L10n.T("SelectionDescription", TrashPolicy.RetentionDays);
         BulkDeleteButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
         BulkRestoreButton.Visibility = BulkPurgeButton.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
         BulkDeleteButton.IsEnabled = BulkRestoreButton.IsEnabled = BulkPurgeButton.IsEnabled = count > 0;
@@ -172,7 +174,7 @@ public partial class MainWindow : Window
     {
         if (current == null) return;
         current.Updated = DateTimeOffset.UtcNow; current.Revision++;
-        dirty = true; saveTimer.Stop(); saveTimer.Start(); StatusText.Text = "Kaydediliyor…";
+        dirty = true; saveTimer.Stop(); saveTimer.Start(); StatusText.Text = L10n.T("Saving");
     }
     private static void ClearUndo(TextBox box) { box.IsUndoEnabled = false; box.IsUndoEnabled = true; }
     private void EditorChanged(object sender, TextChangedEventArgs e)
@@ -185,9 +187,9 @@ public partial class MainWindow : Window
     {
         saveTimer.Stop();
         if (!dirty) return true;
-        try { session.Save(purged); purged = false; dirty = false; StatusText.Text = "Şifreli olarak kaydedildi"; RefreshList(); return true; }
+        try { session.Save(purged); purged = false; dirty = false; StatusText.Text = L10n.T("SavedEncrypted"); RefreshList(); return true; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
-        { StatusText.Text = "Kaydedilemedi. Tekrar denemek için Ctrl+S."; return false; }
+        { StatusText.Text = L10n.T("SaveFailed"); return false; }
     }
     private void SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -255,12 +257,12 @@ public partial class MainWindow : Window
         if (targets.Count == 0) { e.Handled = true; return; }
         bool single = targets.Count == 1 && !trash;
         MenuPin.Visibility = MenuExport.Visibility = single ? Visibility.Visible : Visibility.Collapsed;
-        MenuPin.Header = targets[0].Pinned ? "Sabitlemeyi kaldır" : "Sabitle";
+        MenuPin.Header = L10n.T(targets[0].Pinned ? "UnpinNote" : "Pin");
         MenuDelete.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
         MenuRestore.Visibility = MenuPurge.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
-        MenuDelete.Header = targets.Count == 1 ? "Son silinenlere taşı" : targets.Count + " notu son silinenlere taşı";
-        MenuRestore.Header = targets.Count == 1 ? "Geri yükle" : targets.Count + " notu geri yükle";
-        MenuPurge.Header = targets.Count == 1 ? "Kalıcı sil…" : targets.Count + " notu kalıcı sil…";
+        MenuDelete.Header = targets.Count == 1 ? L10n.T("MoveToTrash") : L10n.T("MoveManyToTrash", targets.Count);
+        MenuRestore.Header = targets.Count == 1 ? L10n.T("Restore") : L10n.T("RestoreMany", targets.Count);
+        MenuPurge.Header = targets.Count == 1 ? L10n.T("DeletePermanentlyMenu") : L10n.T("PurgeMany", targets.Count);
     }
     private void ClearSearchClick(object sender, RoutedEventArgs e) { SearchInput.Clear(); SearchInput.Focus(); }
     private void AllClick(object sender, RoutedEventArgs e) { if (!SaveNow()) return; trash = false; RefreshList(); }
@@ -274,7 +276,7 @@ public partial class MainWindow : Window
         TrashPolicy.Delete(notes, DateTimeOffset.UtcNow); dirty = true;
         if (!SaveNow()) return;
         lastDeleted = notes; UndoDelete.Visibility = Visibility.Visible;
-        StatusText.Text = notes.Count == 1 ? "Not, son silinenlere taşındı." : notes.Count + " not son silinenlere taşındı.";
+        StatusText.Text = L10n.Count("MovedToTrashOne", "MovedToTrashMany", notes.Count);
         if (selecting) SetSelecting(false);
     }
     private void RestoreClick(object sender, RoutedEventArgs e)
@@ -287,20 +289,18 @@ public partial class MainWindow : Window
         loading = true; SearchInput.Clear(); loading = false;
         SearchHint.Visibility = Visibility.Visible; ClearSearch.Visibility = Visibility.Collapsed;
         RefreshList(notes[0].Id);
-        StatusText.Text = notes.Count == 1 ? "Not geri yüklendi." : notes.Count + " not geri yüklendi.";
+        StatusText.Text = L10n.Count("RestoredOne", "RestoredMany", notes.Count);
         lastDeleted = []; UndoDelete.Visibility = Visibility.Collapsed;
     }
     private void PurgeClick(object sender, RoutedEventArgs e)
     {
         var notes = Targets();
         if (notes.Count == 0 || !trash || !SaveNow()) return;
-        string message = notes.Count == 1
-            ? "“" + notes[0].DisplayTitle + "” kalıcı olarak silinsin mi?\n\nBu işlem geri alınamaz."
-            : notes.Count + " not kalıcı olarak silinsin mi?\n\nBu işlem geri alınamaz.";
+        string message = notes.Count == 1 ? L10n.T("ConfirmPurgeOne", notes[0].DisplayTitle) : L10n.T("ConfirmPurgeMany", notes.Count);
         if (!ConfirmDestructive(message)) return;
         TrashPolicy.Purge(session.Book, notes); purged = true; dirty = true;
         if (!SaveNow()) return;
-        StatusText.Text = notes.Count == 1 ? "Not kalıcı olarak silindi." : notes.Count + " not kalıcı olarak silindi.";
+        StatusText.Text = L10n.Count("PurgedOne", "PurgedMany", notes.Count);
         lastDeleted.RemoveAll(notes.Contains);
         if (lastDeleted.Count == 0) UndoDelete.Visibility = Visibility.Collapsed;
         if (selecting) SetSelecting(false);
@@ -337,46 +337,71 @@ public partial class MainWindow : Window
         SearchHint.Visibility = Visibility.Visible; ClearSearch.Visibility = Visibility.Collapsed;
         RefreshList(note.Id);
         bool saved = SaveNow();
-        if (saved) StatusText.Text = "TXT dosyası notlara eklendi. Orijinal dosya değişmedi.";
+        if (saved) StatusText.Text = L10n.T("TxtImported");
         return saved;
     }
     private void ImportClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Title = "TXT dosyasını notlara ekle", Filter = "Metin dosyası (*.txt)|*.txt", CheckFileExists = true };
+        var dialog = new OpenFileDialog { Title = L10n.T("TxtOpenTitle"), Filter = L10n.T("TxtFilter"), CheckFileExists = true };
         if (dialog.ShowDialog(this) != true) return;
         try { ImportTextFile(dialog.FileName); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
-        { StatusText.Text = ex is InvalidDataException ? ex.Message : "Dosya açılamadı. Dosyayı ve erişim izinlerini kontrol edin."; }
+        { StatusText.Text = ex is InvalidDataException ? ex.Message : L10n.T("TxtOpenFailed"); }
     }
     private void ExportClick(object sender, RoutedEventArgs e)
     {
         if (current == null || selecting || !SaveNow()) return;
         var note = current;
-        var dialog = new SaveFileDialog { Title = "TXT olarak kaydet (şifresiz kopya)", Filter = "UTF-8 metin dosyası (*.txt)|*.txt", DefaultExt = ".txt", FileName = TextFiles.SuggestedName(note) };
+        var dialog = new SaveFileDialog { Title = L10n.T("TxtSaveTitle"), Filter = L10n.T("TxtSaveFilter"), DefaultExt = ".txt", FileName = TextFiles.SuggestedName(note) };
         if (dialog.ShowDialog(this) != true) return;
-        try { TextFiles.Write(dialog.FileName, note); StatusText.Text = "TXT kopyası kaydedildi (şifresiz). Notunuz kasada korunuyor."; }
+        try { TextFiles.Write(dialog.FileName, note); StatusText.Text = L10n.T("TxtSaved"); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
-        { StatusText.Text = "TXT kaydedilemedi. Konumu ve dosya uzantısını kontrol edin."; }
+        { StatusText.Text = L10n.T("TxtSaveFailed"); }
     }
     private void BackupClick(object sender, RoutedEventArgs e)
     {
         if (!SaveNow()) return;
-        var dialog = new SaveFileDialog { Title = session.IsDeviceProtected ? "Bu Windows hesabında açılabilen şifreli yedeği kaydet" : "Şifreli yedeği kaydet", Filter = "Şifreli Notlar kasası (*.vault)|*.vault", FileName = "Notlar-" + DateTime.Now.ToString("yyyy-MM-dd") + ".vault" };
+        var dialog = new SaveFileDialog { Title = L10n.T(session.IsDeviceProtected ? "BackupTitleDevice" : "BackupTitle"), Filter = L10n.T("BackupFilter"), FileName = "NoteBook-" + DateTime.Now.ToString("yyyy-MM-dd") + ".vault" };
         if (dialog.ShowDialog(this) != true) return;
         try
         {
             string target = Path.GetFullPath(dialog.FileName);
             if (string.Equals(target, session.FilePath, StringComparison.OrdinalIgnoreCase) || target.StartsWith(session.FilePath + ".", StringComparison.OrdinalIgnoreCase))
-            { StatusText.Text = "Yedek için kasadan farklı bir konum seçin."; return; }
-            File.Copy(session.FilePath, target, true); StatusText.Text = "Şifreli yedek kaydedildi.";
+            { StatusText.Text = L10n.T("BackupSameLocation"); return; }
+            File.Copy(session.FilePath, target, true); StatusText.Text = L10n.T("BackupSaved");
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusText.Text = "Yedek kaydedilemedi. Başka bir konum deneyin."; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusText.Text = L10n.T("BackupFailed"); }
     }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
-        if (!SaveNow()) { e.Cancel = true; LockRequested = false; MessageBox.Show(this, "Son değişiklik kaydedilemedi. Notlarınız açık tutuluyor. Disk alanını ve klasör izinlerini kontrol edip Ctrl+S ile yeniden deneyin.", "Notlar kaydedilemedi"); }
+        if (!SaveNow()) { e.Cancel = true; LockRequested = false; MessageBox.Show(this, L10n.T("CloseSaveFailed"), L10n.T("CloseSaveFailedTitle")); }
     }
     private void Lock() { if (SaveNow()) { LockRequested = true; Close(); } }
+    // Language is applied at window creation; choosing another one saves it and restarts the application.
+    public bool RestartRequested { get; private set; }
+    private void BuildLanguageMenu()
+    {
+        LanguageMenu.Items.Clear();
+        foreach (var language in L10n.Languages)
+        {
+            var item = new MenuItem { Header = language.NativeName, Tag = language.Code, IsCheckable = true, IsChecked = language.Code == L10n.Current.Code };
+            item.Click += (_, _) => ChangeLanguage(language.Code);
+            LanguageMenu.Items.Add(item);
+        }
+    }
+    public void ChangeLanguage(string code)
+    {
+        if (code == L10n.Current.Code || !SaveNow()) return;
+        try { L10n.Save(Path.GetDirectoryName(session.FilePath)!, code); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusText.Text = L10n.T("SaveFailed"); return; }
+        RestartRequested = true; Close();
+    }
+    private void LanguageClick(object sender, RoutedEventArgs e)
+    {
+        LanguageMenu.PlacementTarget = LanguageButton;
+        LanguageMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+        LanguageMenu.IsOpen = true;
+    }
     private void LockClick(object sender, RoutedEventArgs e) => Lock();
     private void MinimizeClick(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
     private void MaximizeClick(object sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;

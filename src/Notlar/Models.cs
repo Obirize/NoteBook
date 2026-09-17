@@ -14,16 +14,16 @@ public sealed class Note
     public bool Deleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public long Revision { get; set; } = 1;
-    [JsonIgnore] public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? "Yeni not" : Title;
-    [JsonIgnore] public string Preview => string.IsNullOrWhiteSpace(Text) ? "Yazmaya başlayın…" : Text.Replace('\r', ' ').Replace('\n', ' ').Trim();
-    [JsonIgnore] public string DateLabel => Updated.LocalDateTime.Date == DateTime.Today ? Updated.LocalDateTime.ToString("HH:mm") : Updated.LocalDateTime.ToString("d MMM", CultureInfo.GetCultureInfo("tr-TR"));
+    [JsonIgnore] public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? L10n.T("NewNote") : Title;
+    [JsonIgnore] public string Preview => string.IsNullOrWhiteSpace(Text) ? L10n.T("StartWriting") : Text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+    [JsonIgnore] public string DateLabel => Updated.LocalDateTime.Date == DateTime.Today ? Updated.LocalDateTime.ToString("t", L10n.Culture) : Updated.LocalDateTime.ToString("d MMM", L10n.Culture);
     [JsonIgnore] public string TrashLabel
     {
         get
         {
             if (!Deleted || DeletedAt == null) return "";
             int days = (int)Math.Ceiling((DeletedAt.Value.AddDays(TrashPolicy.RetentionDays) - DateTimeOffset.UtcNow).TotalDays);
-            return days <= 0 ? "Bugün kalıcı silinecek" : days + " gün sonra kalıcı silinecek";
+            return days <= 0 ? L10n.T("TrashLabelToday") : L10n.T("TrashLabelDays", days);
         }
     }
 }
@@ -76,6 +76,6 @@ public static class NoteQuery
 {
     public static List<Note> Find(Notebook book, string query, bool trash) => book.Notes
         .Where(n => n.Deleted == trash && (string.IsNullOrWhiteSpace(query) ||
-            CultureInfo.GetCultureInfo("tr-TR").CompareInfo.IndexOf(n.Title + "\n" + n.Text, query.Trim(), CompareOptions.IgnoreCase) >= 0))
+            L10n.Culture.CompareInfo.IndexOf(n.Title + "\n" + n.Text, query.Trim(), CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0))
         .OrderByDescending(n => n.Pinned).ThenByDescending(n => n.Updated).ToList();
 }

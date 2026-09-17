@@ -12,16 +12,18 @@ public partial class App : Application
     private static readonly string InstanceName = "Notlar-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(DataDirectory)))[..20];
     private Mutex? mutex;
     private CancellationTokenSource? pipeStop;
+    private bool restart;
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        L10n.Use(L10n.Detect(DataDirectory));
         var files = e.Args.Where(a => a.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) && File.Exists(a)).Select(Path.GetFullPath).ToList();
         bool fresh = e.Args.Contains("--new", StringComparer.OrdinalIgnoreCase);
         mutex = new Mutex(true, "Local\\" + InstanceName, out bool owns);
         if (!owns)
         {
             // Hand the request to the running window instead of showing a second copy.
-            if (!Forward(files, fresh)) MessageBox.Show("Notlar zaten açık. Görev çubuğundan açık pencereye geçebilirsiniz.", "Notlar");
+            if (!Forward(files, fresh)) MessageBox.Show(L10n.T("AlreadyOpen"), L10n.T("AppName"));
             Shutdown(); return;
         }
         try
@@ -35,17 +37,20 @@ public partial class App : Application
             editor.Loaded += (_, _) => { foreach (string file in files) Open(editor, file); if (fresh) editor.CreateNote(); };
             editor.ShowDialog();
             pipeStop.Cancel();
+            restart = editor.RestartRequested;
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or ArgumentException)
-        { MessageBox.Show("Notlar açılamadı. Mevcut data klasörünüzü silmeyin. Bu notları oluşturduğunuz Windows hesabını kullandığınızdan ve klasöre erişebildiğinizden emin olun.", "Notlar", MessageBoxButton.OK, MessageBoxImage.Information); }
+        { MessageBox.Show(L10n.T("OpenFailed"), L10n.T("AppName"), MessageBoxButton.OK, MessageBoxImage.Information); }
         finally { mutex.ReleaseMutex(); mutex.Dispose(); }
+        // A language change relaunches the application once the single-instance mutex is released.
+        if (restart && Environment.ProcessPath is string self) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(self) { UseShellExecute = true });
         Shutdown();
     }
     private static void Open(MainWindow editor, string file)
     {
         try { editor.ImportTextFile(file); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
-        { MessageBox.Show(editor, ex is InvalidDataException ? ex.Message : "Dosya açılamadı: " + file, "Notlar"); }
+        { MessageBox.Show(editor, ex is InvalidDataException ? ex.Message : L10n.T("OpenFileFailed", file), L10n.T("AppName")); }
     }
     private static bool Forward(List<string> files, bool fresh)
     {
@@ -113,7 +118,7 @@ public partial class App : Application
         {
             session?.Dispose();
             if (!File.Exists(path + ".bak") || source.EndsWith(".bak") ||
-                MessageBox.Show("Notlar açılamadı. Önceki şifreli kayıt denensin mi? Son değişiklikler bu kayıtta olmayabilir.", "Notlar", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) throw;
+                MessageBox.Show(L10n.T("TryBackup"), L10n.T("AppName"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) throw;
             session = VaultSession.OpenDevice(path + ".bak", path);
             source = path + ".bak";
         }
@@ -136,6 +141,6 @@ public partial class App : Application
     {
         try { LegacyImport.RemoveVerifiedOriginals(DataDirectory, session); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        { MessageBox.Show("Notlarınız şifreli olarak kaydedildi; eski şifresiz dosyalar kaldırılamadı. Eski uygulamayı kapatıp yeniden deneyin.", "Notlar"); }
+        { MessageBox.Show(L10n.T("LegacyCleanupFailed"), L10n.T("AppName")); }
     }
 }

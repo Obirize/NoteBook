@@ -54,8 +54,8 @@ public static class Updater
             {
                 string name = asset.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
                 string url = asset.TryGetProperty("browser_download_url", out var u) ? u.GetString() ?? "" : "";
-                if (name.StartsWith("Notlar-Kurulum", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) installer = url;
-                if (name.StartsWith("Notlar-Kurulum", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".sha256", StringComparison.OrdinalIgnoreCase)) checksum = url;
+                if (name.StartsWith("NoteBook-Setup", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) installer = url;
+                if (name.StartsWith("NoteBook-Setup", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".sha256", StringComparison.OrdinalIgnoreCase)) checksum = url;
             }
         if (installer == null || !installer.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return null;
         string page = root.TryGetProperty("html_url", out var h) ? h.GetString() ?? "" : "";
@@ -65,9 +65,9 @@ public static class Updater
     {
         using var client = Client();
         client.Timeout = TimeSpan.FromMinutes(10);
-        string folder = Path.Combine(Path.GetTempPath(), "Notlar-guncelleme");
+        string folder = Path.Combine(Path.GetTempPath(), "NoteBook-update");
         Directory.CreateDirectory(folder);
-        string path = Path.Combine(folder, "Notlar-Kurulum-" + release.Version.ToString(3) + ".exe");
+        string path = Path.Combine(folder, "NoteBook-Setup-" + release.Version.ToString(3) + ".exe");
         using (var response = await client.GetAsync(release.InstallerUrl, HttpCompletionOption.ResponseHeadersRead, ct))
         {
             response.EnsureSuccessStatusCode();
@@ -81,7 +81,7 @@ public static class Updater
         if (release.ChecksumUrl != null)
         {
             string expected = (await client.GetStringAsync(release.ChecksumUrl, ct)).Trim().Split(' ', '\t', '\n')[0];
-            if (!VerifyChecksum(path, expected)) { File.Delete(path); throw new InvalidDataException("İndirilen kurulum dosyası doğrulanamadı."); }
+            if (!VerifyChecksum(path, expected)) { File.Delete(path); throw new InvalidDataException(L10n.T("UpdateChecksumFailed")); }
         }
         return path;
     }

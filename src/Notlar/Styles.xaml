@@ -179,10 +179,10 @@
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Margin="8,5" Background="{DynamicResource Rule}"/></ControlTemplate></Setter.Value></Setter>
     </Style>
     <ContextMenu x:Key="TextMenu">
-      <MenuItem Header="Kes" Command="ApplicationCommands.Cut" InputGestureText="Ctrl+X"/>
-      <MenuItem Header="Kopyala" Command="ApplicationCommands.Copy" InputGestureText="Ctrl+C"/>
-      <MenuItem Header="Yapıştır" Command="ApplicationCommands.Paste" InputGestureText="Ctrl+V"/>
-      <MenuItem Header="Tümünü seç" Command="ApplicationCommands.SelectAll" InputGestureText="Ctrl+A"/>
+      <MenuItem Header="{local:T Cut}" Command="ApplicationCommands.Cut" InputGestureText="Ctrl+X"/>
+      <MenuItem Header="{local:T Copy}" Command="ApplicationCommands.Copy" InputGestureText="Ctrl+C"/>
+      <MenuItem Header="{local:T Paste}" Command="ApplicationCommands.Paste" InputGestureText="Ctrl+V"/>
+      <MenuItem Header="{local:T SelectAll}" Command="ApplicationCommands.SelectAll" InputGestureText="Ctrl+A"/>
     </ContextMenu>
     <Style TargetType="ToolTip"><Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="BorderBrush" Value="{DynamicResource Rule}"/><Setter Property="Padding" Value="10,6"/></Style>
   </ResourceDictionary>
