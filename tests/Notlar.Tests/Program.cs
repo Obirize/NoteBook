@@ -548,12 +548,11 @@ static class Program
             Check(!window.IsVisible && new System.Windows.Interop.WindowInteropHelper(window).Handle != IntPtr.Zero && session.Book.Notes.Count > 0, "Closing the window hides it to the tray instead of quitting");
             window.ShowFromTray(); Pump();
             Check(window.IsVisible, "The tray brings the window back");
-            bool wasRegistered = AppSettings.StartupRegistered();
-            AppSettings.ApplyStartup(true); bool on = AppSettings.StartupRegistered(); AppSettings.ApplyStartup(false); bool off = AppSettings.StartupRegistered(); AppSettings.ApplyStartup(wasRegistered);
-            Check(on && !off && AppSettings.StartupCommand.Contains("--minimized"), "Start-with-Windows registers and removes a per-user Run entry that starts into the tray");
-            var appSettings = AppSettings.Load(Path.GetDirectoryName(path)!); appSettings.StartWithWindows = false; appSettings.Language = "tr"; appSettings.Save();
+            var appSettings = AppSettings.Load(Path.GetDirectoryName(path)!); appSettings.TrayHintShown = true; appSettings.Language = "tr"; appSettings.Save();
             var reloaded = AppSettings.Load(Path.GetDirectoryName(path)!);
-            Check(!reloaded.StartWithWindows && reloaded.Language == "tr" && L10n.Detect(Path.GetDirectoryName(path)!) == "tr" && AppSettings.Load(Path.Combine(root, "nowhere")).StartWithWindows, "Settings keep the language and the startup choice together; starting with Windows is the default");
+            Check(reloaded.TrayHintShown && reloaded.Language == "tr" && L10n.Detect(Path.GetDirectoryName(path)!) == "tr", "Settings keep the language and the tray hint flag together");
+            Check(File.ReadAllText("setup/Notlar.iss").Contains(@"CurrentVersion\Run") && File.ReadAllText("setup/Notlar.iss").Contains("--minimized"), "The installer offers start-with-Windows into the tray");
+            Check(Find<Button>(window, "DeleteButton").Focusable == false, "Toolbar icon buttons do not keep a focus ring after a click");
             Click(window, "LockButton"); Check(window.LockRequested && !window.IsVisible && body.Text == "", "Lock closes and clears visible plaintext");
             session.Dispose(); Reject(session.Save, "Disposed session cannot save");
             var large = new Notebook { Notes = Enumerable.Range(0, 1000).Select(i => new Note { Title = "Not " + i, Text = new string('x', 1000) }).ToList() };

@@ -21,7 +21,7 @@ An Apple Notes–style notebook for Windows: local, dark, and encrypted at rest.
 - Import `.txt` files as notes (open, or drag and drop onto the window), export any note as UTF-8 `.txt` named after its title.
 - Photos and videos on a note: the paperclip button, drag and drop, or Ctrl+V with a picture on the clipboard. Thumbnails above the text; click one for a full-size viewer with video playback. Every file is stored encrypted with its own key.
 - Phone sync with an iPhone on the same Wi‑Fi: no account, no cloud, end-to-end encrypted; the phone app is served by the PC, added to the Home Screen, and looks like Apple Notes.
-- Closing the window keeps NoteBook running in the notification area so the phone can sync; it starts with Windows (into the tray) unless you switch that off in the tray menu. Exit from the tray icon.
+- Closing the window keeps NoteBook running in the notification area so the phone can sync; exit from the tray icon. The installer offers to start NoteBook with Windows, straight into the tray.
 - Context menus, keyboard shortcuts, custom dark chrome, themed scrollbars.
 - Single instance: opening a file or a new note while the app runs is forwarded to the open window.
 - Automatic updates from GitHub Releases (the only network request the app makes).

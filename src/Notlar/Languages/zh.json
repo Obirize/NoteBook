@@ -180,7 +180,6 @@
   "SetupCheckOk": "安全连接正常。打开应用并将其添加到主屏幕。",
   "SetupCheckFail": "尚未信任。设置 → 通用 → 关于本机 → 证书信任设置 → 打开 NoteBook 证书，然后再次测试。",
   "TrayOpen": "打开 NoteBook",
-  "TrayStartWithWindows": "随 Windows 启动",
   "TrayExit": "退出",
   "TrayHint": "NoteBook 在这里继续运行，以便手机同步。右键点击图标可退出。"
 }

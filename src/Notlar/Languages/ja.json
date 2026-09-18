@@ -180,7 +180,6 @@
   "SetupCheckOk": "安全な接続が動作しています。アプリを開いてホーム画面に追加してください。",
   "SetupCheckFail": "まだ信頼されていません。設定 → 一般 → 情報 → 証明書信頼設定 → NoteBook の証明書をオンにして、もう一度テストしてください。",
   "TrayOpen": "NoteBook を開く",
-  "TrayStartWithWindows": "Windows と同時に起動",
   "TrayExit": "終了",
   "TrayHint": "iPhone と同期できるよう NoteBook はここで動作し続けます。終了するにはアイコンを右クリックしてください。"
 }

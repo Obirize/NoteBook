@@ -180,7 +180,6 @@
   "SetupCheckOk": "Secure connection works. Open the app and add it to the Home Screen.",
   "SetupCheckFail": "Not trusted yet. Settings → General → About → Certificate Trust Settings → turn on the NoteBook certificate, then test again.",
   "TrayOpen": "Open NoteBook",
-  "TrayStartWithWindows": "Start with Windows",
   "TrayExit": "Exit",
   "TrayHint": "NoteBook keeps running here so your phone can sync. Right-click the icon to exit."
 }

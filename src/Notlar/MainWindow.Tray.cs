@@ -12,7 +12,7 @@ using Separator = System.Windows.Controls.Separator;
 namespace Notlar;
 
 // Closing the window hides it: the app keeps running in the notification area so the phone can still sync,
-// and "Exit" there is the only way out. Optionally it also starts with Windows, straight into the tray.
+// and "Exit" there is the only way out. The installer can register "--minimized" to start straight into the tray.
 public partial class MainWindow
 {
     private NotifyIcon? tray;
@@ -25,7 +25,6 @@ public partial class MainWindow
     private void InitializeTray()
     {
         settings = AppSettings.Load(Path.GetDirectoryName(session.FilePath)!);
-        AppSettings.ApplyStartup(settings.StartWithWindows);
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Notlar.notes.ico");
         tray = new NotifyIcon { Text = L10n.T("AppName"), Visible = true, Icon = stream != null ? new System.Drawing.Icon(stream) : System.Drawing.SystemIcons.Application };
         tray.MouseUp += (_, e) => { if (e.Button == MouseButtons.Right) ShowTrayMenu(); };
@@ -33,10 +32,10 @@ public partial class MainWindow
         trayMenu = new ContextMenu();
         var open = new MenuItem { Header = L10n.T("TrayOpen"), FontWeight = FontWeights.SemiBold }; open.Click += (_, _) => ShowFromTray();
         var sync = new MenuItem { Header = L10n.T("PhoneSync") + "…" }; sync.Click += (_, _) => { ShowFromTray(); PhoneSyncClick(this, new RoutedEventArgs()); };
-        var startup = new MenuItem { Header = L10n.T("TrayStartWithWindows"), IsCheckable = true, IsChecked = settings.StartWithWindows };
-        startup.Click += (_, _) => { settings.StartWithWindows = startup.IsChecked; AppSettings.ApplyStartup(startup.IsChecked); try { settings.Save(); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { } };
         var exit = new MenuItem { Header = L10n.T("TrayExit") }; exit.Click += (_, _) => ExitFromTray();
-        trayMenu.Items.Add(open); trayMenu.Items.Add(sync); trayMenu.Items.Add(new Separator()); trayMenu.Items.Add(startup); trayMenu.Items.Add(new Separator()); trayMenu.Items.Add(exit);
+        // Over the taskbar a popup cannot be transparent, so this menu uses the square, shadowless template.
+        trayMenu.Style = (System.Windows.Style)FindResource("TrayMenu");
+        trayMenu.Items.Add(open); trayMenu.Items.Add(sync); trayMenu.Items.Add(new Separator()); trayMenu.Items.Add(exit);
         trayMenu.Closed += (_, _) => { trayHelper?.Hide(); };
         Closed += (_, _) => { if (tray != null) { tray.Visible = false; tray.Dispose(); tray = null; } trayHelper?.Close(); };
     }

@@ -99,6 +99,7 @@
       <Setter Property="Foreground" Value="#2A1C1C"/>
     </Style>
     <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Focusable" Value="False"/>
       <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
       <Setter Property="FontSize" Value="16"/>
       <Setter Property="Width" Value="38"/>
@@ -156,6 +157,14 @@
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
         <Border Margin="8" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Rule}" BorderThickness="1" CornerRadius="10" Padding="6" SnapsToDevicePixels="True">
           <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.45" Color="#000000"/></Border.Effect>
+          <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+        </Border>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="TrayMenu" TargetType="ContextMenu" BasedOn="{StaticResource {x:Type ContextMenu}}">
+      <Setter Property="HasDropShadow" Value="False"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
+        <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Rule}" BorderThickness="1" Padding="6" SnapsToDevicePixels="True">
           <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
         </Border>
       </ControlTemplate></Setter.Value></Setter>

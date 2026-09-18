@@ -106,7 +106,7 @@ TXT dosyaları pencereye sürükleyip bırakarak da eklenebilir.
 
 ## Arka planda çalışma
 
-Pencereyi kapatmak uygulamayı kapatmaz: Notlar sağ alttaki bildirim alanında çalışmaya devam eder, böylece telefon eşitlenebilir. Simgeye çift tıklayınca pencere geri gelir; sağ tık menüsünde *Notlar'ı aç*, *Telefonla eşitle…*, *Windows ile başlat* (varsayılan açık; tepsiye küçülmüş olarak başlar) ve *Çıkış* vardır. Uygulamadan çıkmanın tek yolu bu menüdür.
+Pencereyi kapatmak uygulamayı kapatmaz: Notlar sağ alttaki bildirim alanında çalışmaya devam eder, böylece telefon eşitlenebilir. Simgeye çift tıklayınca pencere geri gelir; sağ tık menüsünde *Notlar'ı aç*, *Telefonla eşitle…* ve *Çıkış* vardır. Uygulamadan çıkmanın tek yolu bu menüdür. Kurulum sihirbazı "Windows ile başlat" seçeneğini sunar; işaretliyse Notlar oturum açılınca tepside gizli olarak başlar.
 
 ## Fotoğraf ve video
 

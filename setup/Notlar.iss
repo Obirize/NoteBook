@@ -60,6 +60,7 @@ english.NewNote=New note (NoteBook)
 english.AppDescription=Encrypted local notebook
 english.RunApp=Launch NoteBook
 english.OpenSettings=Open Settings to choose the default app for .txt files
+english.TaskStartup=Start NoteBook with Windows (in the notification area)
 turkish.Shortcuts=Kısayollar:
 turkish.Integration=Windows ile bütünleşme:
 turkish.TaskDesktop=Masaüstüne kısayol ekle
@@ -71,6 +72,7 @@ turkish.NewNote=Yeni not (NoteBook)
 turkish.AppDescription=Şifreli, yerel not defteri
 turkish.RunApp=NoteBook'u başlat
 turkish.OpenSettings=.txt için varsayılan uygulamayı seçmek üzere Ayarlar'ı aç
+turkish.TaskStartup=NoteBook'u Windows ile başlat (bildirim alanında)
 spanish.Shortcuts=Accesos directos:
 spanish.Integration=Integración con Windows:
 spanish.TaskDesktop=Crear un acceso directo en el escritorio
@@ -82,6 +84,7 @@ spanish.NewNote=Nueva nota (NoteBook)
 spanish.AppDescription=Bloc de notas local cifrado
 spanish.RunApp=Iniciar NoteBook
 spanish.OpenSettings=Abrir Configuración para elegir la aplicación predeterminada de .txt
+spanish.TaskStartup=Iniciar NoteBook con Windows (en el área de notificación)
 brazilianportuguese.Shortcuts=Atalhos:
 brazilianportuguese.Integration=Integração com o Windows:
 brazilianportuguese.TaskDesktop=Criar atalho na área de trabalho
@@ -93,6 +96,7 @@ brazilianportuguese.NewNote=Nova nota (NoteBook)
 brazilianportuguese.AppDescription=Bloco de notas local criptografado
 brazilianportuguese.RunApp=Iniciar o NoteBook
 brazilianportuguese.OpenSettings=Abrir Configurações para escolher o aplicativo padrão de .txt
+brazilianportuguese.TaskStartup=Iniciar o NoteBook com o Windows (na área de notificação)
 russian.Shortcuts=Ярлыки:
 russian.Integration=Интеграция с Windows:
 russian.TaskDesktop=Создать ярлык на рабочем столе
@@ -104,6 +108,7 @@ russian.NewNote=Новая заметка (NoteBook)
 russian.AppDescription=Зашифрованный локальный блокнот
 russian.RunApp=Запустить NoteBook
 russian.OpenSettings=Открыть «Параметры», чтобы выбрать приложение по умолчанию для .txt
+russian.TaskStartup=Запускать NoteBook вместе с Windows (в области уведомлений)
 japanese.Shortcuts=ショートカット:
 japanese.Integration=Windows との連携:
 japanese.TaskDesktop=デスクトップにショートカットを作成
@@ -115,6 +120,7 @@ japanese.NewNote=新規ノート (NoteBook)
 japanese.AppDescription=暗号化されたローカル ノート
 japanese.RunApp=NoteBook を起動
 japanese.OpenSettings=設定を開いて .txt の既定のアプリを選ぶ
+japanese.TaskStartup=Windows と同時に NoteBook を起動（通知領域に）
 german.Shortcuts=Verknüpfungen:
 german.Integration=Windows-Integration:
 german.TaskDesktop=Desktop-Verknüpfung erstellen
@@ -126,6 +132,7 @@ german.NewNote=Neue Notiz (NoteBook)
 german.AppDescription=Verschlüsseltes lokales Notizbuch
 german.RunApp=NoteBook starten
 german.OpenSettings=Einstellungen öffnen, um die Standard-App für .txt zu wählen
+german.TaskStartup=NoteBook mit Windows starten (im Infobereich)
 french.Shortcuts=Raccourcis :
 french.Integration=Intégration à Windows :
 french.TaskDesktop=Créer un raccourci sur le Bureau
@@ -137,6 +144,7 @@ french.NewNote=Nouvelle note (NoteBook)
 french.AppDescription=Bloc-notes local chiffré
 french.RunApp=Lancer NoteBook
 french.OpenSettings=Ouvrir les Paramètres pour choisir l'application par défaut des .txt
+french.TaskStartup=Lancer NoteBook avec Windows (dans la zone de notification)
 korean.Shortcuts=바로 가기:
 korean.Integration=Windows 통합:
 korean.TaskDesktop=바탕 화면 바로 가기 만들기
@@ -148,11 +156,13 @@ korean.NewNote=새 메모 (NoteBook)
 korean.AppDescription=암호화된 로컬 메모장
 korean.RunApp=NoteBook 실행
 korean.OpenSettings=설정을 열어 .txt 기본 앱 선택
+korean.TaskStartup=Windows와 함께 NoteBook 시작(알림 영역에)
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:TaskDesktop}"; GroupDescription: "{cm:Shortcuts}"
 Name: "txtopenwith"; Description: "{cm:TaskTxt}"; GroupDescription: "{cm:Integration}"
 Name: "newnote"; Description: "{cm:TaskNewNote}"; GroupDescription: "{cm:Integration}"
+Name: "startup"; Description: "{cm:TaskStartup}"; GroupDescription: "{cm:Integration}"
 
 [Files]
 Source: "..\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
@@ -166,6 +176,8 @@ Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Registry]
+; Start with Windows, straight into the notification area (per user, no administrator rights).
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Notlar"; ValueData: """{app}\{#AppExe}"" --minimized"; Flags: uninsdeletevalue; Tasks: startup
 ; ProgID and "Open with" for .txt — added next to Windows Notepad, which is not modified.
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueData: "{cm:TextNote}"; Flags: uninsdeletekey; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueName: "FriendlyTypeName"; ValueData: "{cm:TextNote}"; Tasks: txtopenwith

@@ -180,7 +180,6 @@
   "SetupCheckOk": "Güvenli bağlantı çalışıyor. Uygulamayı açıp ana ekrana ekleyin.",
   "SetupCheckFail": "Henüz güvenilmiyor. Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar belgesini açın, sonra yeniden sınayın.",
   "TrayOpen": "Notlar'ı aç",
-  "TrayStartWithWindows": "Windows ile başlat",
   "TrayExit": "Çıkış",
   "TrayHint": "Notlar burada çalışmaya devam ediyor; telefon böylece eşitlenebilir. Çıkmak için simgeye sağ tıklayın."
 }
