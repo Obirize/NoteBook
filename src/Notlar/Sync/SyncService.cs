@@ -45,6 +45,8 @@ public sealed class SyncService : IDisposable
     public int Port => secure?.Port ?? Settings.Port;
     public string LocalName => Certs?.LocalName ?? (Environment.MachineName.ToLowerInvariant() + ".local");
     public string AppUrl => "https://" + LocalName + ":" + Port + "/";
+    // The address on the QR code: a document path no earlier phone copy ever cached, so the newest app always loads.
+    public string StartUrl => AppUrl + "start";
     public string SetupUrl => "http://" + LocalName + ":" + (Port + 1) + "/";
     // The home-screen app has its own storage and no camera access, so pairing happens with a short code typed by
     // hand. The code is shown on the PC and changes every minute (the previous one is still accepted briefly, for
@@ -162,7 +164,7 @@ public sealed class SyncService : IDisposable
             finally { CryptographicOperations.ZeroMemory(key); }
         }
         if (request.Method is not ("GET" or "HEAD")) return new HttpResponse { Status = 405, Body = "Method not allowed"u8.ToArray() };
-        string path = request.Path == "/" ? "/index.html" : request.Path;
+        string path = request.Path is "/" or "/start" ? "/index.html" : request.Path.StartsWith("/v2/", StringComparison.Ordinal) ? request.Path[3..] : request.Path;
         switch (path)
         {
             case "/ca.mobileconfig": return Profile();
@@ -198,14 +200,14 @@ public sealed class SyncService : IDisposable
     {
         string E(string s) => System.Net.WebUtility.HtmlEncode(s);
         string dir = L10n.Current.RightToLeft ? "rtl" : "ltr";
-        var steps = new[] { L10n.T("SetupStep1"), L10n.T("SetupStep2"), L10n.T("SetupStep3"), L10n.T("SetupStep4", AppUrl) };
+        var steps = new[] { L10n.T("SetupStep1"), L10n.T("SetupStep2"), L10n.T("SetupStep3"), L10n.T("SetupStep4", StartUrl) };
         var sb = new StringBuilder();
         sb.Append("<!doctype html><html lang=\"").Append(L10n.Current.Code).Append("\" dir=\"").Append(dir).Append("\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\"><title>").Append(E(L10n.T("AppName"))).Append("</title>");
         sb.Append("<style>body{margin:0;background:#202022;color:#F1F0ED;font:17px/1.5 -apple-system,'Segoe UI',sans-serif;padding:32px 22px calc(32px + env(safe-area-inset-bottom))}h1{font-size:26px;margin:0 0 6px}p{color:#A3A2A7;margin:0 0 22px}ol{padding-inline-start:22px}li{margin:0 0 16px}a.b{display:block;text-align:center;background:#E7BB62;color:#29241C;font-weight:600;border-radius:12px;padding:15px;text-decoration:none;margin:8px 0 6px}code{background:#333337;border-radius:6px;padding:2px 6px;font-size:15px;word-break:break-all}button.b{width:100%;border:0;font:inherit;font-size:17px;cursor:pointer}.r{min-height:1.5em;line-height:1.5}.r.ok{color:#8fd19e}.r.bad{color:#e27d7d}.f{font-size:12px;color:#A3A2A7;word-break:break-all;margin-top:26px}</style></head><body>");
         sb.Append("<h1>").Append(E(L10n.T("SetupTitle"))).Append("</h1><p>").Append(E(L10n.T("SetupIntro", PcName))).Append("</p><ol>");
         sb.Append("<li>").Append(E(steps[0])).Append("<a class=\"b\" href=\"/ca.mobileconfig\">").Append(E(L10n.T("SetupInstallButton"))).Append("</a></li>");
         sb.Append("<li>").Append(E(steps[1])).Append("</li><li>").Append(E(steps[2])).Append("</li>");
-        sb.Append("<li>").Append(E(steps[3]).Replace(E(AppUrl), "<a href=\"" + E(AppUrl) + "\"><code>" + E(AppUrl) + "</code></a>")).Append("</li></ol>");
+        sb.Append("<li>").Append(E(steps[3]).Replace(E(StartUrl), "<a href=\"" + E(StartUrl) + "\"><code>" + E(StartUrl) + "</code></a>")).Append("</li></ol>");
         // The check fetches /status over HTTPS: it only succeeds once the certificate is installed and fully trusted.
         sb.Append("<button class=\"b\" id=\"check\">").Append(E(L10n.T("SetupCheckButton"))).Append("</button><p id=\"result\" class=\"r\"></p>");
         sb.Append("<div class=\"f\">").Append(E(L10n.T("SetupFingerprint"))).Append("<br>").Append(E(Certs!.RootFingerprint)).Append("</div>");

@@ -92,7 +92,7 @@ public sealed class SyncWindow : Window
         Text(L10n.T("SyncStatusOn", service.AppUrl), 13, "Muted");
         Step(L10n.T("SyncSetup"), service.SetupUrl, L10n.T("SyncSetupHelp"));
         Text(L10n.T("SetupFingerprint") + "\n" + service.Certs!.RootFingerprint, 11, "Muted", new Thickness(0, 6, 0, 0));
-        Step(L10n.T("SyncPair"), service.AppUrl, L10n.T("SyncPairHelp"));
+        Step(L10n.T("SyncPair"), service.StartUrl, L10n.T("SyncPairHelp"));
         Heading(L10n.T("SyncCode"));
         string code = service.CurrentPairCode();
         codeBlock = new TextBlock { Text = code[..3] + " " + code[3..], FontSize = 40, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 2) };

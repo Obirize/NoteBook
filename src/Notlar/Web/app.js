@@ -380,6 +380,13 @@ run(async () => {
   if (needsInstall()) show('install');
   else if (keys) { show('list'); renderList(); connect(); navigator.storage?.persist?.().catch(() => {}); }
   else show('pair');
-  if ('serviceWorker' in navigator) try { await navigator.serviceWorker.register('/sw.js'); } catch { /* offline copy is optional */ }
+  if ('serviceWorker' in navigator) try {
+    // A first-generation worker (cache "notebook-phone-v1") served the old design cache-first and could sit on a
+    // phone for a long time; when its cache is around, drop every registration and cache before registering anew.
+    const stale = (await caches.keys()).some(k => k !== 'notebook-phone-v7');
+    if (stale) { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); }
+    await navigator.serviceWorker.register('/sw.js');
+  } catch { /* offline copy is optional */ }
+  if (location.pathname !== '/') history.replaceState(null, '', '/');
   $('skipInstall').addEventListener('click', () => { installSkipped = true; try { sessionStorage.setItem('skipInstall', '1'); } catch { } if (keys) { show('list'); renderList(); connect(); } else show('pair'); });
 });
