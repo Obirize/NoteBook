@@ -68,17 +68,19 @@ public partial class MainWindow : Window
         RefreshList(session.Book.Notes.Where(n => !n.Deleted).OrderByDescending(n => n.Updated).FirstOrDefault()?.Id);
         if (!session.IsDeviceProtected) idleTimer.Start();
         VersionText.Text = L10n.T("OnThisPc") + " · " + Updater.CurrentLabel;
-        // The app may live in the tray for days: look for updates shortly after start, every six hours, and when it is opened again.
+        // The app may live in the tray for days: look for updates shortly after start, every hour, and whenever the
+        // window comes to the front after a while. Each check is one small request to the releases page.
         if (Updater.Enabled(Path.GetDirectoryName(session.FilePath)!))
         {
-            updateTimer.Tick += (_, _) => { updateTimer.Interval = TimeSpan.FromHours(6); _ = CheckUpdates(); };
+            updateTimer.Tick += (_, _) => { updateTimer.Interval = TimeSpan.FromHours(1); _ = CheckUpdates(); };
             updateTimer.Start();
+            Activated += (_, _) => CheckUpdatesIfStale();
         }
     }
     private readonly DispatcherTimer updateTimer = new() { Interval = TimeSpan.FromSeconds(5) };
     private DateTime lastUpdateCheck = DateTime.MinValue;
     private bool updateAnnounced;
-    public void CheckUpdatesIfStale() { if (updateTimer.IsEnabled && update == null && DateTime.UtcNow - lastUpdateCheck > TimeSpan.FromHours(1)) _ = CheckUpdates(); }
+    public void CheckUpdatesIfStale() { if (updateTimer.IsEnabled && update == null && DateTime.UtcNow - lastUpdateCheck > TimeSpan.FromMinutes(10)) _ = CheckUpdates(); }
     private async Task CheckUpdates()
     {
         lastUpdateCheck = DateTime.UtcNow;
