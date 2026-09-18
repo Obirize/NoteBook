@@ -17,10 +17,16 @@ assert.equal(desktop.Text,'from PC');c.send({t:'want-files',ids:[attachment.Id]}
 while(true){const m=await c.next();if(m instanceof ArrayBuffer)chunks.push(m);else if(m.t==='file-end')break;}
 assert.equal(await (await decryptFile(new Blob(chunks),attachment)).text(),'desktop attachment');
 const now=new Date().toISOString(),encrypted=await encryptFile(new File(['phone attachment'],'phone.png',{type:'image/png'}));
-const phone={Id:id(),Title:'Phone',Text:'from phone 🔐',Created:now,Updated:now,Revision:1,Pinned:false,Deleted:false,DeletedAt:null,Attachments:[encrypted.meta]};
+// A "video" larger than one chunk with a known byte pattern: the desktop must receive it bit for bit.
+const clipBytes=new Uint8Array(2621440+123);for(let i=0;i<clipBytes.length;i++)clipBytes[i]=(i*7+3)&255;
+const clip=await encryptFile(new File([clipBytes],'tempImage1234.mov',{type:''}));
+assert.match(clip.meta.Name,/^IMG .*\.mov$/);assert.equal(clip.meta.MediaType,'video/quicktime');
+assert.deepEqual(new Uint8Array(await (await decryptFile(clip.blob,clip.meta)).arrayBuffer()),clipBytes);
+const phone={Id:id(),Title:'Phone',Text:'from phone 🔐',Created:now,Updated:now,Revision:1,Pinned:false,Deleted:false,DeletedAt:null,Attachments:[encrypted.meta,clip.meta]};
 c.send({t:'note',id:phone.Id,rev:1,blob:b64(await seal(keys,phone))});c.send({t:'flush'});
 while((await c.next()).t!=='flush'){}
 c.send({t:'file',id:encrypted.meta.Id,size:encrypted.blob.size});c.ws.send(await encrypted.blob.arrayBuffer());c.send({t:'file-end',id:encrypted.meta.Id});
+c.send({t:'file',id:clip.meta.Id,size:clip.blob.size});for(let at=0;at<clip.blob.size;at+=262144)c.ws.send(await clip.blob.slice(at,at+262144).arrayBuffer());c.send({t:'file-end',id:clip.meta.Id});
 // First update the PC, then upload an independently edited higher revision with the old base.
 const changed={...desktop,Revision:2,Text:'PC-side edit'};
 c.send({t:'note',id:changed.Id,rev:2,blob:b64(await seal(keys,changed))});c.send({t:'flush'});while((await c.next()).t!=='flush'){}

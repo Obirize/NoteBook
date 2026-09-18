@@ -47,30 +47,44 @@ public sealed class SyncService : IDisposable
     public string AppUrl => "https://" + LocalName + ":" + Port + "/";
     public string SetupUrl => "http://" + LocalName + ":" + (Port + 1) + "/";
     // The home-screen app has its own storage and no camera access, so pairing happens with a short code typed by
-    // hand: shown on the PC, valid for ten minutes, five wrong tries burn it. The key itself only travels over TLS.
-    private string? pairCode; private DateTimeOffset pairCodeExpires; private int pairAttempts;
+    // hand. The code is shown on the PC and changes every minute (the previous one is still accepted briefly, for
+    // someone who is mid-typing); five wrong tries rotate it early; it only exists while the sync window is open.
+    // The key itself travels once, over TLS, in exchange for the code.
+    private string? pairCode, previousCode; private DateTimeOffset pairCodeExpires, previousExpires; private int pairAttempts;
     private readonly object pairLock = new();
-    public const int PairCodeMinutes = 10;
-    public string? PairCode { get { lock (pairLock) return pairCode != null && DateTimeOffset.UtcNow < pairCodeExpires ? pairCode : null; } }
+    public const int PairCodeSeconds = 60, PairCodeGraceSeconds = 20, PairCodeAttempts = 5;
+    // Tests move the clock; the app uses real time.
+    public Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
+    public string? PairCode { get { lock (pairLock) return pairCode != null && Clock() < pairCodeExpires ? pairCode : null; } }
+    public int PairCodeSecondsLeft { get { lock (pairLock) return pairCode == null ? 0 : Math.Max(0, (int)Math.Ceiling((pairCodeExpires - Clock()).TotalSeconds)); } }
     public string NewPairCode()
     {
         lock (pairLock)
         {
-            pairCode = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("000000");
-            pairCodeExpires = DateTimeOffset.UtcNow.AddMinutes(PairCodeMinutes); pairAttempts = 0;
+            var now = Clock();
+            // The code that just ran out stays valid a little longer: the person may still be typing it.
+            if (pairCode != null && now < pairCodeExpires.AddSeconds(PairCodeGraceSeconds)) { previousCode = pairCode; previousExpires = now.AddSeconds(PairCodeGraceSeconds); }
+            else previousCode = null;
+            do pairCode = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("000000"); while (pairCode == previousCode);
+            pairCodeExpires = now.AddSeconds(PairCodeSeconds); pairAttempts = 0;
             return pairCode;
         }
     }
-    public void ClearPairCode() { lock (pairLock) pairCode = null; }
+    // Called by the sync window's clock: hands out the current code, replacing it once its minute is over.
+    public string CurrentPairCode() => PairCode ?? NewPairCode();
+    public void ClearPairCode() { lock (pairLock) pairCode = previousCode = null; }
     // The sync key for a correct code (caller zeroes it), null otherwise.
     public byte[]? TryPair(string code)
     {
         lock (pairLock)
         {
-            if (pairCode == null || DateTimeOffset.UtcNow >= pairCodeExpires || !Settings.HasKey) return null;
-            bool ok = CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(code.Trim().Replace(" ", "")), Encoding.UTF8.GetBytes(pairCode));
-            if (!ok) { if (++pairAttempts >= 5) pairCode = null; return null; }
-            pairCode = null;
+            var now = Clock();
+            if (pairCode == null || now >= pairCodeExpires || !Settings.HasKey) return null;
+            var typed = Encoding.UTF8.GetBytes(code.Trim().Replace(" ", ""));
+            bool ok = CryptographicOperations.FixedTimeEquals(typed, Encoding.UTF8.GetBytes(pairCode))
+                || (previousCode != null && now < previousExpires && CryptographicOperations.FixedTimeEquals(typed, Encoding.UTF8.GetBytes(previousCode)));
+            if (!ok) { if (++pairAttempts >= PairCodeAttempts) pairCode = previousCode = null; return null; }
+            pairCode = previousCode = null;
         }
         return Settings.Key();
     }
@@ -154,7 +168,9 @@ public sealed class SyncService : IDisposable
             case "/ca.mobileconfig": return Profile();
             case "/status":
                 var status = new JsonObject { ["app"] = "Notlar", ["protocol"] = SyncKeys.Protocol, ["name"] = PcName, ["host"] = LocalName, ["time"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ["version"] = Updater.CurrentLabel };
-                return HttpResponse.Text(status.ToJsonString(), "application/json");
+                var statusResponse = HttpResponse.Text(status.ToJsonString(), "application/json");
+                statusResponse.Headers["Access-Control-Allow-Origin"] = "*";
+                return statusResponse;
         }
         string name = path.TrimStart('/');
         if (name.Contains('/') || name.Contains("..")) return HttpResponse.NotFound();
@@ -185,12 +201,15 @@ public sealed class SyncService : IDisposable
         var steps = new[] { L10n.T("SetupStep1"), L10n.T("SetupStep2"), L10n.T("SetupStep3"), L10n.T("SetupStep4", AppUrl) };
         var sb = new StringBuilder();
         sb.Append("<!doctype html><html lang=\"").Append(L10n.Current.Code).Append("\" dir=\"").Append(dir).Append("\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\"><title>").Append(E(L10n.T("AppName"))).Append("</title>");
-        sb.Append("<style>body{margin:0;background:#202022;color:#F1F0ED;font:17px/1.5 -apple-system,'Segoe UI',sans-serif;padding:32px 22px calc(32px + env(safe-area-inset-bottom))}h1{font-size:26px;margin:0 0 6px}p{color:#A3A2A7;margin:0 0 22px}ol{padding-inline-start:22px}li{margin:0 0 16px}a.b{display:block;text-align:center;background:#E7BB62;color:#29241C;font-weight:600;border-radius:12px;padding:15px;text-decoration:none;margin:8px 0 6px}code{background:#333337;border-radius:6px;padding:2px 6px;font-size:15px;word-break:break-all}.f{font-size:12px;color:#A3A2A7;word-break:break-all;margin-top:26px}</style></head><body>");
+        sb.Append("<style>body{margin:0;background:#202022;color:#F1F0ED;font:17px/1.5 -apple-system,'Segoe UI',sans-serif;padding:32px 22px calc(32px + env(safe-area-inset-bottom))}h1{font-size:26px;margin:0 0 6px}p{color:#A3A2A7;margin:0 0 22px}ol{padding-inline-start:22px}li{margin:0 0 16px}a.b{display:block;text-align:center;background:#E7BB62;color:#29241C;font-weight:600;border-radius:12px;padding:15px;text-decoration:none;margin:8px 0 6px}code{background:#333337;border-radius:6px;padding:2px 6px;font-size:15px;word-break:break-all}button.b{width:100%;border:0;font:inherit;font-size:17px;cursor:pointer}.r{min-height:1.5em;line-height:1.5}.r.ok{color:#8fd19e}.r.bad{color:#e27d7d}.f{font-size:12px;color:#A3A2A7;word-break:break-all;margin-top:26px}</style></head><body>");
         sb.Append("<h1>").Append(E(L10n.T("SetupTitle"))).Append("</h1><p>").Append(E(L10n.T("SetupIntro", PcName))).Append("</p><ol>");
         sb.Append("<li>").Append(E(steps[0])).Append("<a class=\"b\" href=\"/ca.mobileconfig\">").Append(E(L10n.T("SetupInstallButton"))).Append("</a></li>");
         sb.Append("<li>").Append(E(steps[1])).Append("</li><li>").Append(E(steps[2])).Append("</li>");
         sb.Append("<li>").Append(E(steps[3]).Replace(E(AppUrl), "<a href=\"" + E(AppUrl) + "\"><code>" + E(AppUrl) + "</code></a>")).Append("</li></ol>");
-        sb.Append("<div class=\"f\">").Append(E(L10n.T("SetupFingerprint"))).Append("<br>").Append(E(Certs!.RootFingerprint)).Append("</div></body></html>");
+        // The check fetches /status over HTTPS: it only succeeds once the certificate is installed and fully trusted.
+        sb.Append("<button class=\"b\" id=\"check\">").Append(E(L10n.T("SetupCheckButton"))).Append("</button><p id=\"result\" class=\"r\"></p>");
+        sb.Append("<div class=\"f\">").Append(E(L10n.T("SetupFingerprint"))).Append("<br>").Append(E(Certs!.RootFingerprint)).Append("</div>");
+        sb.Append("<script>const r=document.getElementById('result');document.getElementById('check').onclick=async()=>{r.textContent='…';r.className='r';try{const s=await fetch(").Append(System.Text.Json.JsonSerializer.Serialize(AppUrl + "status")).Append(",{cache:'no-store'});if(!s.ok)throw 0;r.textContent=").Append(System.Text.Json.JsonSerializer.Serialize(L10n.T("SetupCheckOk"))).Append(";r.className='r ok';}catch(e){r.textContent=").Append(System.Text.Json.JsonSerializer.Serialize(L10n.T("SetupCheckFail"))).Append(";r.className='r bad';}};</script></body></html>");
         return sb.ToString();
     }
 

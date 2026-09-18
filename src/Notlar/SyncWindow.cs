@@ -13,6 +13,8 @@ public sealed class SyncWindow : Window
 {
     private readonly SyncService service;
     private readonly StackPanel panel = new() { Margin = new Thickness(32, 20, 32, 28) };
+    private readonly System.Windows.Threading.DispatcherTimer clock = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    private TextBlock? codeBlock, countdownBlock;
     [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
     public SyncWindow(Window owner, SyncService service)
     {
@@ -31,12 +33,21 @@ public sealed class SyncWindow : Window
         root.Children.Add(close);
         Content = new Border { BorderThickness = new Thickness(1), Child = root, BorderBrush = (Brush)FindResource("Rule") };
         service.StatusChanged += Changed;
-        Closed += (_, _) => { service.StatusChanged -= Changed; service.ClearPairCode(); };
+        clock.Tick += (_, _) => Tick();
+        Closed += (_, _) => { clock.Stop(); service.StatusChanged -= Changed; service.ClearPairCode(); };
         PreviewKeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Escape) Close(); };
-        if (service.Running) service.NewPairCode();
         Render();
+        clock.Start();
     }
-    private void Changed() => Dispatcher.BeginInvoke(() => { if (service.Running && service.PairCode == null) service.NewPairCode(); Render(); });
+    private void Changed() => Dispatcher.BeginInvoke(Render);
+    // Every half second: refresh the countdown, and swap in the next code when the minute is up.
+    private void Tick()
+    {
+        if (!service.Running || codeBlock == null || countdownBlock == null) return;
+        string code = service.CurrentPairCode();
+        codeBlock.Text = code[..3] + " " + code[3..];
+        countdownBlock.Text = L10n.T("SyncCodeCountdown", service.PairCodeSecondsLeft);
+    }
 
     private TextBlock Text(string value, double size = 14, string brush = "Ink", Thickness? margin = null, FontWeight? weight = null)
     {
@@ -74,20 +85,22 @@ public sealed class SyncWindow : Window
         panel.Children.Clear();
         Text(L10n.T("PhoneSync"), 26, "Ink", new Thickness(0, 0, 0, 6), FontWeights.SemiBold);
         Text(L10n.T("SyncIntro"), 13, "Muted");
-        Action(L10n.T(service.Settings.Enabled ? "SyncDisable" : "SyncEnable"), () => { service.SetEnabled(!service.Settings.Enabled); if (service.Running) service.NewPairCode(); else service.ClearPairCode(); }, primary: !service.Settings.Enabled);
+        Action(L10n.T(service.Settings.Enabled ? "SyncDisable" : "SyncEnable"), () => { service.SetEnabled(!service.Settings.Enabled); if (!service.Running) service.ClearPairCode(); }, primary: !service.Settings.Enabled);
         if (service.Error != null) Text(service.Error, 13, "Danger");
+        codeBlock = countdownBlock = null;
         if (!service.Running) { Text(L10n.T("SyncStatusOff"), 13, "Muted"); return; }
         Text(L10n.T("SyncStatusOn", service.AppUrl), 13, "Muted");
         Step(L10n.T("SyncSetup"), service.SetupUrl, L10n.T("SyncSetupHelp"));
         Text(L10n.T("SetupFingerprint") + "\n" + service.Certs!.RootFingerprint, 11, "Muted", new Thickness(0, 6, 0, 0));
         Step(L10n.T("SyncPair"), service.AppUrl, L10n.T("SyncPairHelp"));
         Heading(L10n.T("SyncCode"));
-        string code = service.PairCode ?? service.NewPairCode();
-        var codeBlock = new TextBlock { Text = code[..3] + " " + code[3..], FontSize = 40, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 6) };
+        string code = service.CurrentPairCode();
+        codeBlock = new TextBlock { Text = code[..3] + " " + code[3..], FontSize = 40, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 2) };
         codeBlock.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
         System.Windows.Automation.AutomationProperties.SetName(codeBlock, L10n.T("SyncCode"));
         panel.Children.Add(codeBlock);
-        Text(L10n.T("SyncCodeHelp", SyncService.PairCodeMinutes), 13, "Muted");
+        countdownBlock = Text(L10n.T("SyncCodeCountdown", service.PairCodeSecondsLeft), 12, "Muted", new Thickness(0, 0, 0, 6));
+        Text(L10n.T("SyncCodeHelp", SyncService.PairCodeSeconds), 13, "Muted");
         Action(L10n.T("SyncCodeNew"), () => service.NewPairCode());
         Heading(L10n.T("SyncDevices"));
         if (service.Settings.Devices.Count == 0) Text(L10n.T("SyncNoDevices"), 13, "Muted");

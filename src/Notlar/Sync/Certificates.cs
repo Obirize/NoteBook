@@ -84,7 +84,7 @@ public sealed class Certificates
         request.CertificateExtensions.Add(X509AuthorityKeyIdentifierExtension.CreateFromCertificate(Root, true, false));
         var now = DateTimeOffset.UtcNow;
         var serial = RandomNumberGenerator.GetBytes(16); serial[0] &= 0x7F;
-        using var signed = request.Create(Root, now.AddDays(-1), now.AddDays(397), serial);
+        using var signed = request.Create(Root, now.AddDays(-1), now.AddDays(365), serial);
         using var withKey = signed.CopyWithPrivateKey(key);
         Save(ServerPath, withKey, "server");
         return Load(ServerPath, "server")!;

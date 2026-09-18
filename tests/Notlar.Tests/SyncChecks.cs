@@ -45,8 +45,21 @@ static class SyncChecks
         string burn=service.NewPairCode();
         for(int i=0;i<5;i++)check(service.TryPair(burn=="111111"?"222222":"111111")==null,"Wrong pairing code attempt "+(i+1)+" is refused");
         check(service.PairCode==null && service.TryPair(burn)==null,"Five wrong attempts burn the pairing code");
+        var clock=DateTimeOffset.UtcNow;service.Clock=()=>clock;
+        string first=service.NewPairCode();
+        check(first.Length==6 && first.All(char.IsAsciiDigit) && service.CurrentPairCode()==first && service.PairCodeSecondsLeft==SyncService.PairCodeSeconds,"A fresh six-digit pairing code is shown with a full countdown");
+        clock=clock.AddSeconds(SyncService.PairCodeSeconds-1);
+        check(service.CurrentPairCode()==first && service.PairCodeSecondsLeft==1,"The code stays the same until its minute is over");
+        clock=clock.AddSeconds(1);
+        string second=service.CurrentPairCode();
+        check(second!=first && service.PairCode==second,"After a minute the window shows a new code");
+        clock=clock.AddSeconds(SyncService.PairCodeGraceSeconds/2);
+        var graced=service.TryPair(first);
+        check(graced!=null && graced.Length==32 && service.PairCode==null,"The previous code still works briefly for someone mid-typing, then every code is spent");
+        CryptographicOperations.ZeroMemory(graced!);
+        string third=service.NewPairCode();clock=clock.AddSeconds(SyncService.PairCodeSeconds+1);
+        check(service.TryPair(third)==null,"A code older than a minute is refused");
         string code=service.NewPairCode();
-        check(code.Length==6 && code.All(char.IsAsciiDigit) && service.PairCode==code,"A fresh six-digit pairing code is shown");
         string script=Path.GetFullPath("tests/Notlar.Tests/sync-integration.mjs");
         var start=new ProcessStartInfo("node") { UseShellExecute=false,RedirectStandardOutput=true,RedirectStandardError=true,CreateNoWindow=true };
         start.ArgumentList.Add(script);start.ArgumentList.Add(service.Port.ToString());
@@ -62,8 +75,13 @@ static class SyncChecks
         check(service.PairCode==null,"A used pairing code cannot be used again");
         check(host.Book.Notes.Any(n=>n.Title=="Phone"),"WebCrypto phone uploads encrypted note to C#");
         var phone=host.Book.Notes.First(n=>n.Title=="Phone");
-        using var output=new MemoryStream();host.Attachments.Decrypt(phone.Attachments.Single(),output);
+        using var output=new MemoryStream();host.Attachments.Decrypt(phone.Attachments.First(a=>a.Name=="phone.png"),output);
         check(Encoding.UTF8.GetString(output.ToArray())=="phone attachment","WebCrypto attachment decrypts on desktop");
+        var clipMeta=phone.Attachments.First(a=>a.Name.EndsWith(".mov"));
+        var deadline=DateTime.UtcNow.AddSeconds(15);while(!host.Attachments.Exists(clipMeta)&&DateTime.UtcNow<deadline)Thread.Sleep(50);
+        using var clipOut=new MemoryStream();host.Attachments.Decrypt(clipMeta,clipOut);var clipBytes=clipOut.ToArray();
+        bool exact=clipBytes.Length==2621440+123;for(int i=0;exact&&i<clipBytes.Length;i++)exact=clipBytes[i]==(byte)((i*7+3)&255);
+        check(exact,"A multi-chunk video from the phone arrives on the desktop byte for byte (no re-encoding anywhere)");
         check(host.Book.Notes.Any(n=>n.Title.Contains("conflict copy")),"Divergent base creates a conflict copy across unequal revisions");
     }
 }
