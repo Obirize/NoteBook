@@ -534,8 +534,6 @@ static class Program
             Check(body.ActualWidth > window.ActualWidth - 304 - 48 - 12 - 2 && editorLeft < 400 && window.ActualWidth - bodyRight < 20, "Wide window stretches the editor to the right edge with its scrollbar at the edge");
             var textMenu = body.ContextMenu!; textMenu.PlacementTarget = body; textMenu.IsOpen = true; Pump();
             Check(textMenu.Items.Count == 4 && textMenu.Items.OfType<Separator>().Count() == 0 && textMenu.Items.OfType<MenuItem>().Any(m => (string)m.Header == L10n.T("Paste")) && textMenu.ActualWidth > 100, "Editor text boxes get the themed cut/copy/paste menu");
-            var menuBmp = new RenderTargetBitmap((int)Math.Ceiling(textMenu.ActualWidth), (int)Math.Ceiling(textMenu.ActualHeight), 96, 96, PixelFormats.Pbgra32); menuBmp.Render(textMenu);
-            using (var stream = File.Create(Path.Combine("artifacts", "notlar-menu.png"))) { var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(menuBmp)); png.Save(stream); }
             textMenu.IsOpen = false; Pump();
             var languageMenu = Find<ContextMenu>(window, "LanguageMenu");
             Check(languageMenu.Items.Count == L10n.Languages.Length && languageMenu.Items.OfType<MenuItem>().Single(m => m.IsChecked).Tag as string == "en", "Language menu lists every language and marks the current one");

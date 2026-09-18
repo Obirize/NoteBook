@@ -383,7 +383,7 @@ run(async () => {
   if ('serviceWorker' in navigator) try {
     // A first-generation worker (cache "notebook-phone-v1") served the old design cache-first and could sit on a
     // phone for a long time; when its cache is around, drop every registration and cache before registering anew.
-    const stale = (await caches.keys()).some(k => k !== 'notebook-phone-v7');
+    const stale = (await caches.keys()).some(k => { const m = /^notebook-phone-v(\d+)$/.exec(k); return !m || Number(m[1]) < 8; });
     if (stale) { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); }
     await navigator.serviceWorker.register('/sw.js');
   } catch { /* offline copy is optional */ }
