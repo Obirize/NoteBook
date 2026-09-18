@@ -83,5 +83,6 @@ static class SyncChecks
         bool exact=clipBytes.Length==2621440+123;for(int i=0;exact&&i<clipBytes.Length;i++)exact=clipBytes[i]==(byte)((i*7+3)&255);
         check(exact,"A multi-chunk video from the phone arrives on the desktop byte for byte (no re-encoding anywhere)");
         check(host.Book.Notes.Any(n=>n.Title.Contains("conflict copy")),"Divergent base creates a conflict copy across unequal revisions");
+        check(host.Book.Notes.Count(n=>n.Text.StartsWith("typing"))==1 && host.Book.Notes.Single(n=>n.Text.StartsWith("typing")).Text=="typing ab","Fast typing from one phone lands as one note, not as conflict copies");
     }
 }

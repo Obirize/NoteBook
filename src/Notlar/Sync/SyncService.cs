@@ -236,6 +236,9 @@ public sealed class SyncSession : IDisposable
     private readonly CancellationTokenSource closed = new();
     private readonly List<Note> pendingNotes = []; private readonly List<PurgeStamp> pendingPurges = [];
     private readonly Dictionary<string, Note> bases = [];
+    // The last version of each note this phone sent us. A note the PC holds that equals it was written by this very
+    // phone (it typed faster than our replies came back), so it is not someone else's edit and not a conflict.
+    private readonly Dictionary<string, Note> lastSubmitted = [];
     private Manifest? theirs;
     private (string Id, long Size, FileStream Stream)? receiving;
     private const int FileChunk = 256 * 1024, MaxText = 8 * 1024 * 1024;
@@ -360,7 +363,9 @@ public sealed class SyncSession : IDisposable
         foreach (var note in notes)
         {
             var existing = current.FirstOrDefault(n => n.Id == note.Id);
-            if (existing != null && bases.TryGetValue(note.Id, out var baseline) && !SyncMerge.SameContent(existing, baseline) && !SyncMerge.SameContent(existing, note))
+            bool ownEarlierVersion = existing != null && lastSubmitted.TryGetValue(note.Id, out var mine) && SyncMerge.SameContent(existing, mine);
+            lastSubmitted[note.Id] = note;
+            if (existing != null && !ownEarlierVersion && bases.TryGetValue(note.Id, out var baseline) && !SyncMerge.SameContent(existing, baseline) && !SyncMerge.SameContent(existing, note))
             {
                 note.Id = Guid.NewGuid().ToString("N"); note.Revision = 1;
                 note.Title = L10n.T("ConflictCopyTitle", note.DisplayTitle, Device?.Name ?? "phone");

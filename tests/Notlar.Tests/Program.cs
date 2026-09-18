@@ -24,13 +24,6 @@ static class Program
     static void Pump() { var frame = new DispatcherFrame(); Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false)); Dispatcher.PushFrame(frame); }
     static T Find<T>(Window window, string name) where T : class => (T)window.FindName(name);
     static void Click(Window window, string name) { Find<Button>(window, name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump(); }
-    static void Shot(Window window, string name)
-    {
-        window.UpdateLayout();
-        var bmp = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32); bmp.Render(window);
-        Directory.CreateDirectory("artifacts"); using var stream = File.Create(Path.Combine("artifacts", name));
-        var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bmp)); png.Save(stream);
-    }
     static async Task Until(Func<bool> condition)
     {
         var watch = Stopwatch.StartNew();
@@ -135,7 +128,6 @@ static class Program
         File.WriteAllBytes(importPath, [0, 1, 0, 2]); Reject(() => TextFiles.Read(importPath), "Binary masquerading as TXT is rejected");
         Reject(() => TextFiles.Write(path, new Note()), "TXT export cannot overwrite encrypted vault");
         list.SelectedItem = longNote; Pump();
-        Shot(window, "notlar-scroll-dark.png");
         window.Close();
     }
     static BitmapSource Bitmap(int width, int height, Color color)
@@ -295,9 +287,7 @@ static class Program
             File.WriteAllText(Path.Combine(settingsDir, L10n.SettingsFile), "{broken"); Check(L10n.Detect(settingsDir) != null, "A corrupt settings file does not prevent startup");
             string path = Path.Combine(root, "notes.vault");
             var book = new Notebook { Notes = [new Note { Title = "Gizli başlık İstanbul", Text = "PRIVATE-CONTENT-98765", Pinned = true }] };
-            var watch = Stopwatch.StartNew();
             var created = VaultSession.Create(path, Password, book); using var session = created.Session;
-            Console.WriteLine("Password setup ms: " + watch.ElapsedMilliseconds);
             Check(!File.Exists(path), "Recovery acknowledgment precedes persistence");
             session.Save(); session.VerifySaved();
             string first = File.ReadAllText(path);
@@ -364,9 +354,9 @@ static class Program
             book.Notes[0].Deleted = false;
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/Notlar;component/Styles.xaml") });
-            if (!args.Contains("--preview")) DeviceFlow(root);
-            if (!args.Contains("--preview")) GateFlow(root);
-            if (!args.Contains("--preview")) AttachmentFlow(root);
+            DeviceFlow(root);
+            GateFlow(root);
+            AttachmentFlow(root);
             var window = new MainWindow(session); window.Show(); Pump();
             window.Activate();
             var title = Find<TextBox>(window, "TitleInput"); var body = Find<TextBox>(window, "BodyInput");
@@ -404,7 +394,6 @@ static class Program
             Click(window, "SelectAllButton"); Check(noteList.SelectedItems.Count == 0, "Select all toggles back to none");
             noteList.SelectedItems.Add(noteList.Items[0]); noteList.SelectedItems.Add(noteList.Items[1]); Pump();
             Check(Find<Button>(window, "BulkDeleteButton").IsEnabled && Find<TextBlock>(window, "SelectionHeading").Text == L10n.Count("SelectedCountOne", "SelectedCountMany", 2), "Checking cards enables bulk actions");
-            Shot(window, "notlar-select.png");
             Click(window, "BulkDeleteButton");
             Check(session.Book.Notes.Count(n => n.Deleted) == 2 && session.Book.Notes.Where(n => n.Deleted).All(n => n.DeletedAt != null) && noteList.SelectionMode == SelectionMode.Single, "Bulk delete moves the checked notes to trash with timestamps and leaves select mode");
             Click(window, "UndoDelete"); Check(session.Book.Notes.All(n => !n.Deleted), "Undo restores every bulk-deleted note");
@@ -427,7 +416,6 @@ static class Program
             Check(Find<TextBlock>(window, "TrashNotice").Visibility == Visibility.Visible && Find<Button>(window, "PurgeButton").Visibility == Visibility.Visible && Find<Button>(window, "ExportButton").Visibility == Visibility.Collapsed, "Trash explains the 30-day limit and offers permanent delete");
             var purgeTarget = session.Book.Notes.First(n => n.Text == "PURGE-ME-4411"); noteList.SelectedItem = purgeTarget; Pump();
             Check(purgeTarget.TrashLabel == L10n.T("TrashLabelDays", 30), "Trash card shows remaining days");
-            Shot(window, "notlar-trash.png");
             bool asked = false; window.ConfirmDestructive = _ => { asked = true; return false; };
             Click(window, "PurgeButton"); Check(asked && session.Book.Notes.Contains(purgeTarget), "Permanent delete asks first and a declined dialog keeps the note");
             window.ConfirmDestructive = _ => true;
@@ -481,10 +469,9 @@ static class Program
             search.Text = "yürüyüş.mp4"; Pump();
             Check(Find<ListBox>(window, "NoteList").Items.Count == 1 && photoNote.AttachmentLabel == L10n.T("AttachmentCountMany", 2), "Search finds notes by attachment name; the card shows the attachment count");
             search.Clear(); Pump();
-            Shot(window, "notlar-attachments.png");
             var viewer = new AttachmentWindow(window, session.Attachments, photoNote.Attachments[0]); viewer.Show(); Pump();
             Check(Find<Image>(viewer, "Picture").Source is BitmapSource full && full.PixelWidth == 800 && Find<TextBlock>(viewer, "NameText").Text == "Deniz kenarı.png", "Viewer shows the full decrypted photo");
-            Shot(viewer, "notlar-viewer.png"); viewer.Close(); Pump();
+            viewer.Close(); Pump();
             string copy = Path.Combine(root, "kopya.mp4");
             Check(window.SaveAttachmentCopy(photoNote.Attachments[1], copy) && File.ReadAllBytes(copy).SequenceEqual(clip), "Save a copy writes the decrypted original");
             Check(window.AttachImage(Bitmap(200, 120, Colors.Teal)) && photoNote.Attachments.Count == 3 && photoNote.Attachments[2].MediaType == "image/png" && photoNote.Attachments[2].Width == 200, "A pasted picture becomes a PNG attachment");
@@ -513,11 +500,11 @@ static class Program
             Check(passwordDialog.IsVisible && Find<TextBlock>(passwordDialog, "Error").Visibility == Visibility.Visible, "Password dialog refuses short passwords");
             Find<PasswordBox>(passwordDialog, "Password").Password = "portable backup passphrase 42"; Find<PasswordBox>(passwordDialog, "Confirm").Password = "different passphrase 4242"; Click(passwordDialog, "Submit");
             Check(passwordDialog.IsVisible && Find<TextBlock>(passwordDialog, "Error").Text == L10n.T("PasswordMismatch"), "Password dialog refuses mismatched confirmation");
-            Shot(passwordDialog, "notlar-password.png"); passwordDialog.Close();
+            passwordDialog.Close();
             Sounds.Enabled = false;
             var confirm = new MessageDialog(window, L10n.T("DeletePermanently"), L10n.T("ConfirmPurgeOne", "Deneme"), L10n.T("DeletePermanently"), L10n.T("Cancel"), danger: true); confirm.Show(); Pump();
             Check(Find<Button>(confirm, "Primary").Style == confirm.FindResource("DangerButton") && Find<Button>(confirm, "Secondary").IsKeyboardFocused && Visuals<Button>(confirm).Count() == 2, "Themed confirmation uses a red primary action and focuses Cancel by default");
-            Shot(confirm, "notlar-confirm.png"); confirm.Close();
+            confirm.Close();
             Check(Assembly.GetAssembly(typeof(Sounds))!.GetManifestResourceStream("Notlar.Sounds.click.wav") is { Length: > 1000 }, "The click sound is embedded in the application");
             Sounds.Enabled = true; Sounds.Click();
             Check(!Directory.Exists("src") || Directory.GetFiles(Path.Combine("src", "Notlar"), "*.cs").Where(f => !f.EndsWith("GateWindow.xaml.cs")).All(f => !File.ReadAllText(f).Contains("MessageBox.Show")), "No system message boxes remain outside the legacy gate window");
@@ -539,14 +526,12 @@ static class Program
             var countText = Find<TextBlock>(window, "CountText");
             var countBottom = countText.PointToScreen(new Point(0, countText.ActualHeight));
             Check(countText.IsVisible && countBottom.Y <= work.Bottom && Find<Button>(window, "LanguageButton").PointToScreen(new Point(0, 0)).Y < work.Bottom, "Sidebar bottom row stays on screen when maximized");
-            Shot(window, "notlar-maximized.png");
             window.WindowState = WindowState.Normal; Pump();
             window.Width = 1900; window.Height = 1000; Pump();
             var editorArea = Find<Grid>(window, "EditorArea");
             var editorLeft = editorArea.TranslatePoint(new Point(0, 0), window).X;
             double bodyRight = body.TranslatePoint(new Point(body.ActualWidth, 0), window).X;
             Check(body.ActualWidth > window.ActualWidth - 304 - 48 - 12 - 2 && editorLeft < 400 && window.ActualWidth - bodyRight < 20, "Wide window stretches the editor to the right edge with its scrollbar at the edge");
-            Shot(window, "notlar-wide.png");
             var textMenu = body.ContextMenu!; textMenu.PlacementTarget = body; textMenu.IsOpen = true; Pump();
             Check(textMenu.Items.Count == 4 && textMenu.Items.OfType<Separator>().Count() == 0 && textMenu.Items.OfType<MenuItem>().Any(m => (string)m.Header == L10n.T("Paste")) && textMenu.ActualWidth > 100, "Editor text boxes get the themed cut/copy/paste menu");
             var menuBmp = new RenderTargetBitmap((int)Math.Ceiling(textMenu.ActualWidth), (int)Math.Ceiling(textMenu.ActualHeight), 96, 96, PixelFormats.Pbgra32); menuBmp.Render(textMenu);
@@ -558,34 +543,32 @@ static class Program
             Check(listMenu.Items.OfType<MenuItem>().Count() == 5, "Note cards get a themed action menu");
             window.Width = 1160; window.Height = 780; Pump();
             Find<ListBox>(window, "NoteList").SelectedIndex = 0; Pump();
-            Shot(window, "notlar-dark.png");
-            if (args.Contains("--preview"))
-            {
-                window.Title = "Notlar — test önizlemesi";
-                window.Closed += (_, _) => Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Background);
-                Console.WriteLine("PREVIEW_READY " + root); Dispatcher.Run();
-            }
-            else { Click(window, "LockButton"); Check(window.LockRequested && !window.IsVisible && body.Text == "", "Lock closes and clears visible plaintext"); }
+            // Closing only hides the window: the app stays in the notification area so the phone can keep syncing.
+            window.Close(); Pump();
+            Check(!window.IsVisible && new System.Windows.Interop.WindowInteropHelper(window).Handle != IntPtr.Zero && session.Book.Notes.Count > 0, "Closing the window hides it to the tray instead of quitting");
+            window.ShowFromTray(); Pump();
+            Check(window.IsVisible, "The tray brings the window back");
+            bool wasRegistered = AppSettings.StartupRegistered();
+            AppSettings.ApplyStartup(true); bool on = AppSettings.StartupRegistered(); AppSettings.ApplyStartup(false); bool off = AppSettings.StartupRegistered(); AppSettings.ApplyStartup(wasRegistered);
+            Check(on && !off && AppSettings.StartupCommand.Contains("--minimized"), "Start-with-Windows registers and removes a per-user Run entry that starts into the tray");
+            var appSettings = AppSettings.Load(Path.GetDirectoryName(path)!); appSettings.StartWithWindows = false; appSettings.Language = "tr"; appSettings.Save();
+            var reloaded = AppSettings.Load(Path.GetDirectoryName(path)!);
+            Check(!reloaded.StartWithWindows && reloaded.Language == "tr" && L10n.Detect(Path.GetDirectoryName(path)!) == "tr" && AppSettings.Load(Path.Combine(root, "nowhere")).StartWithWindows, "Settings keep the language and the startup choice together; starting with Windows is the default");
+            Click(window, "LockButton"); Check(window.LockRequested && !window.IsVisible && body.Text == "", "Lock closes and clears visible plaintext");
             session.Dispose(); Reject(session.Save, "Disposed session cannot save");
             var large = new Notebook { Notes = Enumerable.Range(0, 1000).Select(i => new Note { Title = "Not " + i, Text = new string('x', 1000) }).ToList() };
             var bulk = VaultSession.Create(Path.Combine(root, "bulk.vault"), Password, large); using var bulkSession = bulk.Session;
-            watch.Restart(); bulkSession.Save(); Console.WriteLine("1000 notes encrypted save ms: " + watch.ElapsedMilliseconds);
-            watch.Restart(); var results = NoteQuery.Find(large, "Not 99", false); Console.WriteLine("1000 notes search ms: " + watch.ElapsedMilliseconds);
+            bulkSession.Save(); var results = NoteQuery.Find(large, "Not 99", false);
             Check(results.Count == 11, "1000-note search returns correct matches");
             var empty = VaultSession.Create(Path.Combine(root, "empty.vault"), Password); using var emptySession = empty.Session; emptySession.Save();
-            if (!args.Contains("--preview"))
-            {
-                var emptyWindow = new MainWindow(emptySession); emptyWindow.Show(); Pump();
-                Check(Find<StackPanel>(emptyWindow, "EmptyState").Visibility == Visibility.Visible, "Fresh vault has a real empty state, no fake notes");
-                Shot(emptyWindow, "notlar-empty.png"); emptyWindow.Close();
-                var gate = new GateWindow(Path.Combine(root, "setup")); gate.Show(); Pump(); Shot(gate, "notlar-setup.png"); gate.Close();
-            }
-            if (!args.Contains("--preview"))
+            var emptyWindow = new MainWindow(emptySession); emptyWindow.Show(); Pump();
+            Check(Find<StackPanel>(emptyWindow, "EmptyState").Visibility == Visibility.Visible, "Fresh vault has a real empty state, no fake notes");
+            emptyWindow.ExitFromTray();
             {
                 L10n.Use("ar");
                 var rtl = new MainWindow(emptySession); rtl.Show(); Pump();
                 Check(rtl.FlowDirection == FlowDirection.RightToLeft && Find<TextBlock>(rtl, "ListHeading").Text == L10n.T("MyNotes"), "Arabic window mirrors the layout and shows Arabic labels");
-                Shot(rtl, "notlar-arabic.png"); rtl.Close();
+                rtl.ExitFromTray();
                 L10n.Use("ja");
                 var ja = new MainWindow(emptySession); ja.Show(); Pump();
                 Check(ja.FlowDirection == FlowDirection.LeftToRight && Find<TextBlock>(ja, "ListHeading").Text == "マイノート", "Japanese window shows Japanese labels");

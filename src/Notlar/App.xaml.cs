@@ -12,7 +12,7 @@ public partial class App : Application
     private static readonly string InstanceName = "Notlar-" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(DataDirectory)))[..20];
     private Mutex? mutex;
     private CancellationTokenSource? pipeStop;
-    private bool restart;
+    private VaultSession? session;
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -20,30 +20,38 @@ public partial class App : Application
         AttachmentStore.CleanTemporary();
         var files = e.Args.Where(a => a.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) && File.Exists(a)).Select(Path.GetFullPath).ToList();
         bool fresh = e.Args.Contains("--new", StringComparer.OrdinalIgnoreCase);
+        bool minimized = e.Args.Contains("--minimized", StringComparer.OrdinalIgnoreCase) && files.Count == 0 && !fresh;
         mutex = new Mutex(true, "Local\\" + InstanceName, out bool owns);
         if (!owns)
         {
             // Hand the request to the running window instead of showing a second copy.
             if (!Forward(files, fresh)) MessageDialog.Info(null, L10n.T("AlreadyOpen"));
-            Shutdown(); return;
+            mutex.Dispose(); mutex = null; Shutdown(); return;
         }
+        MainWindow editor;
         try
         {
-            using var session = OpenNotes();
-            if (session == null) { Shutdown(); return; }
-            var editor = new MainWindow(session);
-            MainWindow = editor;
-            pipeStop = new CancellationTokenSource();
-            _ = Listen(editor, pipeStop.Token);
-            editor.Loaded += (_, _) => { foreach (string file in files) Open(editor, file); if (fresh) editor.CreateNote(); };
-            editor.ShowDialog();
-            pipeStop.Cancel();
-            restart = editor.RestartRequested;
+            session = OpenNotes();
+            if (session == null) { Finish(false); return; }
+            editor = new MainWindow(session);
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or ArgumentException)
-        { MessageDialog.Info(null, L10n.T("OpenFailed")); }
-        finally { mutex.ReleaseMutex(); mutex.Dispose(); }
-        // A language change relaunches the application once the single-instance mutex is released.
+        { MessageDialog.Info(null, L10n.T("OpenFailed")); Finish(false); return; }
+        MainWindow = editor;
+        pipeStop = new CancellationTokenSource();
+        _ = Listen(editor, pipeStop.Token);
+        // Windows shutdown or sign-out must not be held up by the "close hides" behaviour.
+        SessionEnding += (_, _) => editor.ExitFromTray();
+        editor.Closed += (_, _) => { pipeStop.Cancel(); Finish(editor.RestartRequested); };
+        if (minimized) editor.StartHidden = true; else editor.Show();
+        foreach (string file in files) Open(editor, file);
+        if (fresh) editor.CreateNote();
+    }
+    // The last steps for every way out: release the vault and the single-instance lock, relaunch after a language change.
+    private void Finish(bool restart)
+    {
+        session?.Dispose(); session = null;
+        if (mutex != null) { try { mutex.ReleaseMutex(); } catch (ApplicationException) { } mutex.Dispose(); mutex = null; }
         if (restart && Environment.ProcessPath is string self) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(self) { UseShellExecute = true });
         Shutdown();
     }
@@ -82,8 +90,7 @@ public partial class App : Application
                     string command = line;
                     await editor.Dispatcher.InvokeAsync(() =>
                     {
-                        if (editor.WindowState == WindowState.Minimized) editor.WindowState = WindowState.Normal;
-                        editor.Activate();
+                        editor.ShowFromTray();
                         if (command.StartsWith("open ") && File.Exists(command[5..])) Open(editor, command[5..]);
                         else if (command == "new") editor.CreateNote();
                     });

@@ -178,5 +178,9 @@
   "SyncCodeCountdown": "muda em {0} s",
   "SetupCheckButton": "Testar a conexão",
   "SetupCheckOk": "A conexão segura funciona. Abra o app e adicione-o à Tela de Início.",
-  "SetupCheckFail": "Ainda não é confiável. Ajustes → Geral → Sobre → Ajustes de Confiança de Certificados → ative o certificado do NoteBook e teste de novo."
+  "SetupCheckFail": "Ainda não é confiável. Ajustes → Geral → Sobre → Ajustes de Confiança de Certificados → ative o certificado do NoteBook e teste de novo.",
+  "TrayOpen": "Abrir o NoteBook",
+  "TrayStartWithWindows": "Iniciar com o Windows",
+  "TrayExit": "Sair",
+  "TrayHint": "O NoteBook continua em execução aqui para que o telefone possa sincronizar. Clique com o botão direito no ícone para sair."
 }

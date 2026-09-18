@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {derive,random,b64,un64,mac,verifyMac,open,seal,encryptFile,decryptFile,id} from '../../src/Notlar/Web/crypto.js';
 const port=process.argv[2],keys=await derive(un64(process.env.NOTEBOOK_TEST_KEY));
-const page=await fetch(`https://localhost:${port}/`);assert.equal(page.status,200);assert.match(await page.text(),/NoteBook/);
-for(const path of ['app.js','crypto.js','sw.js','style.css','app.webmanifest','icon.png'])assert.equal((await fetch(`https://localhost:${port}/${path}`)).status,200);
+const page=await fetch(`https://localhost:${port}/`);assert.equal(page.status,200);assert.match(await page.text(),/<title>Notlar</);
+for(const path of ['app.js','crypto.js','sw.js','style.css','app.webmanifest','icon.png','icon-180.png'])assert.equal((await fetch(`https://localhost:${port}/${path}`)).status,200);
 const pairWrong=await fetch(`https://localhost:${port}/pair`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:'000000'})});assert.equal(pairWrong.status,403);
 const pairOk=await fetch(`https://localhost:${port}/pair`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:process.env.NOTEBOOK_TEST_CODE})});assert.equal(pairOk.status,200);
 const paired=await pairOk.json();assert.deepEqual(un64(paired.k),un64(process.env.NOTEBOOK_TEST_KEY));assert.equal(typeof paired.name,'string');
@@ -27,10 +27,18 @@ c.send({t:'note',id:phone.Id,rev:1,blob:b64(await seal(keys,phone))});c.send({t:
 while((await c.next()).t!=='flush'){}
 c.send({t:'file',id:encrypted.meta.Id,size:encrypted.blob.size});c.ws.send(await encrypted.blob.arrayBuffer());c.send({t:'file-end',id:encrypted.meta.Id});
 c.send({t:'file',id:clip.meta.Id,size:clip.blob.size});for(let at=0;at<clip.blob.size;at+=262144)c.ws.send(await clip.blob.slice(at,at+262144).arrayBuffer());c.send({t:'file-end',id:clip.meta.Id});
-// First update the PC, then upload an independently edited higher revision with the old base.
+// Another device changes the note on the PC; this phone then uploads an offline edit of the old base with a higher revision.
+const other=await client(keys);assert.equal(other.welcome.t,'welcome');
 const changed={...desktop,Revision:2,Text:'PC-side edit'};
-c.send({t:'note',id:changed.Id,rev:2,blob:b64(await seal(keys,changed))});c.send({t:'flush'});while((await c.next()).t!=='flush'){}
+other.send({t:'note',id:changed.Id,rev:2,blob:b64(await seal(keys,changed))});other.send({t:'flush'});while((await other.next()).t!=='flush'){}other.ws.close();
 const conflict={...desktop,Revision:7,Text:'offline phone edit'};
 c.send({t:'note',id:conflict.Id,rev:7,blob:b64(await seal(keys,conflict)),base:baseline});c.send({t:'flush'});let found=false;
-while(true){const m=await c.next();if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id!==desktop.Id&&n.Text==='offline phone edit')found=true;}if(m.t==='flush')break;}
-assert(found);c.ws.close();console.log('PASS pairing code exchange (wrong code refused, one-time use), HTTPS resources, wrong-key rejection, mutual HMAC, C#/WebCrypto notes and attachments both ways, offline conflict preservation');
+for(let i=0;i<30&&!found;i++){const m=await c.next();if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id===desktop.Id)baseline={rev:m.rev,blob:m.blob};if(n.Id!==desktop.Id&&n.Text==='offline phone edit')found=true;}}
+while((await c.next()).t!=='flush'){}
+// A phone that types faster than the PC answers is not in conflict with itself.
+const fast1={...desktop,Revision:8,Text:'typing a'},fast2={...desktop,Revision:9,Text:'typing ab'};
+c.send({t:'note',id:fast1.Id,rev:8,blob:b64(await seal(keys,fast1)),base:baseline});c.send({t:'flush'});
+c.send({t:'note',id:fast2.Id,rev:9,blob:b64(await seal(keys,fast2)),base:baseline});c.send({t:'flush'});
+let flushes=0,copies=0;while(flushes<2){const m=await c.next();if(m.t==='flush')flushes++;if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id!==desktop.Id&&n.Text.startsWith('typing'))copies++;}}
+assert.equal(copies,0);
+assert(found);c.ws.close();console.log('PASS pairing code exchange (wrong code refused, one-time use), fast typing without self-conflict, HTTPS resources, wrong-key rejection, mutual HMAC, C#/WebCrypto notes and attachments both ways, offline conflict preservation');

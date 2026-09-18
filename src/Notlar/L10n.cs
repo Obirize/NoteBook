@@ -63,8 +63,7 @@ public static class L10n
     }
     public static void Save(string dataDirectory, string code)
     {
-        Directory.CreateDirectory(dataDirectory);
-        File.WriteAllText(Path.Combine(dataDirectory, SettingsFile), JsonSerializer.Serialize(new Dictionary<string, string> { ["language"] = code }));
+        var settings = AppSettings.Load(dataDirectory); settings.Language = code; settings.Save();
     }
     public static string T(string key) => strings.TryGetValue(key, out var s) ? s : fallback.TryGetValue(key, out var f) ? f : key;
     public static string T(string key, params object[] args) => string.Format(Culture, T(key), args);

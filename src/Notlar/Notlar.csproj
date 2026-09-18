@@ -3,17 +3,24 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>../../notes.ico</ApplicationIcon>
     <AssemblyName>Notlar</AssemblyName>
-    <Version>1.4.1</Version>
+    <Version>1.5.0</Version>
     <Product>NoteBook</Product>
     <Company>Wallece</Company>
   </PropertyGroup>
   <ItemGroup>
+    <!-- WinForms is referenced only for the tray icon; keep its types out of every other file. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Web\*" LogicalName="Notlar.Web.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Languages\*.json" LogicalName="Notlar.Languages.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Sounds\click.wav" LogicalName="Notlar.Sounds.click.wav" />
+    <EmbeddedResource Include="../../notes.ico" LogicalName="Notlar.notes.ico" />
   </ItemGroup>
 </Project>

@@ -14,7 +14,8 @@ public partial class MainWindow : ISyncHost
     {
         phoneSync = new SyncService(Path.GetDirectoryName(session.FilePath)!, this);
         RememberSyncVersions();
-        Loaded += (_, _) => { if (phoneSync.Settings.Enabled) phoneSync.Start(); };
+        // Not on Loaded: a window started into the tray is never shown, yet the phone link must run.
+        if (phoneSync.Settings.Enabled) Dispatcher.BeginInvoke(() => phoneSync?.Start());
     }
     private void RememberSyncVersions() => syncVersions = session.Book.Notes.ToDictionary(n => n.Id, n => JsonSerializer.Serialize(n));
     private void PublishSyncChanges()

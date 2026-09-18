@@ -1,7 +1,85 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#202022"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="/app.webmanifest"><link rel="apple-touch-icon" href="/icon.png"><link rel="stylesheet" href="/style.css"><title>NoteBook</title></head>
-<body><header><strong>NoteBook</strong><span id="status" role="status">Açılıyor…</span><button id="sync">Eşitle</button></header>
-<section id="pair" hidden><h1>Telefonunu eşleştir</h1><p>Bilgisayarda alt soldaki telefon simgesine bas. Orada görünen 6 haneli kodu buraya yaz.</p><p class="hint">Bu sayfa “Bağlantı özel değil” uyarısıyla açılıyorsa güven belgesi tam açık değildir: Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar belgesini aç.</p><input id="pairCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6 haneli kod" maxlength="7" aria-label="Eşleştirme kodu"><p class="hint">Kod her dakika değişir; bilgisayardaki pencere açıkken yazın.</p><button id="pairButton">Eşleştir</button><details><summary>Bağlantıyla eşleştir</summary><p>Bilgisayardaki eşleştirme bağlantısını yapıştır.</p><input id="pairLink" type="password" autocomplete="off" placeholder="Eşleştirme bağlantısı"><button id="pairLinkButton">Bağlantıyla eşleştir</button></details></section>
-<main id="workspace" hidden><aside><nav><button id="all">Notlar</button><button id="trash">Son silinenler</button><button id="new">＋ Yeni</button></nav><input id="search" placeholder="Notlarda ara" aria-label="Notlarda ara"><div id="list"></div><p class="hint">Notların bu cihazda şifreli saklanır. Eşitlemek için bilgisayar ve telefon aynı Wi-Fi’da, iki uygulama da açık olmalı.</p></aside>
-<article id="editor" hidden><nav><button id="back">‹ Notlar</button><button id="pin">Sabitle</button><button id="delete">Sil</button><button id="restore" hidden>Geri yükle</button><button id="purge" hidden>Kalıcı sil</button></nav><input id="title" placeholder="Başlık" aria-label="Başlık"><textarea id="body" placeholder="Yazmaya başla…" aria-label="Not"></textarea><div id="attachments"></div><label id="attachLabel" class="button">＋ Fotoğraf / video<input id="files" type="file" accept="image/*,image/heic,image/heif,video/*,video/quicktime,.heic,.heif,.mov,.mp4,.m4v" multiple hidden></label><p class="hint">Dosyalar olduğu gibi, yeniden sıkıştırılmadan aktarılır. iPhone boyut sorarsa “Gerçek Boyut”u seçin.</p></article></main>
-<footer id="notice" role="alert"></footer><script type="module" src="/app.js"></script></body></html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Notlar">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="/app.webmanifest">
+<link rel="icon" href="/icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="stylesheet" href="/style.css">
+<title>Notlar</title>
+</head>
+<body>
+
+<section id="pair" class="screen" hidden>
+  <div class="pair-card">
+    <img src="/icon-180.png" alt="" class="pair-icon">
+    <h1>Bilgisayarla eşleştir</h1>
+    <p>Bilgisayarda Notlar'ı açın, alt soldaki <b>telefon</b> düğmesine basın ve orada görünen 6 haneli kodu yazın. Kod her dakika yenilenir.</p>
+    <input id="pairCode" inputmode="numeric" autocomplete="one-time-code" placeholder="000 000" maxlength="7" aria-label="Eşleştirme kodu">
+    <button id="pairButton" class="primary">Eşleştir</button>
+    <p class="fine">Bu sayfa “Bağlantı Özel Değil” uyarısıyla açıldıysa güven belgesi tam açık değildir: Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar belgesini açın.</p>
+    <details>
+      <summary>Bağlantıyla eşleştir</summary>
+      <input id="pairLink" type="password" autocomplete="off" placeholder="Eşleştirme bağlantısı">
+      <button id="pairLinkButton">Bağlantıyla eşleştir</button>
+    </details>
+  </div>
+</section>
+
+<section id="list" class="screen" hidden>
+  <header class="bar">
+    <button id="folderBack" class="text-button" hidden><svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8"/></svg>Notlar</button>
+    <span class="grow"></span>
+    <button id="more" class="icon-button" aria-label="Daha fazla"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r="1.3"/><circle class="dot" cx="12" cy="12" r="1.3"/><circle class="dot" cx="16.5" cy="12" r="1.3"/></svg></button>
+  </header>
+  <div class="page">
+    <h1 id="listTitle">Notlar</h1>
+    <p id="syncStatus" class="status"></p>
+    <label class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><input id="search" type="search" placeholder="Ara" aria-label="Notlarda ara"></label>
+    <div id="sections"></div>
+    <p id="empty" class="empty" hidden>Not yok</p>
+  </div>
+  <footer class="toolbar">
+    <button id="trashButton" class="icon-button" aria-label="Son Silinenler"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button>
+    <span id="count" class="count"></span>
+    <button id="compose" class="icon-button" aria-label="Yeni not"><svg viewBox="0 0 24 24"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="M18.5 3.5a2.1 2.1 0 0 1 3 3L13 15l-4 1 1-4z"/></svg></button>
+  </footer>
+</section>
+
+<section id="editor" class="screen" hidden>
+  <header class="bar">
+    <button id="back" class="text-button"><svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8"/></svg><span id="backLabel">Notlar</span></button>
+    <span class="grow"></span>
+    <button id="pin" class="icon-button" aria-label="Sabitle"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/></svg></button>
+    <button id="attach" class="icon-button" aria-label="Fotoğraf veya video ekle"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    <button id="noteMore" class="icon-button" aria-label="Daha fazla"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r="1.3"/><circle class="dot" cx="12" cy="12" r="1.3"/><circle class="dot" cx="16.5" cy="12" r="1.3"/></svg></button>
+    <button id="done" class="text-button bold" hidden>Bitti</button>
+  </header>
+  <div class="page note">
+    <p id="noteDate" class="note-date"></p>
+    <textarea id="title" class="note-title" placeholder="Başlık" rows="1" aria-label="Başlık"></textarea>
+    <div id="attachments" class="attachments"></div>
+    <textarea id="body" class="note-body" placeholder="Not" rows="1" aria-label="Not"></textarea>
+    <p id="trashNotice" class="fine" hidden>Bu not Son Silinenler'de. Düzenlemek için geri yükleyin.</p>
+  </div>
+  <footer id="trashBar" class="toolbar" hidden>
+    <button id="restore" class="text-button">Geri Yükle</button>
+    <span class="grow"></span>
+    <button id="purge" class="text-button danger">Kalıcı Olarak Sil</button>
+  </footer>
+  <input id="files" type="file" accept="image/*,image/heic,image/heif,video/*,video/quicktime,.heic,.heif,.mov,.mp4,.m4v" multiple hidden>
+</section>
+
+<div id="sheet" class="sheet" hidden><div class="sheet-body"></div><button class="sheet-cancel">Vazgeç</button></div>
+<div id="lightbox" class="lightbox" hidden></div>
+<div id="toast" class="toast" hidden></div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

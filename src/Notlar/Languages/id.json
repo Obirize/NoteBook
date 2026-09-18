@@ -178,5 +178,9 @@
   "SyncCodeCountdown": "berganti dalam {0} dtk",
   "SetupCheckButton": "Uji koneksi",
   "SetupCheckOk": "Koneksi aman berfungsi. Buka aplikasi dan tambahkan ke Layar Utama.",
-  "SetupCheckFail": "Belum dipercaya. Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan sertifikat NoteBook, lalu uji lagi."
+  "SetupCheckFail": "Belum dipercaya. Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan sertifikat NoteBook, lalu uji lagi.",
+  "TrayOpen": "Buka NoteBook",
+  "TrayStartWithWindows": "Mulai bersama Windows",
+  "TrayExit": "Keluar",
+  "TrayHint": "NoteBook tetap berjalan di sini agar ponsel dapat menyinkronkan. Klik kanan ikon untuk keluar."
 }

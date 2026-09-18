@@ -1,1 +1,1 @@
-{"name":"NoteBook","short_name":"NoteBook","id":"/","start_url":"/","scope":"/","display":"standalone","background_color":"#202022","theme_color":"#202022","icons":[{"src":"/icon.png","sizes":"any","type":"image/png"}]}
+{"name": "Notlar", "short_name": "Notlar", "id": "/", "start_url": "/", "scope": "/", "display": "standalone", "background_color": "#000000", "theme_color": "#000000", "icons": [{"src": "/icon-180.png", "sizes": "180x180", "type": "image/png"}, {"src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]}

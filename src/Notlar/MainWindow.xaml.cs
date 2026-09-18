@@ -43,6 +43,7 @@ public partial class MainWindow : Window
         if (L10n.Current.RightToLeft) FlowDirection = FlowDirection.RightToLeft;
         InitializeComponent();
         InitializeSync();
+        InitializeTray();
         BuildLanguageMenu();
         LockButton.Visibility = session.IsDeviceProtected ? Visibility.Collapsed : Visibility.Visible;
         saveTimer.Tick += (_, _) => SaveNow();
@@ -651,7 +652,9 @@ public partial class MainWindow : Window
     }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
-        if (!SaveNow()) { e.Cancel = true; LockRequested = false; MessageDialog.Info(this, L10n.T("CloseSaveFailed"), L10n.T("CloseSaveFailedTitle")); }
+        if (!SaveNow()) { e.Cancel = true; LockRequested = false; MessageDialog.Info(this, L10n.T("CloseSaveFailed"), L10n.T("CloseSaveFailedTitle")); return; }
+        // The X only hides the window; the phone link keeps working from the notification area.
+        if (CloseHides) { e.Cancel = true; HideToTray(); }
     }
     private void Lock() { if (SaveNow()) { LockRequested = true; Close(); } }
     // Language is applied at window creation; choosing another one saves it and restarts the application.

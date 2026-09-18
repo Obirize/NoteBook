@@ -104,6 +104,10 @@ Dosya silme işlemi eski disk kalıntılarını, SSD kurtarma olasılığını v
 
 TXT dosyaları pencereye sürükleyip bırakarak da eklenebilir.
 
+## Arka planda çalışma
+
+Pencereyi kapatmak uygulamayı kapatmaz: Notlar sağ alttaki bildirim alanında çalışmaya devam eder, böylece telefon eşitlenebilir. Simgeye çift tıklayınca pencere geri gelir; sağ tık menüsünde *Notlar'ı aç*, *Telefonla eşitle…*, *Windows ile başlat* (varsayılan açık; tepsiye küçülmüş olarak başlar) ve *Çıkış* vardır. Uygulamadan çıkmanın tek yolu bu menüdür.
+
 ## Fotoğraf ve video
 
 Bir not açıkken üst çubuktaki ataş düğmesi (Ctrl+Shift+A), pencereye sürükleyip bırakma veya panoda resim varken Ctrl+V nota fotoğraf ya da video ekler. Küçük resimler metnin üstünde görünür; tıklayınca tam boy görüntüleyici açılır, videolar uygulama içinde oynatılır (boşluk tuşu duraklatır, Esc kapatır). Sağ tık menüsünden dosyanın şifresiz bir kopyası kaydedilebilir veya ek nottan kaldırılabilir. Diskteki orijinal dosya hiçbir zaman değiştirilmez veya silinmez.
@@ -132,6 +136,6 @@ Windows Defender Güvenlik Duvarı bir kez özel ağlarda izin ister. Bilgisayar
 
 .NET 10 SDK ve Windows gerekir. `build.cmd`, `app/` içine self-contained x64 dağıtım üretir ve kökteki başlatıcıyı derler. Varsa `.tools/dotnet` içindeki SDK'yı kullanır. Kaynak: `src/Notlar/`.
 
-`test.cmd`: geçici verilerle şifreleme, otomatik açma, eski parola kasasını dönüştürme, anahtar/içerik tahrifi, aktarım, kayıt hatası, otomatik kayıt, arama, silme/geri alma, 30 günlük otomatik temizleme, toplu seçim/silme/geri yükleme, onaylı kalıcı silme ve listede/yazı alanında yumuşak kaydırmayı test eder. Gerçek `data` klasöründeki notlara yazmaz. Görseller `artifacts/` içine gider. Eski parola testleri yalnızca geçmiş sürüm uyumluluğunu doğrular.
+`test.cmd`: geçici verilerle şifreleme, otomatik açma, eski parola kasasını dönüştürme, anahtar/içerik tahrifi, aktarım, kayıt hatası, otomatik kayıt, arama, silme/geri alma, 30 günlük otomatik temizleme, toplu işlemler, ekler, tepsi davranışı ve yumuşak kaydırmayı test eder; ayrıca bir Node betiği telefonu canlandırır (eşleştirme, eşitleme, çakışmalar, bayt bayt aynı dosyalar). Gerçek `data` klasöründeki notlara yazmaz.
 
 `notes.ico` çok boyutlu (16–256 px) uygulama simgesidir. `.tools`, `app`, `data` ve derleme çıktıları kaynak paylaşımına dahil edilmemelidir.
