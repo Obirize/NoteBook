@@ -112,7 +112,10 @@ async function thumbnail(a) {
 }
 
 // ---------- editor ----------
-function show(screen) { for (const s of ['pair', 'list', 'editor']) $(s).hidden = s !== screen; }
+function show(screen) { for (const s of ['install', 'pair', 'list', 'editor']) $(s).hidden = s !== screen; }
+// Opened in Safari rather than from the Home Screen: explain the two taps that make it an app.
+let installSkipped = false; try { installSkipped = sessionStorage.getItem('skipInstall') === '1'; } catch { }
+const needsInstall = () => !navigator.standalone && !installSkipped && /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches;
 async function openNote(n) {
   current = n; show('editor');
   $('backLabel').textContent = trash ? 'Son Silinenler' : 'Notlar';
@@ -374,8 +377,9 @@ run(async () => {
   purges = await get('meta', 'purges') || [];
   if (keys) for (const row of await request('notes', 'readonly', s => s.getAll())) notes.push(await open(keys, row.id, row.rev, row.blob));
   if (location.hash.includes('k=')) await pair(location.href);
-  if (keys) { show('list'); renderList(); connect(); navigator.storage?.persist?.().catch(() => {}); }
-  else { show('pair'); }
+  if (needsInstall()) show('install');
+  else if (keys) { show('list'); renderList(); connect(); navigator.storage?.persist?.().catch(() => {}); }
+  else show('pair');
   if ('serviceWorker' in navigator) try { await navigator.serviceWorker.register('/sw.js'); } catch { /* offline copy is optional */ }
-  if (keys && !navigator.standalone) toast('Safari → Paylaş → Ana Ekrana Ekle; sonra Notlar\'ı ana ekrandan açın.');
+  $('skipInstall').addEventListener('click', () => { installSkipped = true; try { sessionStorage.setItem('skipInstall', '1'); } catch { } if (keys) { show('list'); renderList(); connect(); } else show('pair'); });
 });

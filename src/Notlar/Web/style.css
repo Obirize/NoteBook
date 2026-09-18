@@ -88,6 +88,14 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 4px 0 2px;
 .fine { color: var(--muted); font-size: 13px; line-height: 1.5; }
 
 .pair-card { margin: auto; padding: 40px 28px; width: min(100%, 440px); text-align: center; }
+.steps { text-align: left; padding-inline-start: 22px; margin: 0 0 12px; line-height: 1.6; }
+.steps li { margin-bottom: 10px; }
+.steps b { color: var(--text); font-weight: 600; }
+svg.inline { width: 20px; height: 20px; vertical-align: -4px; color: #0a84ff; }
+.arrow { color: var(--accent); margin: 18px 0 8px; animation: bob 1.2s infinite; }
+.arrow svg { width: 36px; height: 36px; }
+@keyframes bob { 50% { transform: translateY(8px); } }
+#install .text-button { width: 100%; justify-content: center; color: var(--muted); font-size: 15px; }
 .pair-icon { width: 84px; height: 84px; border-radius: 19px; margin-bottom: 18px; }
 .pair-card h1 { font-size: 26px; }
 .pair-card p { color: var(--muted); line-height: 1.5; margin: 8px 0 20px; }
