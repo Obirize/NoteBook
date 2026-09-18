@@ -91,6 +91,7 @@
           <Grid>
             <TextBlock x:Name="CountText" Text="" FontSize="11" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="4,0,0,0"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+              <Button Content="&#xE8EA;" Style="{StaticResource IconButton}" ToolTip="{local:T PhoneSync}" AutomationProperties.Name="{local:T PhoneSync}" Click="PhoneSyncClick"/>
               <Button x:Name="ImportButton" Content="&#xE8E5;" Style="{StaticResource IconButton}" ToolTip="{local:T OpenTxt}" AutomationProperties.Name="{local:T OpenTxt}" Click="ImportClick"/>
               <Button x:Name="BackupButton" Content="&#xE7B8;" Style="{StaticResource IconButton}" ToolTip="{local:T Backup}" AutomationProperties.Name="{local:T Backup}" Click="BackupMenuClick"><Button.ContextMenu><ContextMenu x:Name="BackupMenu"><MenuItem x:Name="MenuBackupCreate" Header="{local:T BackupCreate}" Click="BackupCreateClick"/><MenuItem x:Name="MenuBackupRestore" Header="{local:T BackupRestore}" Click="BackupRestoreClick"/></ContextMenu></Button.ContextMenu></Button>
               <Button x:Name="LanguageButton" Content="&#xE774;" Style="{StaticResource IconButton}" ToolTip="{local:T Language}" AutomationProperties.Name="{local:T Language}" Click="LanguageClick"><Button.ContextMenu><ContextMenu x:Name="LanguageMenu"/></Button.ContextMenu></Button>

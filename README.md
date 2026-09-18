@@ -20,6 +20,7 @@ An Apple Notes–style notebook for Windows: local, dark, and encrypted at rest.
 - Multi-select: delete, restore or permanently delete many notes at once. Permanent deletion always asks first.
 - Import `.txt` files as notes (open, or drag and drop onto the window), export any note as UTF-8 `.txt` named after its title.
 - Photos and videos on a note: the paperclip button, drag and drop, or Ctrl+V with a picture on the clipboard. Thumbnails above the text; click one for a full-size viewer with video playback. Every file is stored encrypted with its own key.
+- Phone sync with an iPhone on the same Wi‑Fi: no account, no cloud, end-to-end encrypted; the phone app is served by the PC and added to the Home Screen.
 - Context menus, keyboard shortcuts, custom dark chrome, themed scrollbars.
 - Single instance: opening a file or a new note while the app runs is forwarded to the open window.
 - Automatic updates from GitHub Releases (the only network request the app makes).
@@ -89,6 +90,22 @@ On startup the app asks the GitHub Releases API for the latest version. If a new
 
 This is the only network request the application makes; it carries no identifying data. To opt out, create an empty file named `guncelleme-kapali` in the `data` folder.
 
+## Phone sync (iPhone)
+
+Notes, photos and videos sync directly between the PC and an iPhone on the same Wi‑Fi. There is no account, no cloud and no relay: the Windows app itself is the server, and the phone side is a web app served by that PC and added to the Home Screen. Nothing is published anywhere and nothing costs money.
+
+Setup, once (the phone button at the bottom left of the sidebar shows all three steps with QR codes):
+
+1. **Trust certificate.** The PC is its own certificate authority. Scan the first code with the iPhone camera; the page downloads a configuration profile. Install it under *Settings → General → VPN & Device Management*, then enable it under *Settings → General → About → Certificate Trust Settings*. Compare the SHA‑256 fingerprint shown on both sides.
+2. **Home Screen app.** Scan the second code (or open `https://<computer>.local:47831/` in Safari) and choose *Share → Add to Home Screen*. Open NoteBook from the Home Screen from now on: iOS gives Home Screen web apps their own storage, separate from Safari.
+3. **Pairing code.** In the Home Screen app tap *Pair* and type the six‑digit code shown on the PC. The code is valid for ten minutes while the window is open; five wrong attempts burn it.
+
+How it stays private: the phone and the PC share a 256‑bit sync key that only travels once, over TLS, in exchange for the pairing code. From it both derive an authentication key (mutual HMAC challenge on every connection) and a content key (AES‑256‑GCM). Every note travels and is stored on the phone as ciphertext under that content key; attachments travel as the already encrypted files described above, byte for byte. The server only answers addresses on the local network and speaks only to devices that prove the key. A phone that is away from home keeps working offline and merges when it is back on the Wi‑Fi.
+
+Merging: the higher revision of a note wins; if both devices edited the same revision, the newer one stays the note and the other is kept as a "conflict copy" — nothing is lost silently. Permanent deletions are remembered for 180 days so a phone cannot bring a purged note back.
+
+Windows Defender Firewall asks once to allow NoteBook on private networks. The PC listens on TCP 47831 (HTTPS + WebSocket) and 47832 (the plain setup page that hands out the certificate).
+
 ## Languages
 
 UI strings live in `src/Notlar/Languages/<code>.json` and are embedded at build time; English is the fallback for any missing key. To add a language, copy `en.json`, translate the values (keep the `{0}` placeholders), and add one line to `L10n.Languages` in `src/Notlar/L10n.cs` with the native name and culture. The test run verifies that every language has every key. The installer wizard is localized through Inno Setup's language files (`setup/Notlar.iss`).
@@ -112,7 +129,8 @@ git push --tags
 
 ## Roadmap
 
-- Phone access: first a PWA that decrypts the vault in the browser (WebCrypto), later native iOS/Android apps with two-way sync. The data model (note ids, revisions, deletion timestamps) is already prepared for it.
+- Sync away from home (own WireGuard, or an encrypted-transport-only relay) — today the phone syncs when it is on the home Wi‑Fi.
+- A lock (PIN / Face ID via WebAuthn) for the phone app.
 - Code signing for the installer.
 
 ## License

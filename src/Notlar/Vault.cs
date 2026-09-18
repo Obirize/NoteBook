@@ -41,6 +41,7 @@ public sealed class VaultSession : IDisposable
         var book = JsonSerializer.Deserialize<Notebook>(plain) ?? throw new InvalidDataException();
         if (book.SchemaVersion is < 1 or > Notebook.CurrentSchema || book.Notes == null) throw new InvalidDataException();
         foreach (var note in book.Notes) { note.Attachments ??= []; note.Attachments.RemoveAll(a => a == null || a.Id.Length == 0 || a.Key.Length != 32); }
+        book.Purged ??= [];
         return book;
     }
 
@@ -200,6 +201,7 @@ public sealed class VaultSession : IDisposable
             }
         }
         foreach (var pair in from.LegacyArchive) into.LegacyArchive.TryAdd(pair.Key, pair.Value);
+        foreach (var purge in from.Purged) if (!into.Purged.Any(p => p.Id == purge.Id && p.Revision >= purge.Revision)) { into.Purged.RemoveAll(p => p.Id == purge.Id); into.Purged.Add(new PurgeRecord { Id = purge.Id, Revision = purge.Revision, At = purge.At }); }
         return (added, updated);
     }
     private static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision, Attachments = n.Attachments.Select(Clone).ToList() };

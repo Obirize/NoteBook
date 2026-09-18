@@ -48,9 +48,17 @@ public sealed class Attachment
     [JsonIgnore] public string SizeLabel => Size < 1024 * 1024 ? Math.Max(1, Size / 1024) + " KB" : Size < 1024L * 1024 * 1024 ? (Size / (1024.0 * 1024)).ToString("0.#", L10n.Culture) + " MB" : (Size / (1024.0 * 1024 * 1024)).ToString("0.##", L10n.Culture) + " GB";
 }
 
+// Remembers a permanent deletion so a phone that still has the note removes it too instead of bringing it back.
+public sealed class PurgeRecord
+{
+    public string Id { get; set; } = "";
+    public long Revision { get; set; }
+    public DateTimeOffset At { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public static class TrashPolicy
 {
-    public const int RetentionDays = 30;
+    public const int RetentionDays = 30, PurgeMemoryDays = 180;
     public static void Delete(IEnumerable<Note> notes, DateTimeOffset now)
     { foreach (var n in notes) { n.Deleted = true; n.DeletedAt = now; n.Updated = now; n.Revision++; } }
     public static void Restore(IEnumerable<Note> notes, DateTimeOffset now)
@@ -66,6 +74,13 @@ public static class TrashPolicy
     public static int Purge(Notebook book, IEnumerable<Note> notes)
     {
         var ids = notes.Where(n => n.Deleted).Select(n => n.Id).ToHashSet();
+        var now = DateTimeOffset.UtcNow;
+        foreach (var n in book.Notes.Where(n => n.Deleted && ids.Contains(n.Id)))
+        {
+            book.Purged.RemoveAll(p => p.Id == n.Id);
+            book.Purged.Add(new PurgeRecord { Id = n.Id, Revision = n.Revision, At = now });
+        }
+        book.Purged.RemoveAll(p => p.At < now.AddDays(-PurgeMemoryDays));
         int count = book.Notes.RemoveAll(n => n.Deleted && ids.Contains(n.Id));
         // Do not retain deleted contents in the imported historical source files.
         foreach (string name in book.LegacyArchive.Keys.ToList())
@@ -90,6 +105,7 @@ public sealed class Notebook
     public int SchemaVersion { get; set; } = CurrentSchema;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public List<Note> Notes { get; set; } = [];
+    public List<PurgeRecord> Purged { get; set; } = [];
     // Preserve the complete original files (including rich text) inside encryption.
     public Dictionary<string, string> LegacyArchive { get; set; } = [];
 }

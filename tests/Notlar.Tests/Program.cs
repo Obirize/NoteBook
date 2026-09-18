@@ -273,6 +273,7 @@ static class Program
         {
             // UI checks and README screenshots run in English regardless of the machine's display language.
             L10n.Use("en");
+            SyncChecks.Run(root, Check);
             var english = L10n.Load("en");
             foreach (var language in L10n.Languages)
             {

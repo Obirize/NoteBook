@@ -110,21 +110,21 @@ Bir not açıkken üst çubuktaki ataş düğmesi (Ctrl+Shift+A), pencereye sür
 
 Ana kayıt açılamazsa uygulama önceki şifreli kaydı denemeyi sorar. Doğrulanmış yedek atomik olarak geri yüklenir; hasarlı kayıt `.damaged-...` olarak korunur. Bozuk dosyalar sessizce boş notlara dönüştürülmez. Disk doluluğu/izin hatasında son değişiklik açık tutulur ve hata gösterilir.
 
-## Telefon desteği ve senkron planı
+## Telefonla eşitleme (iPhone)
 
-Telefon eşzamanlaması henüz yoktur. Veri modeli buna hazırdır: not kimlikleri, UTC tarihler, `Revision` sayaçları ve silinme işaretleri (`Deleted`/`DeletedAt`) korunur; içerik anahtarı Windows koruma katmanından ayrıdır.
+Notlar, fotoğraflar ve videolar aynı Wi‑Fi'daki bilgisayar ile iPhone arasında doğrudan eşitlenir. Hesap, bulut ve aracı sunucu yoktur: sunucu Windows uygulamasının kendisidir, telefon tarafı ise o bilgisayarın sunduğu ve ana ekrana eklenen bir web uygulamasıdır. Hiçbir yerde yayın yapılmaz, hiçbir ücret ödenmez.
 
-Notlar şifreli olduğu için telefonda çözebilecek bir yazılım gerekir; bulut sürücüsüne kopyalamak tek başına yetmez. İki yol vardır:
+Kurulum bir kez yapılır (kenar çubuğunun altındaki telefon düğmesi üç adımı QR kodlarıyla gösterir):
 
-1. **PWA (tarayıcıda çalışan web uygulaması)** — mağaza ve geliştirici hesabı gerekmez; Safari/Chrome'da “Ana ekrana ekle” ile uygulama gibi açılır. AES-256-GCM ve PBKDF2 tarayıcının WebCrypto API'sinde vardır, kasa biçimi aynen okunabilir. Önerilen ilk adım budur.
-2. **Yerel uygulama (iOS/Android)** — daha iyi çevrimdışı ve bildirim desteği; iOS için Apple geliştirici hesabı ve mağaza süreci gerekir. PWA doğrulandıktan sonra ikinci aşama.
+1. **Güven belgesi.** Bilgisayar kendi sertifika otoritesidir. İlk kodu iPhone kamerasıyla okutun; sayfa bir yapılandırma profili indirir. *Ayarlar → Genel → VPN ve Aygıt Yönetimi*'nden kurun, sonra *Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları*'ndan açın. İki tarafta gösterilen SHA‑256 parmak izini karşılaştırın.
+2. **Ana ekran uygulaması.** İkinci kodu okutun (ya da Safari'de `https://<bilgisayar>.local:47831/` adresini açın) ve *Paylaş → Ana Ekrana Ekle* deyin. Bundan sonra Notlar'ı ana ekrandan açın: iOS, ana ekrandaki web uygulamalarına Safari'den ayrı bir depolama verir.
+3. **Eşleştirme kodu.** Ana ekrandaki uygulamada *Eşleştir*'e dokunun ve bilgisayarda görünen 6 haneli kodu yazın. Kod pencere açıkken on dakika geçerlidir; beş yanlış denemede iptal olur.
 
-Aşamalar:
+Gizlilik nasıl korunuyor: telefon ile bilgisayar 256 bitlik bir eşitleme anahtarını paylaşır; bu anahtar yalnızca bir kez, TLS üzerinden, eşleştirme kodu karşılığında gider. İki taraf bundan bir kimlik doğrulama anahtarı (her bağlantıda karşılıklı HMAC sınaması) ve bir içerik anahtarı (AES‑256‑GCM) türetir. Her not bu içerik anahtarıyla şifreli olarak taşınır ve telefonda da öyle saklanır; ekler yukarıda anlatılan şifreli dosyalar olarak, bayt bayt aktarılır. Sunucu yalnızca yerel ağdaki adreslere yanıt verir ve yalnızca anahtarı kanıtlayan cihazla konuşur. Evden uzaktaki telefon çevrimdışı çalışmaya devam eder, Wi‑Fi'a dönünce birleşir.
 
-- **Aşama 1 — Taşınabilir anahtar (yalnızca Windows tarafı).** Kasadaki içerik anahtarı, kullanıcının seçtiği parolayla (PBKDF2 600k) ikinci kez sarmalanır (mevcut sürüm 1 zarf mantığı). Böylece kasa DPAPI olmadan da açılabilir; aynı zamanda gerçek taşınabilir yedek olur. Windows'ta parola gerekmez, yalnızca telefon/yedek için sorulur.
-- **Aşama 2 — Salt-okunur telefon.** Kasa dosyası kullanıcının kendi bulut klasörüne (OneDrive/iCloud Drive/Google Drive) yazılır; PWA dosyayı seçip parolayla çözer ve notları gösterir. Sunucu yoktur, sunucu notları okuyamaz.
-- **Aşama 3 — Çift yönlü senkron.** Her cihaz kendi değişikliklerini not bazında (kimlik + revizyon + tarih) yazar; birleştirme “son revizyon kazanır”, çakışan iki düzenleme ise iki ayrı not olarak korunur (veri kaybı yok). Silmeler `DeletedAt` ile 30 gün taşınır. Aktarım yine kullanıcının bulut klasörü üzerindendir; isteğe bağlı küçük bir aracı sunucu yalnızca şifreli blob taşır.
-- **Aşama 4 — Yerel uygulama** (gerekirse).
+Birleştirme: bir notun yüksek revizyonu kazanır; iki cihaz aynı revizyonu düzenlemişse yeni olan not olarak kalır, diğeri "çakışma kopyası" olarak saklanır — hiçbir şey sessizce kaybolmaz. Kalıcı silmeler 180 gün hatırlanır; telefon silinmiş bir notu geri getiremez.
+
+Windows Defender Güvenlik Duvarı bir kez özel ağlarda izin ister. Bilgisayar TCP 47831 (HTTPS + WebSocket) ve 47832 (belgeyi veren düz kurulum sayfası) bağlantı noktalarını dinler.
 
 ## Geliştirme
 

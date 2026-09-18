@@ -7,11 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>../../notes.ico</ApplicationIcon>
     <AssemblyName>Notlar</AssemblyName>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <Product>NoteBook</Product>
     <Company>Wallece</Company>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Web\*" LogicalName="Notlar.Web.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Languages\*.json" LogicalName="Notlar.Languages.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Sounds\click.wav" LogicalName="Notlar.Sounds.click.wav" />
   </ItemGroup>

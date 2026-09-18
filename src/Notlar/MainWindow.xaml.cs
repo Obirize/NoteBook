@@ -42,6 +42,7 @@ public partial class MainWindow : Window
         };
         if (L10n.Current.RightToLeft) FlowDirection = FlowDirection.RightToLeft;
         InitializeComponent();
+        InitializeSync();
         BuildLanguageMenu();
         LockButton.Visibility = session.IsDeviceProtected ? Visibility.Collapsed : Visibility.Visible;
         saveTimer.Tick += (_, _) => SaveNow();
@@ -52,6 +53,7 @@ public partial class MainWindow : Window
         Closing += WindowClosing;
         Closed += (_, _) =>
         {
+            phoneSync?.Dispose();
             saveTimer.Stop(); idleTimer.Stop(); SystemEvents.SessionSwitch -= SessionSwitch; SystemEvents.PowerModeChanged -= PowerChanged;
             loading = true; TitleInput.Clear(); BodyInput.Clear(); ClearUndo(BodyInput); ClearUndo(TitleInput); SearchInput.Clear(); NoteList.ItemsSource = null;
             current = null; lastDeleted = []; thumbnails.Clear(); AttachmentPanel.Children.Clear();
@@ -214,6 +216,7 @@ public partial class MainWindow : Window
         try
         {
             session.Save(purged); purged = false; dirty = false; StatusText.Text = L10n.T("SavedEncrypted");
+            PublishSyncChanges();
             if (sweep) { session.Attachments.Sweep(session.Book); sweep = false; }
             RefreshList(); return true;
         }
