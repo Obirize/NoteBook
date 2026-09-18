@@ -68,18 +68,29 @@ public partial class MainWindow : Window
         RefreshList(session.Book.Notes.Where(n => !n.Deleted).OrderByDescending(n => n.Updated).FirstOrDefault()?.Id);
         if (!session.IsDeviceProtected) idleTimer.Start();
         VersionText.Text = L10n.T("OnThisPc") + " · " + Updater.CurrentLabel;
-        if (Updater.Enabled(Path.GetDirectoryName(session.FilePath)!)) Loaded += (_, _) => _ = CheckUpdates();
+        // The app may live in the tray for days: look for updates shortly after start, every six hours, and when it is opened again.
+        if (Updater.Enabled(Path.GetDirectoryName(session.FilePath)!))
+        {
+            updateTimer.Tick += (_, _) => { updateTimer.Interval = TimeSpan.FromHours(6); _ = CheckUpdates(); };
+            updateTimer.Start();
+        }
     }
+    private readonly DispatcherTimer updateTimer = new() { Interval = TimeSpan.FromSeconds(5) };
+    private DateTime lastUpdateCheck = DateTime.MinValue;
+    private bool updateAnnounced;
+    public void CheckUpdatesIfStale() { if (updateTimer.IsEnabled && update == null && DateTime.UtcNow - lastUpdateCheck > TimeSpan.FromHours(1)) _ = CheckUpdates(); }
     private async Task CheckUpdates()
     {
+        lastUpdateCheck = DateTime.UtcNow;
         try
         {
             update = await Updater.CheckAsync();
-            if (update == null || !IsLoaded) return;
+            if (update == null) return;
             UpdateButton.Content = L10n.T("UpdateReady", update.Version.ToString(3));
             UpdateButton.Visibility = Visibility.Visible;
+            if (!IsVisible && !updateAnnounced && tray != null) { updateAnnounced = true; tray.ShowBalloonTip(5000, L10n.T("AppName"), L10n.T("UpdateReady", update.Version.ToString(3)), System.Windows.Forms.ToolTipIcon.None); }
         }
-        catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TaskCanceledException or IOException or System.Text.Json.JsonException) { }
+        catch (Exception ex) when (ex is System.Net.Http.HttpRequestException or TaskCanceledException or IOException or System.Text.Json.JsonException or UriFormatException) { }
     }
     private async void UpdateClick(object sender, RoutedEventArgs e)
     {

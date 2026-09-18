@@ -32,12 +32,39 @@ public static class Updater
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
     }
+    // The releases page's "latest" redirect carries the newest tag and is not subject to the API's hourly limit,
+    // which a shared address can exhaust; the API is asked afterwards only for the exact asset links.
     public static async Task<Release?> CheckAsync(CancellationToken ct = default)
     {
-        using var client = Client();
-        string json = await client.GetStringAsync("https://api.github.com/repos/" + Repository + "/releases/latest", ct);
-        var release = Parse(json);
+        Release? release = null;
+        try { release = await CheckViaRedirect(ct); }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { }
+        if (release == null)
+        {
+            using var client = Client();
+            release = Parse(await client.GetStringAsync("https://api.github.com/repos/" + Repository + "/releases/latest", ct));
+        }
         return release != null && release.Version > Current ? release : null;
+    }
+    private static async Task<Release?> CheckViaRedirect(CancellationToken ct)
+    {
+        using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+        using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Notlar", CurrentLabel));
+        using var response = await client.GetAsync("https://github.com/" + Repository + "/releases/latest", ct);
+        string? location = response.Headers.Location?.ToString();
+        return location == null ? null : FromTagUrl(location);
+    }
+    // ".../releases/tag/v1.2.3" → the installer and checksum names the release workflow always uses.
+    public static Release? FromTagUrl(string url)
+    {
+        int at = url.LastIndexOf("/releases/tag/", StringComparison.Ordinal);
+        if (at < 0) return null;
+        string label = url[(at + "/releases/tag/".Length)..].Trim('/').TrimStart('v', 'V');
+        if (!Version.TryParse(label, out var version)) return null;
+        version = new Version(version.Major, version.Minor, Math.Max(0, version.Build));
+        string baseUrl = "https://github.com/" + Repository + "/releases/download/v" + version.ToString(3) + "/NoteBook-Setup-" + version.ToString(3) + ".exe";
+        return new Release(version, baseUrl, baseUrl + ".sha256", "https://github.com/" + Repository + "/releases/tag/v" + version.ToString(3));
     }
     // Reads tag "v1.2.3" and the installer asset (plus an optional ".sha256" file) from the GitHub API response.
     public static Release? Parse(string json)

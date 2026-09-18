@@ -553,6 +553,8 @@ static class Program
             Check(reloaded.TrayHintShown && reloaded.Language == "tr" && L10n.Detect(Path.GetDirectoryName(path)!) == "tr", "Settings keep the language and the tray hint flag together");
             Check(File.ReadAllText("setup/Notlar.iss").Contains(@"CurrentVersion\Run") && File.ReadAllText("setup/Notlar.iss").Contains("--minimized"), "The installer offers start-with-Windows into the tray");
             Check(Find<Button>(window, "DeleteButton").Focusable == false, "Toolbar icon buttons do not keep a focus ring after a click");
+            var fromTag = Updater.FromTagUrl("https://github.com/Obirize/NoteBook/releases/tag/v9.8.7");
+            Check(fromTag != null && fromTag.Version == new Version(9, 8, 7) && fromTag.InstallerUrl.EndsWith("/releases/download/v9.8.7/NoteBook-Setup-9.8.7.exe") && fromTag.ChecksumUrl!.EndsWith(".sha256") && Updater.FromTagUrl("https://github.com/x/y/releases") == null, "The releases page redirect alone is enough to find the newest installer");
             Click(window, "LockButton"); Check(window.LockRequested && !window.IsVisible && body.Text == "", "Lock closes and clears visible plaintext");
             session.Dispose(); Reject(session.Save, "Disposed session cannot save");
             var large = new Notebook { Notes = Enumerable.Range(0, 1000).Select(i => new Note { Title = "Not " + i, Text = new string('x', 1000) }).ToList() };

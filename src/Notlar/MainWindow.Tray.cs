@@ -36,6 +36,7 @@ public partial class MainWindow
         trayMenu.Style = (System.Windows.Style)FindResource("TrayMenu");
         trayMenu.Items.Add(open); trayMenu.Items.Add(sync); trayMenu.Items.Add(exit);
         trayMenu.Closed += (_, _) => { trayHelper?.Hide(); };
+        tray.BalloonTipClicked += (_, _) => ShowFromTray();
         Closed += (_, _) => { if (tray != null) { tray.Visible = false; tray.Dispose(); tray = null; } trayHelper?.Close(); };
     }
     // A WPF menu next to the tray icon needs a focused window behind it, otherwise it does not close on an outside click.
@@ -48,7 +49,7 @@ public partial class MainWindow
     }
     public void ShowFromTray()
     {
-        Show();
+        Show(); CheckUpdatesIfStale();
         if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
         Activate();
     }
