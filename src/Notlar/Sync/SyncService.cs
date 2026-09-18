@@ -125,7 +125,6 @@ public sealed class SyncService : IDisposable
     }
     // A fresh sync key: every phone must scan the pairing code again.
     public void ResetKey() { Settings.NewKey(); Settings.Save(dataDirectory); Stop(); if (Settings.Enabled) Start(); StatusChanged?.Invoke(); }
-    public void ForgetDevice(string id) { Settings.Devices.RemoveAll(d => d.Id == id); Settings.Save(dataDirectory); StatusChanged?.Invoke(); }
     // Called after a local save: connected phones receive the changed notes right away.
     public void NotifyChanged(IReadOnlyList<string> noteIds, IReadOnlyList<PurgeStamp> purges, SyncSession? origin = null)
     {

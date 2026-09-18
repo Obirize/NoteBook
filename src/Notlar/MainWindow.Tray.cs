@@ -19,7 +19,6 @@ public partial class MainWindow
     private Window? trayHelper;
     private bool exiting;
     private AppSettings settings = null!;
-    public bool StartHidden { get; set; }
 
     private void InitializeTray()
     {

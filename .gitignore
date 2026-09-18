@@ -3,7 +3,6 @@
 **/obj/
 app/
 data/
-artifacts/
 *.exe
 *.pdb
 

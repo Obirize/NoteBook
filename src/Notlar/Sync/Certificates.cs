@@ -118,12 +118,6 @@ public sealed class Certificates
         catch (Exception ex) when (ex is CryptographicException or IOException or UnauthorizedAccessException) { return null; }
         finally { if (pfx != null) CryptographicOperations.ZeroMemory(pfx); }
     }
-    // Deletes the stored certificates; the next start creates a new root, and paired phones must install it again.
-    public void Reset()
-    {
-        foreach (string path in new[] { RootPath, ServerPath }) if (File.Exists(path)) File.Delete(path);
-        Root = LoadOrCreateRoot(); Server = LoadOrCreateServer();
-    }
 
     // An iOS/macOS configuration profile that installs the root certificate. The user still enables full trust by hand.
     public string MobileConfig()

@@ -43,7 +43,7 @@ public partial class App : Application
         // Windows shutdown or sign-out must not be held up by the "close hides" behaviour.
         SessionEnding += (_, _) => editor.ExitFromTray();
         editor.Closed += (_, _) => { pipeStop.Cancel(); Finish(editor.RestartRequested); };
-        if (minimized) editor.StartHidden = true; else editor.Show();
+        if (!minimized) editor.Show();
         foreach (string file in files) Open(editor, file);
         if (fresh) editor.CreateNote();
     }

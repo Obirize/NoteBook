@@ -83,19 +83,6 @@ public sealed class Manifest
         Purged = json["purged"]?.AsArray().Select(p => new PurgeStamp(p!["id"]!.GetValue<string>(), p["rev"]!.GetValue<long>())).ToList() ?? [],
         Files = json["files"]?.AsArray().Select(f => f!.GetValue<string>()).ToHashSet() ?? [],
     };
-    // Notes this side should send: the peer lacks them, or has an older revision (or the same revision saved earlier).
-    public static List<string> ToSend(Notebook mine, Manifest theirs)
-    {
-        var known = theirs.Notes.ToDictionary(n => n.Id);
-        var purged = theirs.Purged.ToDictionary(p => p.Id, p => p.Revision);
-        var result = new List<string>();
-        foreach (var note in mine.Notes)
-        {
-            if (purged.TryGetValue(note.Id, out long purgedRev) && note.Revision <= purgedRev) continue;
-            if (!known.TryGetValue(note.Id, out var stamp) || stamp.Revision < note.Revision || (stamp.Revision == note.Revision && stamp.Updated < note.Updated)) result.Add(note.Id);
-        }
-        return result;
-    }
 }
 
 // Applies notes that arrived from another device. Rules: the higher revision wins; an equal revision with different
@@ -103,7 +90,7 @@ public sealed class Manifest
 // than lost; a purge removes a note only if that device did not edit it afterwards.
 public static class SyncMerge
 {
-    public sealed class Result { public int Added, Updated, Conflicts, Purged; public List<string> Changed = []; public bool Any => Added + Updated + Conflicts + Purged > 0; }
+    public sealed class Result { public int Added, Updated, Conflicts, Purged; public List<string> Changed = []; }
     public static Result Apply(Notebook book, IEnumerable<Note> incoming, IEnumerable<PurgeStamp> purges, string deviceName)
     {
         var result = new Result();

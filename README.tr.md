@@ -1,141 +1,114 @@
-# Notlar
+# Notlar (NoteBook)
 
-Windows için sade, yerel ve arka planda şifrelenen not defteri. C# / WPF ve .NET 10. Tarayıcı, hesap oluşturma veya internet gerektirmez.
+Windows için Apple Notlar tarzında bir not defteri ve onunla kendi Wi‑Fi'ınız üzerinden eşitlenen bir iPhone uygulaması. Her şey şifreli, hiçbir şey cihazlarınızın dışına çıkmıyor; hesap yok, bulut yok, ödenecek bir şey yok.
 
-## Kullanım
+[![Son sürüm](https://img.shields.io/github/v/release/Obirize/NoteBook?label=indir&color=e7bb62)](https://github.com/Obirize/NoteBook/releases/latest)
+[![İndirme](https://img.shields.io/github/downloads/Obirize/NoteBook/total?color=333337)](https://github.com/Obirize/NoteBook/releases)
+[![Lisans: MIT](https://img.shields.io/badge/lisans-MIT-333337)](LICENSE)
+![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-333337)
+![iPhone](https://img.shields.io/badge/iPhone-Safari%20%E2%86%92%20Ana%20Ekran-333337)
 
-**`Not Defteri.exe`** dosyasını açın ve yazın. Uygulama parola istemez; Windows hesabınız üzerinden şifreli notları otomatik açar. `app` klasörü uygulama dosyalarını ve çalışma zamanını içerir; başlatıcıyla birlikte tutulmalıdır.
+**[⬇ Son kurulum dosyasını indir](https://github.com/Obirize/NoteBook/releases/latest)** · [English](README.md)
 
-- Solda arama ve notlar, sağda başlık ve yazı alanı.
-- Yazma durduktan 650 ms sonra otomatik kayıt. Not değiştirme ve kapatma öncesi de kaydedilir.
-- Başlıkta Enter, yazı alanına geçer.
-- Sabitlenenler listenin başında yer alır.
-- Silinenler “Son silinenler” bölümüne taşınır ve 30 gün boyunca geri yüklenebilir; her kartta kalan süre görünür. 30 günü dolan notlar uygulama açılışında kalıcı olarak silinir. Son silinenlerdeki bir not “Kalıcı sil” ile hemen de silinebilir; bu işlem onay ister ve geri alınamaz. Kalıcı silme ana kaydı, önceki şifreli kaydı ve eski dosya arşivindeki kopyayı birlikte temizler.
-- Yazı alanlarında sağ tık: Kes / Kopyala / Yapıştır / Tümünü seç. Not kartında sağ tık: Sabitle, TXT dışa aktar, Son silinenlere taşı; son silinenlerde Geri yükle ve Kalıcı sil.
-- “Seç” düğmesi toplu seçim modunu açar: kartlarda onay kutuları belirir, “Tümünü seç” ile hepsi işaretlenir. Seçilenler tek adımda son silinenlere taşınır, geri yüklenir veya (son silinenlerde) kalıcı olarak silinir. Toplu taşıma da “Geri al” ile geri alınabilir.
-- Alt solda TXT açma ve şifreli yedek düğmeleri vardır. Uygulama yalnızca koyu temadadır.
-- Pencere başlığı ve ince kaydırma çubukları koyu temayla uyumludur. Fare tekerleği not listesinde ve yazı alanında aynı şekilde çalışır: kart sayısıyla değil piksel bazında (Windows fare ayarındaki satır sayısı × 28 piksel; varsayılan 3 satırda 84 piksel), kısa bir yumuşatmayla ve tekerlek bırakıldığında uzun süre kaymaya devam etmeden. Yazarken otomatik kayıt listenin kaydırma konumunu sıfırlamaz. Başlıktan sürükleme, çift tıklayarak büyütme, pencere kenarından boyutlandırma desteklenir.
+![Windows'ta Notlar](docs/screenshot.png)
+
+## Ne yapar
+
+- **Notlar**: başlık, metin, fotoğraf ve video. Arama, sabitleme, toplu seçim, 30 günlük *Son silinenler*, TXT içe/dışa aktarma, 13 arayüz dili.
+- **Diskte şifreli.** Notlar AES‑256‑GCM ile mühürlenmiş bir kasada; her fotoğraf ve video kendi anahtarıyla şifrelenmiş ayrı bir dosyada. Bilgisayarda anahtarlar Windows oturumunuzla korunur; uygulama parola sormaz.
+- **Sunucusuz iPhone eşitlemesi.** Windows uygulamasının kendisi telefona küçük bir web uygulaması sunar; ana ekrana eklersiniz ve 6 haneli bir kodla eşleştirirsiniz. Sonra notlar ve dosyalar, iki cihaz aynı Wi‑Fi'dayken doğrudan aralarında eşitlenir. Telefon uygulaması Apple Notlar gibi görünür ve çevrimdışı çalışır.
+- **Arka planda çalışır.** Pencereyi kapatmak uygulamayı kapatmaz; Notlar bildirim alanında kalır ki telefon eşitlenebilsin. Kurulum sihirbazı Windows ile başlatmayı sunar.
+- **Size ait yedekler.** Parolalı yedek her bilgisayarda açılır; geri yükleme üzerine yazmaz, birleştirir.
+- **GitHub Releases'tan güncelleme** — uygulamanın ağınız dışında konuştuğu tek yer.
+
+<p align="center"><img src="docs/screenshot-select.png" width="49%" alt="Toplu seçim"> <img src="docs/screenshot-phone-sync.png" width="49%" alt="Telefonla eşitleme penceresi"></p>
+
+## Kurulum
+
+[Releases](https://github.com/Obirize/NoteBook/releases) sayfasından `NoteBook-Setup-<sürüm>.exe` dosyasını indirin. Kurulum kullanıcı bazlıdır (yönetici hakkı istemez), `%LocalAppData%\Programs\NoteBook` içine kurulur, notlarınızı `…\NoteBook\data` içinde tutar ve kaldırırken asla silmez. Masaüstü kısayolu, `.txt` için *Birlikte aç*, sağ tık menüsüne *Yeni not* ve *Windows ile başlat* seçeneklerini sunar.
+
+Kurulum dosyası henüz kod imzalı değildir; ilk indirmede SmartScreen uyarısı çıkabilir ("Daha fazla bilgi → Yine de çalıştır"). Uygulama içi güncellemelerde çıkmaz.
+
+Taşınabilir kullanım da mümkündür: zip'i açın, `Not Defteri.exe` ile `app` klasörünü birlikte tutun; notlar yanlarındaki `data` klasöründe yaşar.
+
+## Telefon (iPhone)
+
+Kenar çubuğunun altındaki telefon düğmesi, her biri QR kodlu üç adımı gösterir:
+
+1. **Güven belgesi.** Bilgisayar kendi sertifika otoritesidir. İlk kod, bir profil indiren sayfayı açar; *Ayarlar → Genel → VPN ve Aygıt Yönetimi*'nden kurun, sonra *Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları*'ndan açın. Sayfadaki *Bağlantıyı sına* düğmesi bunun tamamlandığını söyler. Parmak izi iki tarafta da gösterilir, karşılaştırabilirsiniz.
+2. **Ana ekran uygulaması.** İkinci kod uygulamayı Safari'de açar; sayfa iki dokunuşu anlatır: *Paylaş → Ana Ekrana Ekle*. Bundan sonra Notlar'ı ana ekrandan açın (iOS ana ekran uygulamalarına ayrı bir depolama verir).
+3. **Eşleştirme kodu.** Ana ekrandaki uygulamada *Eşleştir*'e dokunup bilgisayarda görünen 6 haneli kodu yazın. Her dakika yeni kod gelir; kodlar yalnızca o pencere açıkken vardır.
+
+Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışırken (tepside gizli olsa da) eşitlenir. Evden uzakta çevrimdışı çalışmaya devam eder, dönünce birleşir. Fotoğraf ve videolar asla yeniden sıkıştırılmaz; uygulama iOS'tan orijinalleri ister.
+
+## Kısayollar (Windows)
 
 | Kısayol | İşlem |
 | --- | --- |
 | Ctrl+N | Yeni not |
 | Ctrl+O | TXT dosyasını yeni not olarak aç |
-| Ctrl+Shift+S | Açık notu şifresiz TXT kopyası olarak kaydet |
 | Ctrl+Shift+A | Açık nota fotoğraf veya video ekle |
-| Ctrl+V (panoda resim veya medya dosyası varken) | Açık nota ek olarak yapıştır |
+| Ctrl+V | Panodaki resmi veya medya dosyalarını ek olarak yapıştır |
+| Ctrl+Shift+S | Açık notu şifresiz TXT kopyası olarak kaydet |
 | Ctrl+K / Ctrl+F | Arama |
 | Ctrl+S | Hemen kaydet / hatalı kaydı yeniden dene |
 | Ctrl+Z / Ctrl+Y | Metin düzenlemesini geri al / yinele |
-| Delete (liste odaktayken) | Notu son silinenlere taşı; son silinenlerde kalıcı sil (onaylı) |
+| Delete (yazı alanı dışında) | Açık veya işaretli notları son silinenlere taşı; orada kalıcı sil (onaylı) |
+| Shift+Delete | Kalıcı sil (onaylı) |
 | Ctrl+A (seçim modunda) | Tümünü seç |
-| Esc (seçim modunda) | Seçim modundan çık |
+| Esc | Seçim modundan çık |
 
-## TXT dosyalarını Notlar ile açma
+## Şifreleme nasıl çalışıyor
 
-`Not Defteri.exe dosya.txt` komutu (veya Gezgin'de "Birlikte aç → Notlar") dosyayı yeni bir not olarak kasaya aktarır; uygulama zaten açıksa aynı pencereye iletilir, ikinci pencere açılmaz. **Notlar bir dosya düzenleyici değildir:** TXT içe aktarılır, düzenlemeler kasada tutulur, orijinal dosya değişmez. Dosyanın kendisini düzenlemek için TXT olarak dışa aktarma kullanılır.
+**Bilgisayarda.** Not içerikleri, başlıklar, tarihler ve eski dosya arşivleri AES‑256‑GCM ile şifrelenir. Rastgele 256 bitlik içerik anahtarı Windows DPAPI (`CurrentUser`) ile sarılarak kasaya yazılır; her kayıtta yeni nonce kullanılır, her değişiklik doğrulamada yakalanır. Her ek `data/attachments/<id>.bin` olarak, kendi rastgele anahtarıyla 1 MB'lık AES‑256‑GCM parçaları halinde yazılır; anahtar ve dosya bilgileri yalnızca şifreli not defterinin içindedir ve her parça dosya başlığını, ek kimliğini, sırasını ve "son parça" işaretini doğrular — dosyalar kesilemez, sıralanamaz, değiştirilemez. Video oynatılırken oynatıcıya geçici klasörde çözülmüş bir kopya verilir; görüntüleyici kapanınca silinir.
 
-`Not Defteri.exe --new` doğrudan yeni bir not açar (masaüstü sağ tık menüsündeki “Yeni not (Notlar)” bunu kullanır).
+Ayrı bir uygulama parolası veya boşta kilidi yoktur: notları Windows oturumunuz korur. Amaç, **dosyaları tek başına kopyalayan birinin okuyamamasıdır**. Aynı Windows hesabında çalışan bir program ya da açık oturumunuza erişen biri notları açabilir; bu, yönetici yetkili zararlı yazılıma, klavye kaydına veya bellek dökümüne karşı bir savunma değildir.
 
-## Kurulum paketi
+**Cihazlar arasında.** Telefon ile bilgisayar 256 bitlik bir eşitleme anahtarını paylaşır; anahtar bir kez, TLS üzerinden, eşleştirme kodu karşılığında gider. İki taraf bundan bir kimlik doğrulama anahtarı (her bağlantıda karşılıklı HMAC sınaması) ve bir içerik anahtarı (AES‑256‑GCM) türetir. Her not bu içerik anahtarıyla şifreli olarak taşınır ve telefonda da öyle saklanır; ekler zaten şifreli dosyalar olarak, bayt bayt aktarılır. Sunucu TCP 47831 (HTTPS + WebSocket) ve 47832 (belgeyi veren düz kurulum sayfası) bağlantı noktalarını dinler, yalnızca yerel ağdaki adreslere yanıt verir ve yalnızca anahtarı kanıtlayan cihazla konuşur. Birleştirmede notun yüksek revizyonu kazanır; iki cihaz aynı revizyonu düzenlemişse yeni olan kalır, diğeri "çakışma kopyası" olarak saklanır. Kalıcı silmeler 180 gün hatırlanır; telefon silinmiş bir notu geri getiremez.
 
-`build-setup.cmd`, [Inno Setup 6](https://jrsoftware.org/isdl.php) ile `dist/NoteBook-Setup-<sürüm>.exe` üretir (`setup/Notlar.iss`). Kurulum kullanıcı düzeyindedir: yönetici izni istemez, `%LocalAppData%\Programs\Notlar` altına kurulur, notlar `…\Notlar\data` içinde tutulur ve kaldırmada silinmez. Kurulumda seçilebilen bütünleşmeler:
+Kaynaklar: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope), [AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm). Telemetri yok. Bağımsız denetimden geçmemiştir.
 
-- **.txt için “Birlikte aç” ve Varsayılan uygulamalar kaydı.** Windows Not Defteri kaldırılmaz veya değiştirilmez; Notlar yanına eklenir. Windows, dosya türünün varsayılanını yalnızca kullanıcının seçmesine izin verir (kurulum programları bunu sessizce değiştiremez); kurulum sonunda Ayarlar sayfası açılabilir: *Varsayılan uygulamalar → Dosya türüne göre → .txt → Notlar*.
-- **Sağ tık → “Yeni not (Notlar)”** masaüstünde ve klasör arka planında. Dosya oluşturmaz; uygulamada yeni not açar. Windows'un “Yeni → Metin Belgesi” girdisi olduğu gibi kalır.
+## Dosyalar, yedek ve kurtarma
 
-Kurulum sihirbazı sırası: (1) hedef klasör, (2) isteğe bağlı bütünleşmeler, (3) kurulum, (4) son sayfada "Notlar'ı başlat" ve ".txt için varsayılan uygulamayı seçmek üzere Ayarlar'ı aç" seçenekleri. Ayarlar sayfasında *.txt* satırında Notlar seçilir; bu bir kez yapılır.
+- `data/notes.vault` — şifreli not defteri; `data/notes.vault.bak` — önceki kayıt.
+- `data/attachments/` — şifreli fotoğraf ve videolar, her ek için bir dosya.
+- `data/sync/` — sertifikalar, eşitleme anahtarı (DPAPI ile korunur) ve eşleşmiş telefonların listesi.
+- `data/settings.json` — dil ve küçük tercihler.
 
-Taşınabilir klasörden kuruluma geçerken `data` klasörü kurulu konuma kopyalanabilir; aynı Windows hesabında açılır.
+**Yedek** (kenar çubuğundaki kutu simgesi) → *Yedek al…* seçtiğiniz parolayla korunan bir `.vault` dosyası yazar (PBKDF2 600k + AES‑256‑GCM); ek varsa yanına `<ad>.vault.files` klasörü de yazılır, ikisini birlikte saklayın. Dosya o parolayla her bilgisayarda açılır. *Yedekten geri yükle…* birleştirir: yerelde olmayan notlar eklenir, her notun daha yeni revizyonu kazanır, eksik dosyalar kopyalanır, hiçbir şey silinmez.
 
-## Otomatik güncelleme
-
-Uygulama her açılışta GitHub Releases'ı (`Updater.Repository`, `src/Notlar/Updater.cs`) kontrol eder. Yeni sürüm varsa alt çubukta **"Sürüm x.y.z hazır · Güncelle"** görünür; tıklanınca kurulum dosyası indirilir, yayınla birlikte gelen SHA-256 ile doğrulanır, sessizce kurulur ve uygulama yeniden açılır. Kullanıcı sil-kur yapmaz; notlar yerinde kalır.
-
-Bu, uygulamanın yaptığı **tek ağ isteğidir**; yalnızca sürüm bilgisi alınır, kimlik/telemetri gönderilmez. Kapatmak için `data` klasörüne `guncelleme-kapali` adında boş bir dosya konur. `Updater.Repository` doldurulana kadar kontrol yapılmaz.
-
-### Yayınlama (GitHub)
-
-1. `src/Notlar/Updater.cs` içinde `Repository = "kullanıcı/depo"` yazın.
-2. Depoyu GitHub'a gönderin; `.github/workflows/release.yml` hazırdır.
-3. Sürüm etiketi atın: `git tag v1.0.1 && git push --tags`.
-4. GitHub Actions kurulum dosyasını derler (`NOTLAR_VERSION` etiketten alınır), SHA-256 dosyasını üretir ve Release'e ekler. Kullanıcılar bir sonraki açılışta güncellemeyi görür.
-
-Kurulum dosyası kod imzalı değildir; tarayıcıdan ilk indirmede SmartScreen uyarısı çıkabilir ("Daha fazla bilgi → Yine de çalıştır"). Uygulama içi güncellemede bu uyarı çıkmaz. İmza sertifikası (OV/EV) alındığında `release.yml` içinde `signtool` adımı eklenir.
+Ana dosya açılamazsa uygulama önceki kaydı önerir; hasarlı dosyalar `.damaged-…` olarak korunur, sessizce boş notlarla değiştirilmez. Son silinenlerdeki notlar 30 gün sonra ek dosyalarıyla birlikte temizlenir.
 
 ## Diller
 
-Arayüz 13 dilde: Türkçe, İngilizce, İspanyolca, Çince, Hintçe, Arapça (sağdan sola), Portekizce, Rusça, Japonca, Almanca, Fransızca, Endonezce, Korece. Uygulama Windows görüntü dilini izler; sol alttaki küre düğmesiyle değiştirilir ve `data/settings.json` içine kaydedilir. Metinler `src/Notlar/Languages/<kod>.json` dosyalarındadır; yeni dil için `en.json` kopyalanıp çevrilir ve `L10n.Languages` listesine bir satır eklenir.
+Windows uygulaması Windows görüntü dilini izler ve küre düğmesinden 13 dil sunar: Türkçe, İngilizce, İspanyolca, Çince, Hintçe, Arapça (sağdan sola), Portekizce, Rusça, Japonca, Almanca, Fransızca, Endonezce, Korece. Metinler `src/Notlar/Languages/<kod>.json` dosyalarındadır; test, her dilde her anahtarın bulunduğunu doğrular. Telefon uygulaması şimdilik yalnızca Türkçedir.
 
-## Şifreleme nasıl çalışıyor?
-
-Not içeriği, başlıklar, tarihler ve eski dosya arşivleri AES-256-GCM ile şifrelenir. Rastgele 256 bit içerik anahtarı, Windows DPAPI `CurrentUser` ile korunarak kasaya yazılır. Anahtar dosyada açık olarak bulunmaz; her kayıtta yeni nonce kullanılır. İçerik veya anahtar değiştirildiğinde doğrulama başarısız olur.
-
-Fotoğraf ve videolar kasa dosyasına konmaz. Her ek `data/attachments/<id>.bin` olarak, kendi rastgele 256 bit anahtarıyla 1 MB'lık parçalar halinde AES-256-GCM ile şifrelenir; anahtar, dosya adı, boyut ve özet yalnızca şifreli not defterinin içinde durur. Her parça dosya başlığını, ek kimliğini, parça sırasını ve "son parça" işaretini doğrular; parçalar yeniden sıralanamaz, atılamaz, kesilemez veya başka dosyaya taşınamaz. Dosyanın yeniden şifrelenmesi gerekmediği için yedek (ileride başka bir cihaz) dosyayı olduğu gibi, bayt bayt alır. Video oynatılırken oynatıcıya geçici klasörde çözülmüş bir kopya verilir; görüntüleyici kapanınca silinir.
-
-Uygulama için ayrı parola, kurulum ekranı veya beş dakikada bir kilit yoktur. Normal Windows oturum koruması geçerlidir. Bu, **not dosyasını tek başına kopyalayan kişinin doğrudan okumasını önlemeye** yöneliktir. Aynı Windows hesabı altında çalışan bir program veya açık oturumunuza erişen kişi notları açabilir. Zararlı yazılım, yönetici yetkisiyle hesabın ele geçirilmesi, ekran/klavye kaydı veya bellek dökümüne karşı mutlak koruma değildir.
-
-DPAPI dayanağı: [Microsoft DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope). İçerik şifreleme: [Microsoft AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm).
-
-Uygulamada güncelleme kontrolü dışında ağ isteği yoktur; telemetri yoktur. Bağımsız güvenlik denetiminden henüz geçmemiştir.
-
-## TXT ve kasa biçimi
-
-İç kayıt `.vault` olarak kalır; bu uygulamanın şifreli veri biçimidir. Düz metin alışverişi için UTF-8 `.txt` kullanılır. TXT açma dosyayı yeni not olarak kasaya ekler; orijinal dosyayı değiştirmez. Başlık dosya adından, not içeriği dosyanın tamamından alınır. Düzenlemeler kasaya otomatik kaydedilir.
-
-Üst araç çubuğundaki dışa aktarma düğmesi veya Ctrl+Shift+S, not içeriğini UTF-8 TXT olarak kaydeder; başlık önerilen dosya adı olur. **Dışa aktarılan TXT şifresizdir.** Bu bilgi kaydetme penceresinde gösterilir. Bu kopya başka cihaz ve metin editörlerinde açılabilir; uygulamadaki şifreli not korunur.
-
-İçe aktarma UTF-8, BOM işaretli UTF-16/UTF-32 ve eski Türkçe Windows-1254 metinlerini destekler. Dosya boyutu en fazla 8 MB olmalıdır. Boş satırlar, Unicode karakterler ve satır sonları korunur. Dosya ilişkilendirmesi değiştirilmez; dosyayı uygulamanın TXT açma düğmesinden seçin.
-
-## Mevcut notlar
-
-İlk açılışta `data/notes.json` ve `data/notes.backup.json` otomatik aktarılır. Kimlikler, tarihler, metinler, sabitleme ve silinme bilgileri korunur. Eski dosyaların tamamı (RTF ve kullanılmayan alanlar dahil) şifreli arşiv olarak kasanın içinde tutulur. Şifreli kayıt ve Windows tarafından korunan anahtar doğrulanmadan eski düz metin dosyaları kaldırılmaz. Aktarım sırasında değişmiş dosya silinmez. Eski uygulamayı aynı anda kullanmayın.
-
-Önceki sürümde zaten parola oluşturulmuşsa **yalnızca dönüşüm için bir kez** mevcut parola/anahtar gerekir. Doğru açılan kasa Windows korumasına dönüştürülür; sonraki açılışlar parolasızdır. Hiç parola oluşturulmamışsa bu ekran gösterilmez.
-
-Dosya silme işlemi eski disk kalıntılarını, SSD kurtarma olasılığını veya başka yerdeki önceki yedekleri ortadan kaldırma garantisi vermez.
-
-## Dosyalar ve yedek
-
-- `data/notes.vault`: ana şifreli kayıt.
-- `data/notes.vault.bak`: önceki şifreli kayıt.
-- `data/attachments/`: şifreli fotoğraf ve videolar, her ek için bir dosya.
-
-**Yedek** (kenar çubuğundaki kutu simgesi) → *Yedek al…*, seçtiğiniz parolayla korunan tek bir `.vault` dosyası yazar (PBKDF2 600k + AES-256-GCM, kendi rastgele anahtarıyla). Bu dosya o parolayla **her bilgisayarda** açılır; Windows hesabına bağlı değildir. *Yedekten geri yükle…* yedeği notlarınızla birleştirir: yerelde olmayan notlar eklenir, her notun daha yeni revizyonu kazanır, hiçbir şey silinmez. Aynı Windows hesabından alınmış düz `notes.vault` kopyası da geri yüklenebilir. Not defterinde ek varsa yedeğin yanına `<ad>.vault.files` klasörü yazılır; ikisini birlikte saklayın. Geri yükleme eksik dosyaları kopyalar.
-
-TXT dosyaları pencereye sürükleyip bırakarak da eklenebilir.
-
-## Arka planda çalışma
-
-Pencereyi kapatmak uygulamayı kapatmaz: Notlar sağ alttaki bildirim alanında çalışmaya devam eder, böylece telefon eşitlenebilir. Simgeye çift tıklayınca pencere geri gelir; sağ tık menüsünde *Notlar'ı aç*, *Telefonla eşitle…* ve *Çıkış* vardır. Kurulumu "yönetici olarak" çalıştırdıysanız ve uygulama oradan başladıysa, normal açılışlar ona ulaşamaz ("zaten çalışıyor" der): tepsiden bir kez Çıkış deyip yeniden açın; yeni kurulum dosyası uygulamayı her zaman normal kullanıcı olarak başlatır. Uygulamadan çıkmanın tek yolu bu menüdür. Kurulum sihirbazı "Windows ile başlat" seçeneğini sunar; işaretliyse Notlar oturum açılınca tepside gizli olarak başlar.
-
-## Fotoğraf ve video
-
-Bir not açıkken üst çubuktaki ataş düğmesi (Ctrl+Shift+A), pencereye sürükleyip bırakma veya panoda resim varken Ctrl+V nota fotoğraf ya da video ekler. Küçük resimler metnin üstünde görünür; tıklayınca tam boy görüntüleyici açılır, videolar uygulama içinde oynatılır (boşluk tuşu duraklatır, Esc kapatır). Sağ tık menüsünden dosyanın şifresiz bir kopyası kaydedilebilir veya ek nottan kaldırılabilir. Diskteki orijinal dosya hiçbir zaman değiştirilmez veya silinmez.
-
-Ana kayıt açılamazsa uygulama önceki şifreli kaydı denemeyi sorar. Doğrulanmış yedek atomik olarak geri yüklenir; hasarlı kayıt `.damaged-...` olarak korunur. Bozuk dosyalar sessizce boş notlara dönüştürülmez. Disk doluluğu/izin hatasında son değişiklik açık tutulur ve hata gösterilir.
-
-## Telefonla eşitleme (iPhone)
-
-Notlar, fotoğraflar ve videolar aynı Wi‑Fi'daki bilgisayar ile iPhone arasında doğrudan eşitlenir. Hesap, bulut ve aracı sunucu yoktur: sunucu Windows uygulamasının kendisidir, telefon tarafı ise o bilgisayarın sunduğu ve ana ekrana eklenen bir web uygulamasıdır. Hiçbir yerde yayın yapılmaz, hiçbir ücret ödenmez.
-
-Kurulum bir kez yapılır (kenar çubuğunun altındaki telefon düğmesi üç adımı QR kodlarıyla gösterir):
-
-1. **Güven belgesi.** Bilgisayar kendi sertifika otoritesidir. İlk kodu iPhone kamerasıyla okutun; sayfa bir yapılandırma profili indirir. *Ayarlar → Genel → VPN ve Aygıt Yönetimi*'nden kurun, sonra *Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları*'ndan açın. İki tarafta gösterilen SHA‑256 parmak izini karşılaştırın.
-2. **Ana ekran uygulaması.** İkinci kodu okutun (ya da Safari'de `https://<bilgisayar>.local:47831/` adresini açın) ve *Paylaş → Ana Ekrana Ekle* deyin. Bundan sonra Notlar'ı ana ekrandan açın: iOS, ana ekrandaki web uygulamalarına Safari'den ayrı bir depolama verir.
-3. **Eşleştirme kodu.** Ana ekrandaki uygulamada *Eşleştir*'e dokunun ve bilgisayarda görünen 6 haneli kodu yazın. Her 60 saniyede yeni kod gelir (yazmayı bitirmeniz için bir önceki birkaç saniye daha kabul edilir), beş yanlış deneme kodu erken değiştirir ve kodlar yalnızca o pencere açıkken vardır. Kurulum sayfasındaki *Bağlantıyı sına* düğmesi belgenin tam güvenilir olup olmadığını söyler.
-
-Fotoğraf ve videolar hiçbir zaman yeniden sıkıştırılmaz: telefon verilen dosyayı olduğu gibi şifreler, bilgisayar da tam o baytları saklar (uygulama iOS'tan orijinalleri ister; HEIC ve HEVC/MOV dokunulmadan geçer; iOS boyut sorarsa *Gerçek Boyut*'u seçin). Windows'ta HEIC/HEVC önizlemesi için Microsoft'un HEIF/HEVC uzantıları gerekir; yoksa dosya yine saklanır ve kopyası alınabilir.
-
-Gizlilik nasıl korunuyor: telefon ile bilgisayar 256 bitlik bir eşitleme anahtarını paylaşır; bu anahtar yalnızca bir kez, TLS üzerinden, eşleştirme kodu karşılığında gider. İki taraf bundan bir kimlik doğrulama anahtarı (her bağlantıda karşılıklı HMAC sınaması) ve bir içerik anahtarı (AES‑256‑GCM) türetir. Her not bu içerik anahtarıyla şifreli olarak taşınır ve telefonda da öyle saklanır; ekler yukarıda anlatılan şifreli dosyalar olarak, bayt bayt aktarılır. Sunucu yalnızca yerel ağdaki adreslere yanıt verir ve yalnızca anahtarı kanıtlayan cihazla konuşur. Evden uzaktaki telefon çevrimdışı çalışmaya devam eder, Wi‑Fi'a dönünce birleşir.
-
-Birleştirme: bir notun yüksek revizyonu kazanır; iki cihaz aynı revizyonu düzenlemişse yeni olan not olarak kalır, diğeri "çakışma kopyası" olarak saklanır — hiçbir şey sessizce kaybolmaz. Kalıcı silmeler 180 gün hatırlanır; telefon silinmiş bir notu geri getiremez.
-
-Windows Defender Güvenlik Duvarı bir kez özel ağlarda izin ister. Bilgisayar TCP 47831 (HTTPS + WebSocket) ve 47832 (belgeyi veren düz kurulum sayfası) bağlantı noktalarını dinler.
+<p align="center"><img src="docs/screenshot-arabic.png" width="70%" alt="Arapça, sağdan sola"></p>
 
 ## Geliştirme
 
-.NET 10 SDK ve Windows gerekir. `build.cmd`, `app/` içine self-contained x64 dağıtım üretir ve kökteki başlatıcıyı derler. Varsa `.tools/dotnet` içindeki SDK'yı kullanır. Kaynak: `src/Notlar/`.
+Windows ve .NET 10 SDK; telefon testi için Node.js. Üçüncü taraf paket yok: HTTPS/WebSocket sunucusu, sertifika otoritesi ve QR üretici kaynağın parçasıdır.
 
-`test.cmd`: geçici verilerle şifreleme, otomatik açma, eski parola kasasını dönüştürme, anahtar/içerik tahrifi, aktarım, kayıt hatası, otomatik kayıt, arama, silme/geri alma, 30 günlük otomatik temizleme, toplu işlemler, ekler, tepsi davranışı ve yumuşak kaydırmayı test eder; ayrıca bir Node betiği telefonu canlandırır (eşleştirme, eşitleme, çakışmalar, bayt bayt aynı dosyalar). Gerçek `data` klasöründeki notlara yazmaz.
+- `src/Notlar/` — WPF uygulaması. `Sync/` sunucu, protokol, sertifika ve QR kodunu; `Web/` telefon uygulamasını (düz JavaScript, WebCrypto, IndexedDB) içerir.
+- `build.cmd` — kendi kendine yeten x64 derlemeyi `app/` içine yayınlar ve kök başlatıcıyı derler.
+- `test.cmd` — geçici verilerle kontrolleri çalıştırır: şifreleme ve tahrif tespiti, ekler, yedekler, silme politikası, toplu işlemler, tepsi davranışı, arayüz yerleşimi ve telefonu canlandıran bir Node betiği (eşleştirme kodu, iki yönlü eşitleme, çakışmalar, bayt bayt aynı dosyalar).
+- `build-setup.cmd` — [Inno Setup 6](https://jrsoftware.org/isdl.php) ile kurulum dosyasını `dist/` içine üretir.
 
-`notes.ico` çok boyutlu (16–256 px) uygulama simgesidir. `.tools`, `app`, `data` ve derleme çıktıları kaynak paylaşımına dahil edilmemelidir.
+Yayın: bir sürüm etiketi gönderin; `.github/workflows/release.yml` kurulum dosyasını derler, `.sha256` özetini yazar ve ikisini bir GitHub Release'e ekler. Çalışan uygulamalar birkaç saat içinde güncellemeyi sunar.
+
+```bash
+git tag v1.6.0
+git push --tags
+```
+
+## Yol haritası
+
+- Yapılacaklar listesi (onay kutulu maddeler), iki tarafta da.
+- Telefon uygulamasında diller.
+- Android (aynı web uygulaması Chrome'da; sertifika adımı farklı).
+- Ev dışından eşitleme — bugün telefon evdeki Wi‑Fi'da eşitlenir; seçenekler bilgisayarda kendi WireGuard'ınız ya da içeriği göremeyen, yalnızca taşıyan bir aracı.
+- Kurulum dosyası için kod imzası.
+
+## Lisans
+
+MIT — bkz. [LICENSE](LICENSE).
