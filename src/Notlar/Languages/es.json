@@ -95,7 +95,7 @@
   "BackupFailed": "No se pudo guardar la copia. Prueba otra ubicación.",
   "CloseSaveFailed": "No se pudo guardar el último cambio. Tus notas siguen abiertas. Comprueba el espacio en disco y los permisos de la carpeta y pulsa Ctrl+S.",
   "CloseSaveFailedTitle": "No se pudo guardar",
-  "AlreadyOpen": "NoteBook ya está abierto. Cambia a él desde la barra de tareas.",
+  "AlreadyOpen": "NoteBook ya se está ejecutando. Ábrelo desde su icono en el área de notificación (abajo a la derecha). Si el instalador lo inició con derechos de administrador, ciérralo allí una vez y vuelve a abrir NoteBook.",
   "OpenFailed": "No se pudo abrir NoteBook. No borres tu carpeta de datos. Asegúrate de usar la cuenta de Windows con la que creaste estas notas y de tener acceso a la carpeta.",
   "OpenFileFailed": "No se pudo abrir el archivo: {0}",
   "TryBackup": "No se pudo abrir NoteBook. ¿Probar con el guardado cifrado anterior? Puede que falten los cambios recientes.",

@@ -95,7 +95,7 @@
   "BackupFailed": "Impossible d'enregistrer la sauvegarde. Essayez un autre emplacement.",
   "CloseSaveFailed": "La dernière modification n'a pas pu être enregistrée. Vos notes restent ouvertes. Vérifiez l'espace disque et les autorisations du dossier, puis appuyez sur Ctrl+S.",
   "CloseSaveFailedTitle": "Enregistrement impossible",
-  "AlreadyOpen": "NoteBook est déjà ouvert. Passez-y depuis la barre des tâches.",
+  "AlreadyOpen": "NoteBook est déjà en cours d’exécution. Ouvrez-le depuis son icône dans la zone de notification (en bas à droite). Si l’installateur l’a lancé avec des droits d’administrateur, quittez-le là une fois puis relancez NoteBook.",
   "OpenFailed": "Impossible d'ouvrir NoteBook. Ne supprimez pas votre dossier de données. Vérifiez que vous utilisez le compte Windows qui a créé ces notes et que vous avez accès au dossier.",
   "OpenFileFailed": "Impossible d'ouvrir le fichier : {0}",
   "TryBackup": "Impossible d'ouvrir NoteBook. Essayer l'enregistrement chiffré précédent ? Les dernières modifications peuvent y manquer.",

@@ -95,7 +95,7 @@
   "BackupFailed": "Gagal menyimpan cadangan. Coba lokasi lain.",
   "CloseSaveFailed": "Perubahan terakhir tidak bisa disimpan. Catatanmu tetap terbuka. Periksa ruang disk dan izin folder, lalu tekan Ctrl+S.",
   "CloseSaveFailedTitle": "Gagal menyimpan",
-  "AlreadyOpen": "NoteBook sudah terbuka. Beralih ke sana dari bilah tugas.",
+  "AlreadyOpen": "NoteBook sudah berjalan. Buka dari ikonnya di area notifikasi (kanan bawah). Jika penginstal menjalankannya dengan hak administrator, keluar dari sana sekali lalu jalankan NoteBook lagi.",
   "OpenFailed": "NoteBook tidak bisa dibuka. Jangan hapus folder data. Pastikan kamu masuk dengan akun Windows yang membuat catatan ini dan bisa mengakses foldernya.",
   "OpenFileFailed": "Gagal membuka file: {0}",
   "TryBackup": "NoteBook tidak bisa dibuka. Coba simpanan terenkripsi sebelumnya? Perubahan terbaru mungkin tidak ada di sana.",

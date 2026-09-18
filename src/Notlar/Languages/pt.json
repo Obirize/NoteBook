@@ -95,7 +95,7 @@
   "BackupFailed": "Não foi possível salvar o backup. Tente outro local.",
   "CloseSaveFailed": "A última alteração não pôde ser salva. Suas notas continuam abertas. Verifique o espaço em disco e as permissões da pasta e pressione Ctrl+S.",
   "CloseSaveFailedTitle": "Não foi possível salvar",
-  "AlreadyOpen": "O NoteBook já está aberto. Alterne para ele pela barra de tarefas.",
+  "AlreadyOpen": "O NoteBook já está em execução. Abra-o pelo ícone na área de notificação (canto inferior direito). Se o instalador o iniciou com direitos de administrador, saia por lá uma vez e abra o NoteBook novamente.",
   "OpenFailed": "Não foi possível abrir o NoteBook. Não apague sua pasta de dados. Verifique se está na conta do Windows que criou estas notas e se tem acesso à pasta.",
   "OpenFileFailed": "Não foi possível abrir o arquivo: {0}",
   "TryBackup": "Não foi possível abrir o NoteBook. Tentar o salvamento criptografado anterior? As alterações recentes podem não estar nele.",

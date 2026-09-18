@@ -202,9 +202,11 @@ Root: HKCU; Subkey: "Software\Classes\Directory\Background\shell\NoteBook.NewNot
 Root: HKCU; Subkey: "Software\Classes\Directory\Background\shell\NoteBook.NewNote\command"; ValueType: string; ValueData: """{app}\{#AppExe}"" --new"; Tasks: newnote
 
 [Run]
-Filename: "{app}\{#AppExe}"; Description: "{cm:RunApp}"; Flags: nowait postinstall skipifsilent
+; "runasoriginaluser": even when the installer was elevated, the app must run as the signed-in user. An elevated copy
+; living in the tray cannot be reached by later normal launches (they only get "already open").
+Filename: "{app}\{#AppExe}"; Description: "{cm:RunApp}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 ; Silent in-app update (/UPDATE=1): relaunch the app when the install finishes.
-Filename: "{app}\{#AppExe}"; Flags: nowait; Check: IsUpdate
+Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; Check: IsUpdate
 ; Windows only lets the user pick a file type's default; this link opens the Settings page.
 Filename: "ms-settings:defaultapps"; Description: "{cm:OpenSettings}"; Flags: shellexec nowait postinstall skipifsilent unchecked; Tasks: txtopenwith
 

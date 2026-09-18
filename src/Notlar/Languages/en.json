@@ -95,7 +95,7 @@
   "BackupFailed": "Could not save the backup. Try another location.",
   "CloseSaveFailed": "The last change could not be saved. Your notes stay open. Check disk space and folder permissions, then press Ctrl+S.",
   "CloseSaveFailedTitle": "Could not save",
-  "AlreadyOpen": "NoteBook is already open. Switch to it from the taskbar.",
+  "AlreadyOpen": "NoteBook is already running. Open it from its icon in the notification area (bottom right). If it was started by the installer with administrator rights, exit it there once and start NoteBook again.",
   "OpenFailed": "NoteBook could not be opened. Do not delete your data folder. Make sure you are signed in to the Windows account that created these notes and can access the folder.",
   "OpenFileFailed": "Could not open the file: {0}",
   "TryBackup": "NoteBook could not be opened. Try the previous encrypted save? Recent changes may be missing from it.",

@@ -88,12 +88,14 @@ public partial class App : Application
                 while ((line = await reader.ReadLineAsync(stop)) != null)
                 {
                     string command = line;
-                    await editor.Dispatcher.InvokeAsync(() =>
+                    // Nothing that happens in the window may take the listener down with it.
+                    try { await editor.Dispatcher.InvokeAsync(() =>
                     {
                         editor.ShowFromTray();
                         if (command.StartsWith("open ") && File.Exists(command[5..])) Open(editor, command[5..]);
                         else if (command == "new") editor.CreateNote();
-                    });
+                    }); }
+                    catch (Exception ex) when (ex is InvalidOperationException or TaskCanceledException) { }
                 }
             }
             catch (OperationCanceledException) { return; }

@@ -95,7 +95,7 @@
   "BackupFailed": "Backup konnte nicht gespeichert werden. Versuch einen anderen Ort.",
   "CloseSaveFailed": "Die letzte Änderung konnte nicht gespeichert werden. Deine Notizen bleiben geöffnet. Prüfe Speicherplatz und Ordnerberechtigungen und drücke dann Strg+S.",
   "CloseSaveFailedTitle": "Speichern fehlgeschlagen",
-  "AlreadyOpen": "NoteBook ist bereits geöffnet. Wechsle über die Taskleiste dorthin.",
+  "AlreadyOpen": "NoteBook läuft bereits. Öffne es über das Symbol im Infobereich (unten rechts). Wurde es vom Installer mit Administratorrechten gestartet, beende es dort einmal und starte NoteBook neu.",
   "OpenFailed": "NoteBook konnte nicht geöffnet werden. Lösche deinen Datenordner nicht. Stelle sicher, dass du mit dem Windows-Konto angemeldet bist, mit dem die Notizen erstellt wurden, und Zugriff auf den Ordner hast.",
   "OpenFileFailed": "Datei konnte nicht geöffnet werden: {0}",
   "TryBackup": "NoteBook konnte nicht geöffnet werden. Den vorherigen verschlüsselten Speicherstand versuchen? Die letzten Änderungen fehlen darin möglicherweise.",

@@ -4,7 +4,8 @@ import { id, random, b64, un64, derive, mac, verifyMac, seal, open, encryptFile,
 
 const $ = x => document.getElementById(x);
 const MAX_FILE = 256 * 1024 * 1024, SEND_DELAY = 400, RETRY_MIN = 3000, RETRY_MAX = 20000;
-let db, keys, device, notes = [], purges = [], current = null, trash = false;
+let db, keys, device, notes = [], purges = [], current = null, trash = false, selecting = false;
+const selected = new Set();
 let socket = null, ready = false, receiving = null, serverNonce, clientNonce, retry, retryDelay = RETRY_MIN, lastSynced = null;
 let queue = Promise.resolve();
 const sendTimers = new Map(), thumbUrls = new Map(), noteUrls = [];
@@ -43,11 +44,18 @@ function renderList() {
   const shown = notes.filter(n => n.Deleted === trash && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase('tr').includes(q)))
     .sort((a, b) => Number(b.Pinned) - Number(a.Pinned) || Date.parse(b.Updated) - Date.parse(a.Updated));
   $('listTitle').textContent = trash ? 'Son Silinenler' : 'Notlar';
-  $('folderBack').hidden = !trash; $('trashButton').hidden = trash; $('compose').hidden = trash;
-  $('count').textContent = shown.length === 0 ? (trash ? 'Not yok' : 'Not Yok') : shown.length + ' Not';
+  $('folderBack').hidden = !trash || selecting; $('trashLink').hidden = trash || selecting; $('compose').hidden = trash;
+  $('select').hidden = selecting || shown.length === 0; $('selectDone').hidden = !selecting; $('more').hidden = selecting;
+  $('list').classList.toggle('selecting', selecting);
+  $('selectBar').hidden = !selecting; $('list').querySelector('.toolbar:not(#selectBar)').hidden = selecting;
+  for (const id of [...selected]) if (!shown.some(n => n.Id === id)) selected.delete(id);
+  $('selectAll').textContent = selected.size === shown.length && shown.length > 0 ? 'Seçimi Kaldır' : 'Tümünü Seç';
+  $('selectDelete').disabled = selected.size === 0; $('selectRestore').disabled = selected.size === 0; $('selectRestore').hidden = !trash;
+  $('selectDelete').textContent = trash ? 'Kalıcı Olarak Sil' : 'Sil';
+  $('count').textContent = selecting ? (selected.size === 0 ? 'Not Seçin' : selected.size + ' Not Seçildi') : shown.length === 0 ? 'Not Yok' : shown.length + ' Not';
   $('empty').hidden = shown.length > 0; $('empty').textContent = q ? 'Sonuç yok' : trash ? 'Silinen not yok' : 'Not yok';
   const sections = $('sections'); sections.replaceChildren();
-  let group = null, lastSection = null;
+  let group = null, lastSection;
   for (const n of shown) {
     const section = trash ? null : sectionOf(n);
     if (section !== lastSection) { if (section) { const h = document.createElement('div'); h.className = 'section-title'; h.textContent = section; sections.append(h); } group = document.createElement('div'); group.className = 'group'; sections.append(group); lastSection = section; }
@@ -58,6 +66,8 @@ function row(n) {
   const el = document.createElement('div'); el.className = 'row';
   const action = document.createElement('div'); action.className = 'row-action' + (trash ? ' restore' : ''); action.textContent = trash ? 'Geri Yükle' : 'Sil';
   const inner = document.createElement('div'); inner.className = 'row-inner';
+  const check = document.createElement('div'); check.className = 'row-check'; check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>'; inner.append(check);
+  if (selected.has(n.Id)) el.classList.add('checked');
   const text = document.createElement('div'); text.className = 'row-text';
   const title = document.createElement('div'); title.className = 'row-title'; title.textContent = n.Title.trim() || 'Yeni Not';
   const sub = document.createElement('div'); sub.className = 'row-sub';
@@ -68,8 +78,12 @@ function row(n) {
   const image = n.Attachments.find(a => a.MediaType.startsWith('image/'));
   if (image) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; inner.append(img); thumbnail(image).then(url => { if (url) img.src = url; else img.remove(); }); }
   el.append(action, inner);
-  swipe(el, inner, () => run(() => trash ? restoreNote(n) : deleteNote(n)));
-  inner.addEventListener('click', () => { if (!el.dataset.swiped) run(() => openNote(n)); });
+  if (!selecting) swipe(el, inner, () => run(() => trash ? restoreNote(n) : deleteNote(n)));
+  inner.addEventListener('click', () => {
+    if (el.dataset.swiped) return;
+    if (selecting) { if (selected.has(n.Id)) selected.delete(n.Id); else selected.add(n.Id); renderList(); return; }
+    run(() => openNote(n));
+  });
   return el;
 }
 function pinIcon() { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'row-pin'); s.innerHTML = '<path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/>'; return s; }
@@ -142,15 +156,38 @@ function sheet(title, actions) {
 $('sheet').querySelector('.sheet-cancel').addEventListener('click', () => $('sheet').hidden = true);
 $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('sheet').hidden = true; });
 
+// A new note is only a draft until something is typed or attached; an untouched draft simply disappears on the way back.
 async function newNote() {
   const now = new Date().toISOString();
-  const n = { Id: id(), Title: '', Text: '', Created: now, Updated: now, Pinned: false, Deleted: false, DeletedAt: null, Revision: 1, Attachments: [] };
-  notes.push(n); trash = false; await localSave(n); await openNote(n); $('title').focus();
+  const n = { Id: id(), Title: '', Text: '', Created: now, Updated: now, Pinned: false, Deleted: false, DeletedAt: null, Revision: 0, Attachments: [], draft: true };
+  trash = false; await openNote(n); $('title').focus();
+}
+const isEmpty = n => !n.Title.trim() && !n.Text.trim() && n.Attachments.length === 0;
+async function commitDraft(n) { if (!n.draft) return; delete n.draft; notes.push(n); }
+async function leaveEditor() {
+  const n = current;
+  if (n) {
+    for (const t of sendTimers.values()) clearTimeout(t);
+    if (n.draft) current = null;
+    else if (!n.Deleted && isEmpty(n)) { await purgeNote(n, true); return; }
+    await flushAll();
+  }
+  closeEditor();
 }
 async function deleteNote(n) { n.Deleted = true; n.DeletedAt = new Date().toISOString(); touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast('Not Son Silinenler\'e taşındı'); }
 async function restoreNote(n) { n.Deleted = false; n.DeletedAt = null; touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast('Not geri yüklendi'); }
-async function purgeNote(n) { purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); await del('notes', n.Id); await del('pending', n.Id); notes = notes.filter(x => x !== n); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); closeEditor(); }
-function closeEditor() { current = null; show('list'); renderList(); }
+async function purgeNote(n, quiet = false) { purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); await del('notes', n.Id); await del('pending', n.Id); notes = notes.filter(x => x !== n); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); if (current === n) closeEditor(); else renderList(); if (!quiet) toast('Not kalıcı olarak silindi'); }
+function closeEditor() { current = null; $('editor').style.transform = ''; show('list'); renderList(); }
+async function bulk(action) {
+  const targets = notes.filter(n => selected.has(n.Id)); if (targets.length === 0) return;
+  for (const n of targets) {
+    if (action === 'delete') { n.Deleted = true; n.DeletedAt = new Date().toISOString(); touch(n); await localSave(n, true); }
+    else if (action === 'restore') { n.Deleted = false; n.DeletedAt = null; touch(n); await localSave(n, true); }
+    else if (action === 'purge') await purgeNote(n, true);
+  }
+  selected.clear(); selecting = false; renderList();
+  toast(action === 'delete' ? targets.length + " not Son Silinenler'e taşındı" : action === 'restore' ? targets.length + ' not geri yüklendi' : targets.length + ' not kalıcı olarak silindi');
+}
 
 // ---------- sync ----------
 async function manifest() { const files = await request('files', 'readonly', s => s.getAllKeys()); return { t: 'manifest', notes: notes.map(n => ({ id: n.Id, rev: n.Revision, updated: Date.parse(n.Updated) })), purged: purges, files }; }
@@ -269,9 +306,21 @@ $('pairCode').addEventListener('input', () => { const v = $('pairCode').value.re
 $('pairLinkButton').addEventListener('click', () => run(() => pair($('pairLink').value)));
 $('search').addEventListener('input', renderList);
 $('compose').addEventListener('click', () => run(newNote));
-$('trashButton').addEventListener('click', () => { trash = true; renderList(); });
-$('folderBack').addEventListener('click', () => { trash = false; renderList(); });
-$('back').addEventListener('click', () => run(async () => { if (current) { for (const t of sendTimers.keys()) { clearTimeout(sendTimers.get(t)); } await flushAll(); } closeEditor(); }));
+$('trashLink').addEventListener('click', () => { trash = true; selected.clear(); renderList(); });
+$('folderBack').addEventListener('click', () => { trash = false; selected.clear(); renderList(); });
+$('select').addEventListener('click', () => { selecting = true; selected.clear(); renderList(); });
+$('selectDone').addEventListener('click', () => { selecting = false; selected.clear(); renderList(); });
+$('selectAll').addEventListener('click', () => { const ids = notes.filter(n => n.Deleted === trash).map(n => n.Id); if (selected.size === ids.length && ids.length > 0) selected.clear(); else for (const id of ids) selected.add(id); renderList(); });
+$('selectDelete').addEventListener('click', () => { if (trash) sheet(selected.size + ' not kalıcı olarak silinecek. Bu işlem geri alınamaz.', [{ label: 'Kalıcı Olarak Sil', danger: true, run: () => run(() => bulk('purge')) }]); else run(() => bulk('delete')); });
+$('selectRestore').addEventListener('click', () => run(() => bulk('restore')));
+$('back').addEventListener('click', () => run(leaveEditor));
+// Swiping in from the left edge of a note goes back, as in the Notes app.
+{
+  const editor = $('editor'); let startX = 0, startY = 0, dragging = false, dx = 0;
+  editor.addEventListener('touchstart', e => { const t = e.touches[0]; dragging = t.clientX < 28; startX = t.clientX; startY = t.clientY; dx = 0; }, { passive: true });
+  editor.addEventListener('touchmove', e => { if (!dragging) return; const t = e.touches[0]; dx = Math.max(0, t.clientX - startX); if (Math.abs(t.clientY - startY) > 60 && dx < 30) { dragging = false; editor.classList.remove('dragging'); editor.style.transform = ''; return; } editor.classList.add('dragging'); editor.style.transform = `translateX(${dx}px)`; }, { passive: true });
+  editor.addEventListener('touchend', () => { if (!dragging) return; dragging = false; editor.classList.remove('dragging'); if (dx > 90) { editor.style.transform = 'translateX(100%)'; setTimeout(() => run(leaveEditor), 120); } else editor.style.transform = ''; });
+}
 $('done').addEventListener('click', () => document.activeElement?.blur());
 $('more').addEventListener('click', () => sheet(null, [
   { label: 'Şimdi Eşitle', run: () => run(async () => { if (ready) { setStatus('Eşitleniyor…', true); await flushAll(); send(await manifest()); } else connect(); }) },
@@ -279,14 +328,14 @@ $('more').addEventListener('click', () => sheet(null, [
 ]));
 $('noteMore').addEventListener('click', () => { const n = current; if (!n) return; sheet(null, [
   { label: n.Pinned ? 'Sabitlemeyi Kaldır' : 'Sabitle', run: () => $('pin').click() },
-  { label: 'Sil', danger: true, run: () => run(() => deleteNote(n)) },
+  { label: 'Sil', danger: true, run: () => run(async () => { if (n.draft) { current = null; closeEditor(); } else await deleteNote(n); }) },
 ]); });
-$('pin').addEventListener('click', () => run(async () => { const n = current; if (!n || n.Deleted) return; n.Pinned = !n.Pinned; touch(n); await localSave(n, true); $('pin').style.color = n.Pinned ? 'var(--accent)' : 'var(--muted)'; }));
+$('pin').addEventListener('click', () => run(async () => { const n = current; if (!n || n.Deleted) return; await commitDraft(n); n.Pinned = !n.Pinned; touch(n); await localSave(n, true); $('pin').style.color = n.Pinned ? 'var(--accent)' : 'var(--muted)'; }));
 $('restore').addEventListener('click', () => run(() => restoreNote(current)));
 $('purge').addEventListener('click', () => { const n = current; sheet('Bu not kalıcı olarak silinecek. Bu işlem geri alınamaz.', [{ label: 'Kalıcı Olarak Sil', danger: true, run: () => run(() => purgeNote(n)) }]); });
 for (const [key, prop] of [['title', 'Title'], ['body', 'Text']]) {
   const el = $(key);
-  el.addEventListener('input', () => { autosize(el); const n = current, value = el.value; run(async () => { if (!n || n.Deleted) return; n[prop] = value; touch(n); $('noteDate').textContent = fmt.full.format(new Date(n.Updated)); await localSave(n); }); });
+  el.addEventListener('input', () => { autosize(el); const n = current, value = el.value; run(async () => { if (!n || n.Deleted) return; await commitDraft(n); n[prop] = value; touch(n); $('noteDate').textContent = fmt.full.format(new Date(n.Updated)); await localSave(n); }); });
   el.addEventListener('focus', () => $('done').hidden = false);
   el.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('title') && document.activeElement !== $('body')) $('done').hidden = true; }, 50));
 }
@@ -302,7 +351,7 @@ $('files').addEventListener('change', () => {
       toast('Şifreleniyor… ' + (file.size / 1048576).toFixed(1) + ' MB, olduğu gibi');
       const encrypted = await encryptFile(file);
       await put('files', encrypted.meta.Id, encrypted.blob);
-      n.Attachments.push(encrypted.meta); touch(n); await localSave(n, true);
+      await commitDraft(n); n.Attachments.push(encrypted.meta); touch(n); await localSave(n, true);
     }
     if (ready) send(await manifest());
     await renderAttachments(n); toast('Ek şifreli olarak kaydedildi');
@@ -327,6 +376,6 @@ run(async () => {
   if (location.hash.includes('k=')) await pair(location.href);
   if (keys) { show('list'); renderList(); connect(); navigator.storage?.persist?.().catch(() => {}); }
   else { show('pair'); }
-  if ('serviceWorker' in navigator) await navigator.serviceWorker.register('/sw.js');
+  if ('serviceWorker' in navigator) try { await navigator.serviceWorker.register('/sw.js'); } catch { /* offline copy is optional */ }
   if (keys && !navigator.standalone) toast('Safari → Paylaş → Ana Ekrana Ekle; sonra Notlar\'ı ana ekrandan açın.');
 });

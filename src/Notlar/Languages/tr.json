@@ -95,7 +95,7 @@
   "BackupFailed": "Yedek kaydedilemedi. Başka bir konum deneyin.",
   "CloseSaveFailed": "Son değişiklik kaydedilemedi. Notlarınız açık tutuluyor. Disk alanını ve klasör izinlerini kontrol edip Ctrl+S ile yeniden deneyin.",
   "CloseSaveFailedTitle": "Kaydedilemedi",
-  "AlreadyOpen": "Notlar zaten açık. Görev çubuğundan açık pencereye geçebilirsiniz.",
+  "AlreadyOpen": "Notlar zaten çalışıyor. Sağ alttaki bildirim alanındaki simgesinden açabilirsiniz. Kurulum yönetici haklarıyla başlattıysa oradan bir kez Çıkış deyip Notlar'ı yeniden açın.",
   "OpenFailed": "Notlar açılamadı. Mevcut data klasörünüzü silmeyin. Bu notları oluşturduğunuz Windows hesabını kullandığınızdan ve klasöre erişebildiğinizden emin olun.",
   "OpenFileFailed": "Dosya açılamadı: {0}",
   "TryBackup": "Notlar açılamadı. Önceki şifreli kayıt denensin mi? Son değişiklikler bu kayıtta olmayabilir.",

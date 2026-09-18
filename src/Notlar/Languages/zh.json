@@ -95,7 +95,7 @@
   "BackupFailed": "无法保存备份。请尝试其他位置。",
   "CloseSaveFailed": "最后一次更改未能保存。笔记保持打开状态。请检查磁盘空间和文件夹权限，然后按 Ctrl+S。",
   "CloseSaveFailedTitle": "保存失败",
-  "AlreadyOpen": "NoteBook 已在运行。请从任务栏切换到它。",
+  "AlreadyOpen": "NoteBook 已在运行。请从通知区域（右下角）的图标打开它。如果它是由安装程序以管理员权限启动的，请在那里退出一次，然后重新启动 NoteBook。",
   "OpenFailed": "无法打开 NoteBook。请勿删除数据文件夹。请确认你登录的是创建这些笔记的 Windows 账户，并且可以访问该文件夹。",
   "OpenFileFailed": "无法打开文件：{0}",
   "TryBackup": "无法打开 NoteBook。要尝试上一次的加密保存吗？其中可能缺少最近的更改。",

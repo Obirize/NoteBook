@@ -7,7 +7,6 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Forms;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using MenuItem = System.Windows.Controls.MenuItem;
-using Separator = System.Windows.Controls.Separator;
 
 namespace Notlar;
 
@@ -35,7 +34,7 @@ public partial class MainWindow
         var exit = new MenuItem { Header = L10n.T("TrayExit") }; exit.Click += (_, _) => ExitFromTray();
         // Over the taskbar a popup cannot be transparent, so this menu uses the square, shadowless template.
         trayMenu.Style = (System.Windows.Style)FindResource("TrayMenu");
-        trayMenu.Items.Add(open); trayMenu.Items.Add(sync); trayMenu.Items.Add(new Separator()); trayMenu.Items.Add(exit);
+        trayMenu.Items.Add(open); trayMenu.Items.Add(sync); trayMenu.Items.Add(exit);
         trayMenu.Closed += (_, _) => { trayHelper?.Hide(); };
         Closed += (_, _) => { if (tray != null) { tray.Visible = false; tray.Dispose(); tray = null; } trayHelper?.Close(); };
     }
