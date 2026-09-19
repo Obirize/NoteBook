@@ -181,5 +181,6 @@
   "SetupCheckFail": "Pas encore de confiance. Réglages → Général → Informations → Réglages de confiance des certificats → activez le certificat NoteBook, puis testez à nouveau.",
   "TrayOpen": "Ouvrir NoteBook",
   "TrayExit": "Quitter",
-  "TrayHint": "NoteBook continue de fonctionner ici pour que le téléphone puisse se synchroniser. Cliquez avec le bouton droit sur l’icône pour quitter."
+  "TrayHint": "NoteBook continue de fonctionner ici pour que le téléphone puisse se synchroniser. Cliquez avec le bouton droit sur l’icône pour quitter.",
+  "ChecklistAdd": "Liste de tâches (Ctrl+Maj+L)"
 }

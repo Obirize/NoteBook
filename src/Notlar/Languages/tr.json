@@ -181,5 +181,6 @@
   "SetupCheckFail": "Henüz güvenilmiyor. Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar belgesini açın, sonra yeniden sınayın.",
   "TrayOpen": "Notlar'ı aç",
   "TrayExit": "Çıkış",
-  "TrayHint": "Notlar burada çalışmaya devam ediyor; telefon böylece eşitlenebilir. Çıkmak için simgeye sağ tıklayın."
+  "TrayHint": "Notlar burada çalışmaya devam ediyor; telefon böylece eşitlenebilir. Çıkmak için simgeye sağ tıklayın.",
+  "ChecklistAdd": "Yapılacaklar listesi (Ctrl+Shift+L)"
 }

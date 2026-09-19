@@ -17,7 +17,7 @@ public sealed class Note
     // Photos and videos; the encrypted files live beside the vault, their keys only here.
     public List<Attachment> Attachments { get; set; } = [];
     [JsonIgnore] public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? L10n.T("NewNote") : Title;
-    [JsonIgnore] public string Preview => !string.IsNullOrWhiteSpace(Text) ? Text.Replace('\r', ' ').Replace('\n', ' ').Trim() : Attachments.Count > 0 ? AttachmentLabel : L10n.T("StartWriting");
+    [JsonIgnore] public string Preview => !string.IsNullOrWhiteSpace(Text) ? Checklist.Preview(Text).Replace('\r', ' ').Replace('\n', ' ').Trim() : Attachments.Count > 0 ? AttachmentLabel : L10n.T("StartWriting");
     [JsonIgnore] public string AttachmentLabel => Attachments.Count == 0 ? "" : L10n.Count("AttachmentCountOne", "AttachmentCountMany", Attachments.Count);
     [JsonIgnore] public bool HasAttachments => Attachments.Count > 0;
     [JsonIgnore] public string DateLabel => Updated.LocalDateTime.Date == DateTime.Today ? Updated.LocalDateTime.ToString("t", L10n.Culture) : Updated.LocalDateTime.ToString("d MMM", L10n.Culture);

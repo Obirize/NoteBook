@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict';
 import {derive,random,b64,un64,mac,verifyMac,open,seal,encryptFile,decryptFile,id} from '../../src/Notlar/Web/crypto.js';
+import * as Checklist from '../../src/Notlar/Web/checklist.js';
+// The phone reads and writes the same checklist markers as the PC (Checklist.cs): "○"/"●" + em space.
+const O='○', D='●', G=' ', NL=String.fromCharCode(10);
+assert(Checklist.isItem(O+G+'Süt')&&Checklist.isDone(D+G+'Süt')&&!Checklist.isItem('Süt'));
+assert.equal(Checklist.body(D+G+'Ekmek'),'Ekmek');assert.equal(Checklist.body(O+' Ekmek'),'Ekmek');
+assert.equal(Checklist.toggle(O+G+'a'),D+G+'a');assert.equal(Checklist.toggle('plain'),'plain');
+assert.equal(Checklist.preview('Plan'+NL+O+G+'Süt'+NL+D+G+'Ekmek'),'Plan'+NL+'Süt'+NL+'✓ Ekmek');
 const port=process.argv[2],keys=await derive(un64(process.env.NOTEBOOK_TEST_KEY));
 const page=await fetch(`https://localhost:${port}/`);assert.equal(page.status,200);assert.match(await page.text(),/<title>Notlar</);
 for(const path of ['start','sw.js','v2/app.js','v2/crypto.js','v2/style.css','v2/app.webmanifest','v2/icon.png','v2/icon-180.png'])assert.equal((await fetch(`https://localhost:${port}/${path}`)).status,200);
@@ -42,4 +49,4 @@ c.send({t:'note',id:fast1.Id,rev:8,blob:b64(await seal(keys,fast1)),base:baselin
 c.send({t:'note',id:fast2.Id,rev:9,blob:b64(await seal(keys,fast2)),base:baseline});c.send({t:'flush'});
 let flushes=0,copies=0;while(flushes<2){const m=await c.next();if(m.t==='flush')flushes++;if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id!==desktop.Id&&n.Text.startsWith('typing'))copies++;}}
 assert.equal(copies,0);
-assert(found);c.ws.close();console.log('PASS pairing code exchange (wrong code refused, one-time use), fast typing without self-conflict, HTTPS resources, wrong-key rejection, mutual HMAC, C#/WebCrypto notes and attachments both ways, offline conflict preservation');
+assert(found);c.ws.close();console.log('PASS checklist markers match the PC, pairing code exchange (wrong code refused, one-time use), fast typing without self-conflict, HTTPS resources, wrong-key rejection, mutual HMAC, C#/WebCrypto notes and attachments both ways, offline conflict preservation');

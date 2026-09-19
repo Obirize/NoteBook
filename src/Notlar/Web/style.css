@@ -73,10 +73,17 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 4px 0 2px;
 
 .note { padding-top: 6px; }
 .note-date { text-align: center; color: var(--muted); font-size: 12px; margin: 6px 0 10px; }
-.note-title, .note-body { display: block; width: 100%; resize: none; line-height: 1.35; padding: 0; overflow: hidden; }
+.note-title, .note-body { display: block; width: 100%; resize: none; line-height: 1.45; padding: 0; overflow: hidden; }
 .note-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
-.note-body { font-size: 17px; min-height: 40vh; }
-.note-title::placeholder, .note-body::placeholder { color: var(--muted); }
+.note-body { font-size: 17px; min-height: 40vh; outline: none; -webkit-user-select: text; user-select: text; -webkit-user-modify: read-write-plaintext-only; white-space: pre-wrap; word-wrap: break-word; }
+.note-title::placeholder { color: var(--muted); }
+.note-body:empty::before, .note-body > div:only-child:empty::before { content: attr(aria-label); color: var(--muted); pointer-events: none; }
+.note-body > div { min-height: 1.45em; }
+/* Checklist items: a round check box in the margin; done items are struck through and dimmed, as in Notes. */
+.note-body > div.item { position: relative; padding-inline-start: 34px; }
+.note-body > div.item::before { content: ""; position: absolute; inset-inline-start: 2px; top: .3em; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--muted); box-sizing: border-box; }
+.note-body > div.item.done { color: var(--muted); text-decoration: line-through; }
+.note-body > div.item.done::before { border-color: var(--accent); background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1c1e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4 8-9'/%3E%3C/svg%3E") center/13px no-repeat; }
 .attachments { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 12px; }
 .attachment { position: relative; border-radius: 12px; overflow: hidden; background: var(--card); }
 .attachment img, .attachment video { display: block; width: 100%; max-height: 70vh; object-fit: contain; background: #000; }

@@ -109,6 +109,7 @@
             <Button x:Name="RestoreButton" Content="{local:T Restore}" FontSize="12" Foreground="{DynamicResource Accent}" Visibility="Collapsed" Click="RestoreClick"/>
             <Button x:Name="PurgeButton" Content="{local:T DeletePermanently}" FontSize="12" Foreground="{DynamicResource Danger}" Visibility="Collapsed" ToolTip="{local:T DeletePermanentlyHint}" Click="PurgeClick"/>
             <Button x:Name="ExportButton" Content="&#xE898;" Style="{StaticResource IconButton}" ToolTip="{local:T ExportTxt}" AutomationProperties.Name="{local:T ExportTxt}" Click="ExportClick"/>
+            <Button x:Name="ChecklistButton" Content="&#xE9D5;" Style="{StaticResource IconButton}" ToolTip="{local:T ChecklistAdd}" AutomationProperties.Name="{local:T ChecklistAdd}" Click="ChecklistClick"/>
             <Button x:Name="AttachButton" Content="&#xE723;" Style="{StaticResource IconButton}" ToolTip="{local:T AttachAdd}" AutomationProperties.Name="{local:T AttachAdd}" Click="AttachClick"/>
           </StackPanel>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True">

@@ -181,5 +181,6 @@
   "SetupCheckFail": "Ainda não é confiável. Ajustes → Geral → Sobre → Ajustes de Confiança de Certificados → ative o certificado do NoteBook e teste de novo.",
   "TrayOpen": "Abrir o NoteBook",
   "TrayExit": "Sair",
-  "TrayHint": "O NoteBook continua em execução aqui para que o telefone possa sincronizar. Clique com o botão direito no ícone para sair."
+  "TrayHint": "O NoteBook continua em execução aqui para que o telefone possa sincronizar. Clique com o botão direito no ícone para sair.",
+  "ChecklistAdd": "Lista de tarefas (Ctrl+Shift+L)"
 }

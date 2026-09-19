@@ -14,7 +14,7 @@ An Apple Notes–style notebook for Windows with a matching iPhone app that sync
 
 ## What it does
 
-- **Notes** with a title, text, photos and videos. Search, pin, multi-select, a 30‑day *Recently deleted* folder, TXT import and export, 13 interface languages.
+- **Notes** with a title, text, checklists, photos and videos. Search, pin, multi-select, a 30‑day *Recently deleted* folder, TXT import and export, 13 interface languages on both the PC and the phone.
 - **Encrypted at rest.** Notes are stored in a vault sealed with AES‑256‑GCM; every photo and video is a separate file encrypted with its own key. On the PC the keys are protected by your Windows sign‑in, so the app never asks for a password.
 - **iPhone sync without a server.** The Windows app itself serves a small web app to your phone; you add it to the Home Screen and pair with a six‑digit code. Notes and files then sync directly between the two devices whenever both are on the same Wi‑Fi. The phone app looks like Apple Notes and works offline.
 - **Runs in the background.** Closing the window keeps NoteBook in the notification area so the phone can sync; the installer can start it with Windows.
@@ -48,6 +48,7 @@ Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is 
 | Ctrl+N | New note |
 | Ctrl+O | Open a TXT file as a new note |
 | Ctrl+Shift+A | Add photos or videos to the open note |
+| Ctrl+Shift+L | Turn the current line (or the selected lines) into checklist items, and back |
 | Ctrl+V | Paste a picture or media files from the clipboard as attachments |
 | Ctrl+Shift+S | Save the open note as an unencrypted TXT copy |
 | Ctrl+K / Ctrl+F | Search |
@@ -68,6 +69,10 @@ There is no separate application password or idle lock: your Windows sign‑in p
 
 References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope), [AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm). No telemetry. Not independently audited.
 
+## Checklists
+
+The checklist button (Ctrl+Shift+L on the PC, the list icon on the phone) turns the current line into an item with a round check box; Enter continues the list, Enter on an empty item ends it, Backspace at the start of an item turns it back into text, and tapping the circle marks it done (struck through). Items are stored as plain lines starting with `○` or `●`, so they sync, search and export like any other text.
+
 ## Files, backup and recovery
 
 - `data/notes.vault` — the encrypted notebook; `data/notes.vault.bak` — the previous save.
@@ -81,7 +86,7 @@ If the main file cannot be opened, the app offers the previous save; damaged fil
 
 ## Languages
 
-The Windows app follows the Windows display language and offers 13 languages from the globe button: English, Türkçe, Español, 中文, हिन्दी, العربية (right‑to‑left), Português, Русский, 日本語, Deutsch, Français, Bahasa Indonesia, 한국어. Strings live in `src/Notlar/Languages/<code>.json`; the test run verifies that every language has every key. The phone app is currently Turkish only.
+The Windows app follows the Windows display language and offers 13 languages from the globe button: English, Türkçe, Español, 中文, हिन्दी, العربية (right‑to‑left), Português, Русский, 日本語, Deutsch, Français, Bahasa Indonesia, 한국어. Strings live in `src/Notlar/Languages/<code>.json`; the test run verifies that every language has every key. The phone app follows the phone's language with the same 13 (`src/Notlar/Web/lang.js`).
 
 <p align="center"><img src="docs/screenshot-arabic.png" width="70%" alt="Arabic, right-to-left"></p>
 
@@ -103,8 +108,6 @@ git push --tags
 
 ## Roadmap
 
-- Checklists (to‑do items with checkboxes) on both sides.
-- Languages for the phone app.
 - Android (the same web app in Chrome; the certificate step differs).
 - Sync away from home — today the phone syncs on the home Wi‑Fi; the options are your own WireGuard on the PC, or a transport‑only relay that cannot read anything.
 - Code signing for the installer.

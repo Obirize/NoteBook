@@ -1,6 +1,8 @@
 // The phone side of NoteBook: notes live encrypted in IndexedDB, travel sealed over a WebSocket to the PC
 // (see SyncService.cs for the protocol) and are shown in a layout that follows Apple's Notes app.
 import { id, random, b64, un64, derive, mac, verifyMac, seal, open, encryptFile, decryptFile } from './crypto.js';
+import { T, locale, applyLang } from './lang.js';
+import * as Checklist from './checklist.js';
 
 const $ = x => document.getElementById(x);
 const MAX_FILE = 256 * 1024 * 1024, SEND_DELAY = 400, RETRY_MIN = 3000, RETRY_MAX = 20000;
@@ -11,19 +13,19 @@ let queue = Promise.resolve();
 const sendTimers = new Map(), thumbUrls = new Map(), noteUrls = [];
 
 // ---------- small helpers ----------
-function run(fn) { queue = queue.then(fn).catch(e => { console.error(e); toast(e.message || 'İşlem tamamlanamadı'); }); return queue; }
+function run(fn) { queue = queue.then(fn).catch(e => { console.error(e); toast(e.message || T('failed')); }); return queue; }
 let toastTimer;
 function toast(text) { const t = $('toast'); t.textContent = text; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3200); }
-function request(store, mode, fn) { return new Promise((resolve, reject) => { const tx = db.transaction(store, mode), r = fn(tx.objectStore(store)); tx.oncomplete = () => resolve(r?.result); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error || Error('Depolama başarısız')); }); }
+function request(store, mode, fn) { return new Promise((resolve, reject) => { const tx = db.transaction(store, mode), r = fn(tx.objectStore(store)); tx.oncomplete = () => resolve(r?.result); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error || Error(T('storage'))); }); }
 const get = (s, k) => request(s, 'readonly', t => t.get(k)), put = (s, k, v) => request(s, 'readwrite', t => t.put(v, k)), del = (s, k) => request(s, 'readwrite', t => t.delete(k));
 const same = (a, b) => a.Title === b.Title && a.Text === b.Text && a.Pinned === b.Pinned && a.Deleted === b.Deleted && JSON.stringify(a.Attachments) === JSON.stringify(b.Attachments);
 const persist = async n => put('notes', n.Id, { id: n.Id, rev: n.Revision, blob: await seal(keys, n) });
 const savePurges = () => put('meta', 'purges', purges);
 const send = m => { if (ready && socket?.readyState === 1) socket.send(JSON.stringify(m)); };
-const fmt = { time: new Intl.DateTimeFormat('tr-TR', { hour: '2-digit', minute: '2-digit' }), day: new Intl.DateTimeFormat('tr-TR', { weekday: 'long' }), date: new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }), month: new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }), full: new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) };
+const fmt = { time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }), day: new Intl.DateTimeFormat(locale, { weekday: 'long' }), date: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }), month: new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }), full: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) };
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 function dateLabel(iso) { const d = new Date(iso), today = startOfDay(new Date()), day = startOfDay(d); const diff = (today - day) / 86400000; if (diff < 1) return fmt.time.format(d); if (diff < 7) return fmt.day.format(d); return fmt.date.format(d); }
-function sectionOf(n) { if (n.Pinned && !n.Deleted) return 'Sabitlenmiş'; const d = new Date(n.Updated), today = startOfDay(new Date()), diff = (today - startOfDay(d)) / 86400000; if (diff < 1) return 'Bugün'; if (diff < 2) return 'Dün'; if (diff < 7) return 'Önceki 7 Gün'; if (diff < 30) return 'Önceki 30 Gün'; return fmt.month.format(d); }
+function sectionOf(n) { if (n.Pinned && !n.Deleted) return T('pinned'); const d = new Date(n.Updated), today = startOfDay(new Date()), diff = (today - startOfDay(d)) / 86400000; if (diff < 1) return T('today'); if (diff < 2) return T('yesterday'); if (diff < 7) return T('previous7'); if (diff < 30) return T('previous30'); return fmt.month.format(d); }
 function autosize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 function setStatus(text, busy = false) { const s = $('syncStatus'); s.textContent = text; s.className = 'status' + (busy ? ' busy' : ''); }
 
@@ -40,20 +42,20 @@ async function flushAll() { for (const n of notes) if (await get('pending', n.Id
 
 // ---------- list ----------
 function renderList() {
-  const q = $('search').value.trim().toLocaleLowerCase('tr');
-  const shown = notes.filter(n => n.Deleted === trash && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase('tr').includes(q)))
+  const q = $('search').value.trim().toLocaleLowerCase(locale);
+  const shown = notes.filter(n => n.Deleted === trash && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
     .sort((a, b) => Number(b.Pinned) - Number(a.Pinned) || Date.parse(b.Updated) - Date.parse(a.Updated));
-  $('listTitle').textContent = trash ? 'Son Silinenler' : 'Notlar';
+  $('listTitle').textContent = trash ? T('recentlyDeleted') : T('notes');
   $('folderBack').hidden = !trash || selecting; $('trashLink').hidden = trash || selecting; $('compose').hidden = trash;
   $('select').hidden = selecting || shown.length === 0; $('selectDone').hidden = !selecting; $('more').hidden = selecting;
   $('list').classList.toggle('selecting', selecting);
   $('selectBar').hidden = !selecting; $('list').querySelector('.toolbar:not(#selectBar)').hidden = selecting;
   for (const id of [...selected]) if (!shown.some(n => n.Id === id)) selected.delete(id);
-  $('selectAll').textContent = selected.size === shown.length && shown.length > 0 ? 'Seçimi Kaldır' : 'Tümünü Seç';
+  $('selectAll').textContent = selected.size === shown.length && shown.length > 0 ? T('deselectAll') : T('selectAll');
   $('selectDelete').disabled = selected.size === 0; $('selectRestore').disabled = selected.size === 0; $('selectRestore').hidden = !trash;
-  $('selectDelete').textContent = trash ? 'Kalıcı Olarak Sil' : 'Sil';
-  $('count').textContent = selecting ? (selected.size === 0 ? 'Not Seçin' : selected.size + ' Not Seçildi') : shown.length === 0 ? 'Not Yok' : shown.length + ' Not';
-  $('empty').hidden = shown.length > 0; $('empty').textContent = q ? 'Sonuç yok' : trash ? 'Silinen not yok' : 'Not yok';
+  $('selectDelete').textContent = trash ? T('deletePermanently') : T('delete');
+  $('count').textContent = selecting ? (selected.size === 0 ? T('selectPrompt') : T('selectedCount', selected.size)) : shown.length === 0 ? T('countNone') : T('countMany', shown.length);
+  $('empty').hidden = shown.length > 0; $('empty').textContent = q ? T('noResults') : trash ? T('noDeleted') : T('noNotes');
   const sections = $('sections'); sections.replaceChildren();
   let group = null, lastSection;
   for (const n of shown) {
@@ -64,15 +66,15 @@ function renderList() {
 }
 function row(n) {
   const el = document.createElement('div'); el.className = 'row';
-  const action = document.createElement('div'); action.className = 'row-action' + (trash ? ' restore' : ''); action.textContent = trash ? 'Geri Yükle' : 'Sil';
+  const action = document.createElement('div'); action.className = 'row-action' + (trash ? ' restore' : ''); action.textContent = trash ? T('restore') : T('delete');
   const inner = document.createElement('div'); inner.className = 'row-inner';
   const check = document.createElement('div'); check.className = 'row-check'; check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>'; inner.append(check);
   if (selected.has(n.Id)) el.classList.add('checked');
   const text = document.createElement('div'); text.className = 'row-text';
-  const title = document.createElement('div'); title.className = 'row-title'; title.textContent = n.Title.trim() || 'Yeni Not';
+  const title = document.createElement('div'); title.className = 'row-title'; title.textContent = n.Title.trim() || T('newNote');
   const sub = document.createElement('div'); sub.className = 'row-sub';
   const when = document.createElement('b'); when.textContent = dateLabel(n.Updated);
-  sub.append(when, document.createTextNode(n.Text.replace(/\s+/g, ' ').trim() || (n.Attachments.length ? n.Attachments.length + ' ek' : 'Ek metin yok')));
+  sub.append(when, document.createTextNode(Checklist.preview(n.Text).replace(/\s+/g, ' ').trim() || (n.Attachments.length ? T('attachmentsCount', n.Attachments.length) : T('noText'))));
   text.append(title, sub); inner.append(text);
   if (n.Pinned && trash) { const pin = pinIcon(); inner.append(pin); }
   const image = n.Attachments.find(a => a.MediaType.startsWith('image/'));
@@ -118,12 +120,13 @@ let installSkipped = false; try { installSkipped = sessionStorage.getItem('skipI
 const needsInstall = () => !navigator.standalone && !installSkipped && /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches;
 async function openNote(n) {
   current = n; show('editor');
-  $('backLabel').textContent = trash ? 'Son Silinenler' : 'Notlar';
+  $('backLabel').textContent = trash ? T('recentlyDeleted') : T('notes');
   $('noteDate').textContent = fmt.full.format(new Date(n.Updated));
-  $('title').value = n.Title; $('body').value = n.Text; autosize($('title')); autosize($('body'));
-  $('title').readOnly = $('body').readOnly = n.Deleted;
-  $('pin').hidden = $('attach').hidden = n.Deleted; $('noteMore').hidden = n.Deleted; $('trashBar').hidden = !n.Deleted; $('trashNotice').hidden = !n.Deleted;
+  $('title').value = n.Title; Checklist.setBody($('body'), n.Text); autosize($('title'));
+  $('title').readOnly = n.Deleted; $('body').contentEditable = n.Deleted ? 'false' : 'true';
+  $('pin').hidden = $('attach').hidden = $('checklist').hidden = n.Deleted; $('noteMore').hidden = n.Deleted; $('trashBar').hidden = !n.Deleted; $('trashNotice').hidden = !n.Deleted;
   $('pin').style.color = n.Pinned ? 'var(--accent)' : 'var(--muted)';
+  $('pin').setAttribute('aria-label', n.Pinned ? T('unpin') : T('pin'));
   await renderAttachments(n);
   $('editor').querySelector('.page').scrollTop = 0;
 }
@@ -133,13 +136,13 @@ async function renderAttachments(n) {
   for (const a of n.Attachments) {
     const item = document.createElement('div'); item.className = 'attachment';
     const encrypted = await get('files', a.Id);
-    if (!encrypted) { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b>Bilgisayardan aktarılıyor…</div>'; w.querySelector('b').textContent = a.Name; item.append(w); }
+    if (!encrypted) { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b></div>'; w.firstChild.append(T('fromPc')); w.querySelector('b').textContent = a.Name; item.append(w); }
     else {
       let url, plain = null; try { plain = await decryptFile(encrypted, a); url = URL.createObjectURL(plain); noteUrls.push(url); } catch { url = null; }
       // "Save to Photos" on iOS goes through the share sheet; the decrypted file is kept ready so share() runs
       // straight from the tap (Safari only allows it within the tap).
       if (plain) {
-        const share = document.createElement('button'); share.className = 'remove share'; share.setAttribute('aria-label', 'Kaydet veya paylaş');
+        const share = document.createElement('button'); share.className = 'remove share'; share.setAttribute('aria-label', T('saveShare'));
         share.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>';
         const file = new File([plain], a.Name, { type: a.MediaType });
         share.addEventListener('click', () => {
@@ -150,12 +153,12 @@ async function renderAttachments(n) {
       }
       if (url && a.MediaType.startsWith('image/')) { const img = document.createElement('img'); img.src = url; img.alt = a.Name; img.addEventListener('click', () => lightbox('img', url)); item.append(img); }
       else if (url && a.MediaType.startsWith('video/')) { const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true; v.preload = 'metadata'; item.append(v); }
-      else { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b>' + (url ? 'Önizleme yok' : 'Dosya açılamadı') + '</div>'; w.querySelector('b').textContent = a.Name; item.append(w); }
+      else { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b></div>'; w.firstChild.append(url ? T('noPreview') : T('cantOpen')); w.querySelector('b').textContent = a.Name; item.append(w); }
     }
     if (!n.Deleted) {
-      const remove = document.createElement('button'); remove.className = 'remove'; remove.setAttribute('aria-label', 'Eki kaldır');
+      const remove = document.createElement('button'); remove.className = 'remove'; remove.setAttribute('aria-label', T('removeAttachment'));
       remove.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-      remove.addEventListener('click', () => sheet(a.Name, [{ label: 'Eki Kaldır', danger: true, run: () => run(async () => { n.Attachments = n.Attachments.filter(x => x.Id !== a.Id); touch(n); await localSave(n, true); await renderAttachments(n); }) }]));
+      remove.addEventListener('click', () => sheet(a.Name, [{ label: T('removeAttachmentConfirm'), danger: true, run: () => run(async () => { n.Attachments = n.Attachments.filter(x => x.Id !== a.Id); touch(n); await localSave(n, true); await renderAttachments(n); }) }]));
       item.append(remove);
     }
     box.append(item);
@@ -189,9 +192,9 @@ async function leaveEditor() {
   }
   closeEditor();
 }
-async function deleteNote(n) { n.Deleted = true; n.DeletedAt = new Date().toISOString(); touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast('Not Son Silinenler\'e taşındı'); }
-async function restoreNote(n) { n.Deleted = false; n.DeletedAt = null; touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast('Not geri yüklendi'); }
-async function purgeNote(n, quiet = false) { purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); await del('notes', n.Id); await del('pending', n.Id); notes = notes.filter(x => x !== n); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); if (current === n) closeEditor(); else renderList(); if (!quiet) toast('Not kalıcı olarak silindi'); }
+async function deleteNote(n) { n.Deleted = true; n.DeletedAt = new Date().toISOString(); touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast(T('movedToTrash')); }
+async function restoreNote(n) { n.Deleted = false; n.DeletedAt = null; touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast(T('restored')); }
+async function purgeNote(n, quiet = false) { purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); await del('notes', n.Id); await del('pending', n.Id); notes = notes.filter(x => x !== n); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); if (current === n) closeEditor(); else renderList(); if (!quiet) toast(T('purged')); }
 function closeEditor() { current = null; $('editor').style.transform = ''; show('list'); renderList(); }
 async function bulk(action) {
   const targets = notes.filter(n => selected.has(n.Id)); if (targets.length === 0) return;
@@ -201,7 +204,7 @@ async function bulk(action) {
     else if (action === 'purge') await purgeNote(n, true);
   }
   selected.clear(); selecting = false; renderList();
-  toast(action === 'delete' ? targets.length + " not Son Silinenler'e taşındı" : action === 'restore' ? targets.length + ' not geri yüklendi' : targets.length + ' not kalıcı olarak silindi');
+  toast(action === 'delete' ? T('movedManyToTrash', targets.length) : action === 'restore' ? T('restoredMany', targets.length) : T('purgedMany', targets.length));
 }
 
 // ---------- sync ----------
@@ -221,7 +224,7 @@ async function receiveNote(m) {
   }
   if (old) notes[notes.indexOf(old)] = n; else notes.push(n);
   await persist(n); await put('base', n.Id, { rev: m.rev, blob: m.blob }); await del('pending', n.Id);
-  if (current?.Id === n.Id) { current = n; if (!$('editor').hidden && document.activeElement !== $('title') && document.activeElement !== $('body')) await openNote(n); }
+  if (current?.Id === n.Id) { current = n; if (!$('editor').hidden && document.activeElement !== $('title') && document.activeElement !== bodyEl) await openNote(n); }
   if (!$('list').hidden) renderList();
 }
 async function transfer(ids) {
@@ -238,17 +241,17 @@ async function transfer(ids) {
 }
 async function handle(data) {
   if (typeof data !== 'string') {
-    if (!receiving) throw Error('Beklenmeyen dosya');
+    if (!receiving) throw Error(T('unexpectedFile'));
     receiving.parts.push(data); receiving.have += data.byteLength;
-    if (receiving.have > receiving.size) throw Error('Dosya boyutu aşıldı');
+    if (receiving.have > receiving.size) throw Error(T('sizeExceeded'));
     return;
   }
   const m = JSON.parse(data);
   switch (m.t) {
     case 'challenge': serverNonce = un64(m.nonce); clientNonce = random(32); socket.send(JSON.stringify({ t: 'auth', nonce: b64(clientNonce), mac: b64(new Uint8Array(await mac(keys, 'client', serverNonce, clientNonce))) })); break;
     case 'welcome':
-      if (!await verifyMac(keys, un64(m.mac), 'server', clientNonce, serverNonce)) { socket.close(); throw Error('Bilgisayar doğrulanamadı'); }
-      ready = true; retryDelay = RETRY_MIN; setStatus('Eşitleniyor…', true); send(await manifest()); break;
+      if (!await verifyMac(keys, un64(m.mac), 'server', clientNonce, serverNonce)) { socket.close(); throw Error(T('pcNotVerified')); }
+      ready = true; retryDelay = RETRY_MIN; setStatus(T('syncing'), true); send(await manifest()); break;
     case 'manifest': {
       for (const n of notes) {
         const peer = m.notes.find(x => x.id === n.Id);
@@ -265,31 +268,31 @@ async function handle(data) {
       if (!purges.some(p => p.id === m.id && p.rev >= m.rev)) { purges = purges.filter(p => p.id !== m.id); purges.push({ id: m.id, rev: m.rev }); await savePurges(); }
       if (!$('list').hidden) renderList(); break;
     }
-    case 'flush': case 'done': await wantFiles(); lastSynced = new Date(); setStatus('Şimdi güncellendi'); break;
+    case 'flush': case 'done': await wantFiles(); lastSynced = new Date(); setStatus(T('updated')); break;
     case 'want-files': await transfer(m.ids); break;
-    case 'file': if (m.size < 24 || m.size > MAX_FILE + 65536 || !/^[a-f0-9]{32}$/.test(m.id)) throw Error('Geçersiz dosya'); receiving = { id: m.id, size: m.size, have: 0, parts: [] }; break;
+    case 'file': if (m.size < 24 || m.size > MAX_FILE + 65536 || !/^[a-f0-9]{32}$/.test(m.id)) throw Error(T('invalidFile')); receiving = { id: m.id, size: m.size, have: 0, parts: [] }; break;
     case 'file-end': {
       const r = receiving; receiving = null;
-      if (!r || r.id !== m.id || r.have !== r.size) throw Error('Eksik dosya');
+      if (!r || r.id !== m.id || r.have !== r.size) throw Error(T('incompleteFile'));
       const a = notes.flatMap(n => n.Attachments).find(a => a.Id === r.id); if (!a) break;
       const blob = new Blob(r.parts); await decryptFile(blob, a); await put('files', a.Id, blob);
       if (current?.Attachments.some(x => x.Id === a.Id)) await renderAttachments(current); else if (!$('list').hidden) renderList();
       break;
     }
-    case 'rejected': socket.close(); throw Error('Eşleştirme kabul edilmedi. Bilgisayardaki kodla yeniden eşleştirin.');
+    case 'rejected': socket.close(); throw Error(T('rejected'));
   }
 }
 function connect() {
   clearTimeout(retry);
   if (!keys || (socket && socket.readyState < 2)) return;
-  ready = false; setStatus('Bağlanıyor…', true);
+  ready = false; setStatus(T('connecting'), true);
   const ws = new WebSocket('wss://' + location.host + '/sync'); socket = ws; ws.binaryType = 'arraybuffer';
-  ws.onopen = () => ws.send(JSON.stringify({ t: 'hello', protocol: 1, device, name: 'iPhone' }));
+  ws.onopen = () => ws.send(JSON.stringify({ t: 'hello', protocol: 1, device, name: T('device') }));
   ws.onmessage = e => run(async () => { if (socket !== ws) return; try { await handle(e.data); } catch (error) { ws.close(); throw error; } });
   ws.onclose = () => {
     if (socket !== ws) return;
     ready = false; receiving = null;
-    setStatus(lastSynced ? 'Çevrimdışı · son eşitleme ' + fmt.time.format(lastSynced) : 'Çevrimdışı · notlar bu telefonda');
+    setStatus(lastSynced ? T('offlineLast', fmt.time.format(lastSynced)) : T('offlineLocal'));
     retry = setTimeout(connect, retryDelay); retryDelay = Math.min(RETRY_MAX, retryDelay * 2);
   };
   ws.onerror = () => {};
@@ -297,20 +300,20 @@ function connect() {
 
 // ---------- pairing ----------
 async function applyKey(raw) {
-  if (raw.length !== 32) throw Error('Eşleştirme bilgisi geçersiz');
-  if (keys && !confirm('Eşleştirmeyi yenilemek mevcut notları yeni anahtarla şifreler. Devam edilsin mi?')) return;
+  if (raw.length !== 32) throw Error(T('pairInvalid'));
+  if (keys && !confirm(T('pairAgain'))) return;
   keys = await derive(raw); raw.fill(0);
   await put('meta', 'keys', keys); for (const n of notes) await persist(n);
   history.replaceState(null, '', '/'); $('pairLink').value = ''; $('pairCode').value = '';
   show('list'); renderList(); socket?.close(); socket = null; connect();
-  if (!navigator.standalone) toast('Eşleşti. Şimdi Paylaş → Ana Ekrana Ekle; ana ekrandan açınca kodu bir kez daha girin.');
+  if (!navigator.standalone) toast(T('pairedNext'));
 }
-async function pair(link) { const u = new URL(link, location.href); if (u.origin !== location.origin) throw Error('Bu bağlantı farklı bir bilgisayara ait.'); await applyKey(un64(new URLSearchParams(u.hash.slice(1)).get('k') || '')); }
+async function pair(link) { const u = new URL(link, location.href); if (u.origin !== location.origin) throw Error(T('otherPc')); await applyKey(un64(new URLSearchParams(u.hash.slice(1)).get('k') || '')); }
 // The code shown on the PC fetches the sync key over TLS; wrong or stale codes are refused there.
 async function pairWithCode(code) {
-  code = code.replace(/\D/g, ''); if (code.length !== 6) throw Error('Bilgisayarda görünen 6 haneli kodu yazın.');
+  code = code.replace(/\D/g, ''); if (code.length !== 6) throw Error(T('codeHint'));
   const r = await fetch('/pair', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
-  if (!r.ok) throw Error('Kod kabul edilmedi. Bilgisayardaki eşitleme penceresi açık mı? Yeni kodla tekrar deneyin.');
+  if (!r.ok) throw Error(T('codeRefused'));
   const { k } = await r.json(); await applyKey(un64(k));
 }
 
@@ -326,7 +329,7 @@ $('folderBack').addEventListener('click', () => { trash = false; selected.clear(
 $('select').addEventListener('click', () => { selecting = true; selected.clear(); renderList(); });
 $('selectDone').addEventListener('click', () => { selecting = false; selected.clear(); renderList(); });
 $('selectAll').addEventListener('click', () => { const ids = notes.filter(n => n.Deleted === trash).map(n => n.Id); if (selected.size === ids.length && ids.length > 0) selected.clear(); else for (const id of ids) selected.add(id); renderList(); });
-$('selectDelete').addEventListener('click', () => { if (trash) sheet(selected.size + ' not kalıcı olarak silinecek. Bu işlem geri alınamaz.', [{ label: 'Kalıcı Olarak Sil', danger: true, run: () => run(() => bulk('purge')) }]); else run(() => bulk('delete')); });
+$('selectDelete').addEventListener('click', () => { if (trash) sheet(T('purgeManyConfirm', selected.size), [{ label: T('deletePermanently'), danger: true, run: () => run(() => bulk('purge')) }]); else run(() => bulk('delete')); });
 $('selectRestore').addEventListener('click', () => run(() => bulk('restore')));
 $('back').addEventListener('click', () => run(leaveEditor));
 // Swiping in from the left edge of a note goes back, as in the Notes app.
@@ -338,38 +341,50 @@ $('back').addEventListener('click', () => run(leaveEditor));
 }
 $('done').addEventListener('click', () => document.activeElement?.blur());
 $('more').addEventListener('click', () => sheet(null, [
-  { label: 'Şimdi Eşitle', run: () => run(async () => { if (ready) { setStatus('Eşitleniyor…', true); await flushAll(); send(await manifest()); } else connect(); }) },
-  { label: 'Eşleştirmeyi Yenile', run: () => { show('pair'); $('pairCode').focus(); } },
+  { label: T('syncNow'), run: () => run(async () => { if (ready) { setStatus(T('syncing'), true); await flushAll(); send(await manifest()); } else connect(); }) },
+  { label: T('repair'), run: () => { show('pair'); $('pairCode').focus(); } },
 ]));
 $('noteMore').addEventListener('click', () => { const n = current; if (!n) return; sheet(null, [
-  { label: n.Pinned ? 'Sabitlemeyi Kaldır' : 'Sabitle', run: () => $('pin').click() },
-  { label: 'Sil', danger: true, run: () => run(async () => { if (n.draft) { current = null; closeEditor(); } else await deleteNote(n); }) },
+  { label: n.Pinned ? T('unpin') : T('pin'), run: () => $('pin').click() },
+  { label: T('delete'), danger: true, run: () => run(async () => { if (n.draft) { current = null; closeEditor(); } else await deleteNote(n); }) },
 ]); });
-$('pin').addEventListener('click', () => run(async () => { const n = current; if (!n || n.Deleted) return; await commitDraft(n); n.Pinned = !n.Pinned; touch(n); await localSave(n, true); $('pin').style.color = n.Pinned ? 'var(--accent)' : 'var(--muted)'; }));
+$('pin').addEventListener('click', () => run(async () => { const n = current; if (!n || n.Deleted) return; await commitDraft(n); n.Pinned = !n.Pinned; touch(n); await localSave(n, true); $('pin').style.color = n.Pinned ? 'var(--accent)' : 'var(--muted)'; $('pin').setAttribute('aria-label', n.Pinned ? T('unpin') : T('pin')); }));
 $('restore').addEventListener('click', () => run(() => restoreNote(current)));
-$('purge').addEventListener('click', () => { const n = current; sheet('Bu not kalıcı olarak silinecek. Bu işlem geri alınamaz.', [{ label: 'Kalıcı Olarak Sil', danger: true, run: () => run(() => purgeNote(n)) }]); });
-for (const [key, prop] of [['title', 'Title'], ['body', 'Text']]) {
-  const el = $(key);
-  el.addEventListener('input', () => { autosize(el); const n = current, value = el.value; run(async () => { if (!n || n.Deleted) return; await commitDraft(n); n[prop] = value; touch(n); $('noteDate').textContent = fmt.full.format(new Date(n.Updated)); await localSave(n); }); });
+$('purge').addEventListener('click', () => { const n = current; sheet(T('purgeConfirm'), [{ label: T('deletePermanently'), danger: true, run: () => run(() => purgeNote(n)) }]); });
+function edited(prop, value) { const n = current; run(async () => { if (!n || n.Deleted) return; await commitDraft(n); n[prop] = value; touch(n); $('noteDate').textContent = fmt.full.format(new Date(n.Updated)); await localSave(n); }); }
+$('title').addEventListener('input', () => { autosize($('title')); edited('Title', $('title').value); });
+const bodyEl = $('body');
+bodyEl.addEventListener('input', () => edited('Text', Checklist.getBody(bodyEl)));
+// Only plain text comes in; iOS would otherwise paste styled fragments into the note.
+bodyEl.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
+bodyEl.addEventListener('keydown', e => {
+  if (current?.Deleted) return;
+  if (e.key === 'Enter' && !e.shiftKey && Checklist.enter(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); }
+  else if (e.key === 'Backspace' && Checklist.backspace(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); }
+});
+// A tap on an item's circle flips it without opening the keyboard.
+bodyEl.addEventListener('pointerdown', e => { if (!current?.Deleted && Checklist.tapToggle(bodyEl, e)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); } });
+$('checklist').addEventListener('click', () => { if (!current || current.Deleted) return; bodyEl.focus(); Checklist.toggleSelection(bodyEl); edited('Text', Checklist.getBody(bodyEl)); });
+for (const el of [$('title'), bodyEl]) {
   el.addEventListener('focus', () => $('done').hidden = false);
-  el.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('title') && document.activeElement !== $('body')) $('done').hidden = true; }, 50));
+  el.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('title') && document.activeElement !== bodyEl) $('done').hidden = true; }, 50));
 }
-$('title').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('body').focus(); } });
+$('title').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); bodyEl.focus(); if (bodyEl.firstChild) Checklist.placeCaret(bodyEl.firstChild); } });
 $('attach').addEventListener('click', () => $('files').click());
 $('files').addEventListener('change', () => {
   const files = [...$('files').files], n = current; $('files').value = '';
   run(async () => {
     if (!n || n.Deleted) return;
     for (const file of files) {
-      if (file.size > MAX_FILE) throw Error('Telefonda ek başına sınır 256 MB.');
-      if (!/^(image|video)\//.test(file.type) && !/\.(heic|heif|mov|mp4|m4v|jpe?g|png|gif|webp)$/i.test(file.name)) throw Error('Fotoğraf veya video seçin.');
-      toast('Şifreleniyor… ' + (file.size / 1048576).toFixed(1) + ' MB, olduğu gibi');
+      if (file.size > MAX_FILE) throw Error(T('tooLarge'));
+      if (!/^(image|video)\//.test(file.type) && !/\.(heic|heif|mov|mp4|m4v|jpe?g|png|gif|webp)$/i.test(file.name)) throw Error(T('pickMedia'));
+      toast(T('encrypting', (file.size / 1048576).toFixed(1)));
       const encrypted = await encryptFile(file);
       await put('files', encrypted.meta.Id, encrypted.blob);
       await commitDraft(n); n.Attachments.push(encrypted.meta); touch(n); await localSave(n, true);
     }
     if (ready) send(await manifest());
-    await renderAttachments(n); toast('Ek şifreli olarak kaydedildi');
+    await renderAttachments(n); toast(T('attachmentSaved'));
   });
 });
 for (const page of document.querySelectorAll('.page')) page.addEventListener('scroll', () => page.previousElementSibling.classList.toggle('scrolled', page.scrollTop > 4), { passive: true });
@@ -378,6 +393,7 @@ window.addEventListener('online', () => { retryDelay = RETRY_MIN; connect(); });
 window.addEventListener('pagehide', () => { for (const [, t] of sendTimers) clearTimeout(t); });
 
 // ---------- start ----------
+applyLang();
 run(async () => {
   db = await new Promise((resolve, reject) => {
     const r = indexedDB.open('notebook', 2);
@@ -395,7 +411,7 @@ run(async () => {
   if ('serviceWorker' in navigator) try {
     // A first-generation worker (cache "notebook-phone-v1") served the old design cache-first and could sit on a
     // phone for a long time; when its cache is around, drop every registration and cache before registering anew.
-    const stale = (await caches.keys()).some(k => { const m = /^notebook-phone-v(\d+)$/.exec(k); return !m || Number(m[1]) < 9; });
+    const stale = (await caches.keys()).some(k => { const m = /^notebook-phone-v(\d+)$/.exec(k); return !m || Number(m[1]) < 10; });
     if (stale) { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); }
     await navigator.serviceWorker.register('/sw.js');
   } catch { /* offline copy is optional */ }

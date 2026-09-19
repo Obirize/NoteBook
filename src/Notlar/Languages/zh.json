@@ -181,5 +181,6 @@
   "SetupCheckFail": "尚未信任。设置 → 通用 → 关于本机 → 证书信任设置 → 打开 NoteBook 证书，然后再次测试。",
   "TrayOpen": "打开 NoteBook",
   "TrayExit": "退出",
-  "TrayHint": "NoteBook 在这里继续运行，以便手机同步。右键点击图标可退出。"
+  "TrayHint": "NoteBook 在这里继续运行，以便手机同步。右键点击图标可退出。",
+  "ChecklistAdd": "核对清单 (Ctrl+Shift+L)"
 }

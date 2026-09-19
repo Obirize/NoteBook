@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
@@ -20,87 +20,88 @@
 <section id="install" class="screen" hidden>
   <div class="pair-card">
     <img src="/v2/icon-180.png" alt="" class="pair-icon">
-    <h1>Ana ekrana ekleyin</h1>
-    <p>Notlar telefonda bir uygulama gibi çalışır. Safari'de değil, ana ekrandaki simgeden açılmalıdır.</p>
+    <h1 data-i18n="installTitle"></h1>
+    <p data-i18n="installIntro"></p>
     <ol class="steps">
-      <li>Aşağıdaki <b>Paylaş</b> düğmesine dokunun <svg class="inline" viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg></li>
-      <li><b>Ana Ekrana Ekle</b>'yi seçin, sonra <b>Ekle</b>'ye dokunun.</li>
-      <li>Ana ekrandaki <b>Notlar</b> simgesini açın ve bilgisayardaki 6 haneli kodu girin.</li>
+      <li><span data-i18n="installStep1"></span> <svg class="inline" viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg></li>
+      <li data-i18n="installStep2"></li>
+      <li data-i18n="installStep3"></li>
     </ol>
     <div class="arrow"><svg viewBox="0 0 24 24"><path d="M12 4v16M5 13l7 7 7-7"/></svg></div>
-    <button id="skipInstall" class="text-button">Yine de Safari'de devam et</button>
+    <button id="skipInstall" class="text-button" data-i18n="installSkip"></button>
   </div>
 </section>
 
 <section id="pair" class="screen" hidden>
   <div class="pair-card">
     <img src="/v2/icon-180.png" alt="" class="pair-icon">
-    <h1>Bilgisayarla eşleştir</h1>
-    <p>Bilgisayarda Notlar'ı açın, alt soldaki <b>telefon</b> düğmesine basın ve orada görünen 6 haneli kodu yazın. Kod her dakika yenilenir.</p>
-    <input id="pairCode" inputmode="numeric" autocomplete="one-time-code" placeholder="000 000" maxlength="7" aria-label="Eşleştirme kodu">
-    <button id="pairButton" class="primary">Eşleştir</button>
-    <p class="fine">Bu sayfa “Bağlantı Özel Değil” uyarısıyla açıldıysa güven belgesi tam açık değildir: Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar belgesini açın.</p>
+    <h1 data-i18n="pairTitle"></h1>
+    <p data-i18n="pairIntro"></p>
+    <input id="pairCode" inputmode="numeric" autocomplete="one-time-code" placeholder="000 000" maxlength="7" aria-label="Code">
+    <button id="pairButton" class="primary" data-i18n="pairButton"></button>
+    <p class="fine" data-i18n="pairFine"></p>
     <details>
-      <summary>Bağlantıyla eşleştir</summary>
-      <input id="pairLink" type="password" autocomplete="off" placeholder="Eşleştirme bağlantısı">
-      <button id="pairLinkButton">Bağlantıyla eşleştir</button>
+      <summary data-i18n="pairLink"></summary>
+      <input id="pairLink" type="password" autocomplete="off" data-i18n-ph="pairLinkPh">
+      <button id="pairLinkButton" data-i18n="pairLinkButton"></button>
     </details>
   </div>
 </section>
 
 <section id="list" class="screen" hidden>
   <header class="bar">
-    <button id="folderBack" class="text-button" hidden><svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8"/></svg>Notlar</button>
+    <button id="folderBack" class="text-button" hidden><svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8"/></svg><span data-i18n="notes"></span></button>
     <span class="grow"></span>
-    <button id="select" class="text-button">Seç</button>
-    <button id="selectDone" class="text-button bold" hidden>Bitti</button>
-    <button id="more" class="icon-button" aria-label="Daha fazla"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r="1.3"/><circle class="dot" cx="12" cy="12" r="1.3"/><circle class="dot" cx="16.5" cy="12" r="1.3"/></svg></button>
+    <button id="select" class="text-button" data-i18n="select"></button>
+    <button id="selectDone" class="text-button bold" hidden data-i18n="done"></button>
+    <button id="more" class="icon-button" data-i18n-aria="more"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r="1.3"/><circle class="dot" cx="12" cy="12" r="1.3"/><circle class="dot" cx="16.5" cy="12" r="1.3"/></svg></button>
   </header>
   <div class="page">
-    <h1 id="listTitle">Notlar</h1>
+    <h1 id="listTitle"></h1>
     <p id="syncStatus" class="status"></p>
-    <label class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><input id="search" type="search" placeholder="Ara" aria-label="Notlarda ara"></label>
+    <label class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><input id="search" type="search" data-i18n-ph="search" data-i18n-aria="search"></label>
     <div id="sections"></div>
-    <p id="empty" class="empty" hidden>Not yok</p>
+    <p id="empty" class="empty" hidden></p>
   </div>
   <footer class="toolbar">
-    <span class="toolbar-side"><button id="trashLink" class="icon-button" aria-label="Son Silinenler"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></span>
+    <span class="toolbar-side"><button id="trashLink" class="icon-button" data-i18n-aria="recentlyDeleted"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></span>
     <span id="count" class="count"></span>
-    <span class="toolbar-side right"><button id="compose" class="icon-button" aria-label="Yeni not"><svg viewBox="0 0 24 24"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="M18.5 3.5a2.1 2.1 0 0 1 3 3L13 15l-4 1 1-4z"/></svg></button></span>
+    <span class="toolbar-side right"><button id="compose" class="icon-button" data-i18n-aria="compose"><svg viewBox="0 0 24 24"><path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/><path d="M18.5 3.5a2.1 2.1 0 0 1 3 3L13 15l-4 1 1-4z"/></svg></button></span>
   </footer>
   <footer id="selectBar" class="toolbar" hidden>
-    <button id="selectAll" class="text-button">Tümünü Seç</button>
+    <button id="selectAll" class="text-button"></button>
     <span class="grow"></span>
-    <button id="selectRestore" class="text-button" hidden>Geri Yükle</button>
-    <button id="selectDelete" class="text-button danger" disabled>Sil</button>
+    <button id="selectRestore" class="text-button" hidden data-i18n="restore"></button>
+    <button id="selectDelete" class="text-button danger" disabled></button>
   </footer>
 </section>
 
 <section id="editor" class="screen" hidden>
   <header class="bar">
-    <button id="back" class="text-button"><svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8"/></svg><span id="backLabel">Notlar</span></button>
+    <button id="back" class="text-button"><svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8"/></svg><span id="backLabel"></span></button>
     <span class="grow"></span>
-    <button id="pin" class="icon-button" aria-label="Sabitle"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/></svg></button>
-    <button id="attach" class="icon-button" aria-label="Fotoğraf veya video ekle"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
-    <button id="noteMore" class="icon-button" aria-label="Daha fazla"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r="1.3"/><circle class="dot" cx="12" cy="12" r="1.3"/><circle class="dot" cx="16.5" cy="12" r="1.3"/></svg></button>
-    <button id="done" class="text-button bold" hidden>Bitti</button>
+    <button id="checklist" class="icon-button" data-i18n-aria="checklist"><svg viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.2"/><circle cx="6" cy="17" r="2.2"/><path d="M11 7h9M11 17h9"/><path d="M4.9 7l.8.8 1.6-1.7"/></svg></button>
+    <button id="pin" class="icon-button" data-i18n-aria="pin"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/></svg></button>
+    <button id="attach" class="icon-button" data-i18n-aria="attach"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    <button id="noteMore" class="icon-button" data-i18n-aria="more"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r="1.3"/><circle class="dot" cx="12" cy="12" r="1.3"/><circle class="dot" cx="16.5" cy="12" r="1.3"/></svg></button>
+    <button id="done" class="text-button bold" hidden data-i18n="done"></button>
   </header>
   <div class="page note">
     <p id="noteDate" class="note-date"></p>
-    <textarea id="title" class="note-title" placeholder="Başlık" rows="1" aria-label="Başlık"></textarea>
+    <textarea id="title" class="note-title" rows="1" data-i18n-ph="titlePh" data-i18n-aria="titlePh"></textarea>
     <div id="attachments" class="attachments"></div>
-    <textarea id="body" class="note-body" placeholder="Not" rows="1" aria-label="Not"></textarea>
-    <p id="trashNotice" class="fine" hidden>Bu not Son Silinenler'de. Düzenlemek için geri yükleyin.</p>
+    <div id="body" class="note-body" contenteditable="true" role="textbox" aria-multiline="true" data-i18n-aria="bodyPh" enterkeyhint="enter"></div>
+    <p id="trashNotice" class="fine" hidden data-i18n="trashNotice"></p>
   </div>
   <footer id="trashBar" class="toolbar" hidden>
-    <button id="restore" class="text-button">Geri Yükle</button>
+    <button id="restore" class="text-button" data-i18n="restore"></button>
     <span class="grow"></span>
-    <button id="purge" class="text-button danger">Kalıcı Olarak Sil</button>
+    <button id="purge" class="text-button danger" data-i18n="deletePermanently"></button>
   </footer>
   <input id="files" type="file" accept="image/*,image/heic,image/heif,video/*,video/quicktime,.heic,.heif,.mov,.mp4,.m4v" multiple hidden>
 </section>
 
-<div id="sheet" class="sheet" hidden><div class="sheet-body"></div><button class="sheet-cancel">Vazgeç</button></div>
+<div id="sheet" class="sheet" hidden><div class="sheet-body"></div><button class="sheet-cancel" data-i18n="cancel"></button></div>
 <div id="lightbox" class="lightbox" hidden></div>
 <div id="toast" class="toast" hidden></div>
 <script type="module" src="/v2/app.js"></script>

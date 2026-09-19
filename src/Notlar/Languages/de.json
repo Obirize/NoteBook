@@ -181,5 +181,6 @@
   "SetupCheckFail": "Noch nicht vertraut. Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen → NoteBook-Zertifikat einschalten und erneut testen.",
   "TrayOpen": "NoteBook öffnen",
   "TrayExit": "Beenden",
-  "TrayHint": "NoteBook läuft hier weiter, damit das Telefon synchronisieren kann. Zum Beenden das Symbol mit der rechten Maustaste anklicken."
+  "TrayHint": "NoteBook läuft hier weiter, damit das Telefon synchronisieren kann. Zum Beenden das Symbol mit der rechten Maustaste anklicken.",
+  "ChecklistAdd": "Checkliste (Strg+Umschalt+L)"
 }

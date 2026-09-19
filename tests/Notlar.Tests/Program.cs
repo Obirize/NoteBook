@@ -551,6 +551,20 @@ static class Program
             Check(reloaded.TrayHintShown && reloaded.Language == "tr" && L10n.Detect(Path.GetDirectoryName(path)!) == "tr", "Settings keep the language and the tray hint flag together");
             Check(File.ReadAllText("setup/Notlar.iss").Contains(@"CurrentVersion\Run") && File.ReadAllText("setup/Notlar.iss").Contains("--minimized"), "The installer offers start-with-Windows into the tray");
             Check(Find<Button>(window, "DeleteButton").Focusable == false, "Toolbar icon buttons do not keep a focus ring after a click");
+            // Checklists: plain lines with a marker, drawn as check boxes.
+            string cl = "Plan\n" + Checklist.OpenPrefix + "Süt\n" + Checklist.DonePrefix + "Ekmek";
+            Check(Checklist.IsItem(Checklist.LineAt(cl, 6)) && !Checklist.IsDone(Checklist.LineAt(cl, 6)) && Checklist.Body(Checklist.LineAt(cl, cl.Length - 1)) == "Ekmek", "Checklist markers are recognised per line");
+            Check(Checklist.Toggle(Checklist.OpenPrefix + "a") == Checklist.DonePrefix + "a" && Checklist.Toggle("plain") == "plain", "Toggling flips open and done");
+            var enter = Checklist.Enter(cl, cl.Length); Check(enter != null && enter.Value.Text.EndsWith("Ekmek\n" + Checklist.OpenPrefix) && enter.Value.Caret == enter.Value.Text.Length, "Enter at the end of an item starts the next item");
+            var endList = Checklist.Enter(cl + "\n" + Checklist.OpenPrefix, cl.Length + 3); Check(endList != null && endList.Value.Text == cl + "\n", "Enter on an empty item ends the list");
+            var back = Checklist.Backspace(cl, 7); Check(back != null && back.Value.Text == "Plan\nSüt\n" + Checklist.DonePrefix + "Ekmek", "Backspace right after a marker removes it");
+            var toggled = Checklist.ToggleLines("a\nb", 0, 3, out _, out _); Check(toggled == Checklist.OpenPrefix + "a\n" + Checklist.OpenPrefix + "b" && Checklist.ToggleLines(toggled, 0, toggled.Length, out _, out _) == "a\nb", "Ctrl+Shift+L turns selected lines into items and back");
+            Check(Checklist.Preview(cl) == "Plan\nSüt\n\u2713 Ekmek", "Previews read the markers as words");
+            body.Text = cl; Pump(); window.ToggleItem(5); Pump();
+            Check(body.Text.Contains(Checklist.DonePrefix + "Süt"), "Clicking the box toggles the item in the editor");
+            body.CaretIndex = 5; Pump(); Check(body.CaretIndex == 7, "The caret cannot rest inside a marker");
+            body.CaretIndex = 2; Click(window, "ChecklistButton");
+            Check(body.Text.StartsWith(Checklist.OpenPrefix + "Plan") && window.SaveNow() && session.Book.Notes.Any(n => n.Text.StartsWith(Checklist.OpenPrefix + "Plan")), "The toolbar button turns the current line into an item and it is saved as plain text");
             var fromTag = Updater.FromTagUrl("https://github.com/Obirize/NoteBook/releases/tag/v9.8.7");
             Check(fromTag != null && fromTag.Version == new Version(9, 8, 7) && fromTag.InstallerUrl.EndsWith("/releases/download/v9.8.7/NoteBook-Setup-9.8.7.exe") && fromTag.ChecksumUrl!.EndsWith(".sha256") && Updater.FromTagUrl("https://github.com/x/y/releases") == null, "The releases page redirect alone is enough to find the newest installer");
             Click(window, "LockButton"); Check(window.LockRequested && !window.IsVisible && body.Text == "", "Lock closes and clears visible plaintext");

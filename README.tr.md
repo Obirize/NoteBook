@@ -14,7 +14,7 @@ Windows için Apple Notlar tarzında bir not defteri ve onunla kendi Wi‑Fi'ın
 
 ## Ne yapar
 
-- **Notlar**: başlık, metin, fotoğraf ve video. Arama, sabitleme, toplu seçim, 30 günlük *Son silinenler*, TXT içe/dışa aktarma, 13 arayüz dili.
+- **Notlar**: başlık, metin, yapılacaklar listesi, fotoğraf ve video. Arama, sabitleme, toplu seçim, 30 günlük *Son silinenler*, TXT içe/dışa aktarma; bilgisayarda da telefonda da 13 arayüz dili.
 - **Diskte şifreli.** Notlar AES‑256‑GCM ile mühürlenmiş bir kasada; her fotoğraf ve video kendi anahtarıyla şifrelenmiş ayrı bir dosyada. Bilgisayarda anahtarlar Windows oturumunuzla korunur; uygulama parola sormaz.
 - **Sunucusuz iPhone eşitlemesi.** Windows uygulamasının kendisi telefona küçük bir web uygulaması sunar; ana ekrana eklersiniz ve 6 haneli bir kodla eşleştirirsiniz. Sonra notlar ve dosyalar, iki cihaz aynı Wi‑Fi'dayken doğrudan aralarında eşitlenir. Telefon uygulaması Apple Notlar gibi görünür ve çevrimdışı çalışır.
 - **Arka planda çalışır.** Pencereyi kapatmak uygulamayı kapatmaz; Notlar bildirim alanında kalır ki telefon eşitlenebilsin. Kurulum sihirbazı Windows ile başlatmayı sunar.
@@ -48,6 +48,7 @@ Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışı
 | Ctrl+N | Yeni not |
 | Ctrl+O | TXT dosyasını yeni not olarak aç |
 | Ctrl+Shift+A | Açık nota fotoğraf veya video ekle |
+| Ctrl+Shift+L | Bulunulan satırı (veya seçili satırları) yapılacaklar maddesi yap, ya da geri çevir |
 | Ctrl+V | Panodaki resmi veya medya dosyalarını ek olarak yapıştır |
 | Ctrl+Shift+S | Açık notu şifresiz TXT kopyası olarak kaydet |
 | Ctrl+K / Ctrl+F | Arama |
@@ -68,6 +69,10 @@ Ayrı bir uygulama parolası veya boşta kilidi yoktur: notları Windows oturumu
 
 Kaynaklar: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope), [AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm). Telemetri yok. Bağımsız denetimden geçmemiştir.
 
+## Yapılacaklar listesi
+
+Liste düğmesi (bilgisayarda Ctrl+Shift+L, telefonda üst çubuktaki liste simgesi) bulunulan satırı yuvarlak onay kutulu bir maddeye çevirir; Enter listeyi sürdürür, boş maddede Enter listeyi bitirir, madde başında Backspace onu düz metne çevirir, yuvarlağa dokunmak maddeyi tamamlanmış (üstü çizili) yapar. Maddeler `○` veya `●` ile başlayan düz satırlar olarak saklanır; bu yüzden başka her metin gibi eşitlenir, aranır ve dışa aktarılır.
+
 ## Dosyalar, yedek ve kurtarma
 
 - `data/notes.vault` — şifreli not defteri; `data/notes.vault.bak` — önceki kayıt.
@@ -81,7 +86,7 @@ Ana dosya açılamazsa uygulama önceki kaydı önerir; hasarlı dosyalar `.dama
 
 ## Diller
 
-Windows uygulaması Windows görüntü dilini izler ve küre düğmesinden 13 dil sunar: Türkçe, İngilizce, İspanyolca, Çince, Hintçe, Arapça (sağdan sola), Portekizce, Rusça, Japonca, Almanca, Fransızca, Endonezce, Korece. Metinler `src/Notlar/Languages/<kod>.json` dosyalarındadır; test, her dilde her anahtarın bulunduğunu doğrular. Telefon uygulaması şimdilik yalnızca Türkçedir.
+Windows uygulaması Windows görüntü dilini izler ve küre düğmesinden 13 dil sunar: Türkçe, İngilizce, İspanyolca, Çince, Hintçe, Arapça (sağdan sola), Portekizce, Rusça, Japonca, Almanca, Fransızca, Endonezce, Korece. Metinler `src/Notlar/Languages/<kod>.json` dosyalarındadır; test, her dilde her anahtarın bulunduğunu doğrular. Telefon uygulaması telefonun dilini izler; aynı 13 dil (`src/Notlar/Web/lang.js`).
 
 <p align="center"><img src="docs/screenshot-arabic.png" width="70%" alt="Arapça, sağdan sola"></p>
 
@@ -103,8 +108,6 @@ git push --tags
 
 ## Yol haritası
 
-- Yapılacaklar listesi (onay kutulu maddeler), iki tarafta da.
-- Telefon uygulamasında diller.
 - Android (aynı web uygulaması Chrome'da; sertifika adımı farklı).
 - Ev dışından eşitleme — bugün telefon evdeki Wi‑Fi'da eşitlenir; seçenekler bilgisayarda kendi WireGuard'ınız ya da içeriği göremeyen, yalnızca taşıyan bir aracı.
 - Kurulum dosyası için kod imzası.
