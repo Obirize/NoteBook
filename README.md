@@ -39,7 +39,7 @@ Open the phone window with the phone button at the bottom left of the sidebar. I
 2. **Home Screen app.** The second code opens the app in Safari, which explains the two taps: *Share → Add to Home Screen*. From then on, open NoteBook from the Home Screen (iOS gives Home Screen apps their own storage).
 3. **Pairing code.** In the Home Screen app tap *Pair* and type the six‑digit code shown on the PC. A new code appears every minute and codes only exist while that window is open.
 
-Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is running (even hidden in the tray). Away from home the phone keeps working offline and merges when it is back. Photos and videos are never re‑encoded; the app asks iOS for the originals.
+Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is running (even hidden in the tray). Away from home the phone keeps working offline and merges when it is back. Photos and videos are never re‑encoded; the app asks iOS for the originals. In a note they sit in a grid of tiles; tapping one opens a viewer with *save or share* (the share sheet's *Save Image / Save Video* puts it in Photos) and *remove*, and the note's *…* menu can save all attachments at once. On the PC, *Save all attachments…* (right-click a note card or an attachment) writes every file of a note, or of all checked notes, into a folder.
 
 ## Shortcuts (Windows)
 

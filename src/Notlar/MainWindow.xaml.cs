@@ -305,6 +305,7 @@ public partial class MainWindow : Window
         if (targets.Count == 0) { e.Handled = true; return; }
         bool single = targets.Count == 1 && !trash;
         MenuPin.Visibility = MenuExport.Visibility = single ? Visibility.Visible : Visibility.Collapsed;
+        MenuSaveAttachments.Visibility = targets.Any(n => n.Attachments.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
         MenuPin.Header = L10n.T(targets[0].Pinned ? "UnpinNote" : "Pin");
         MenuDelete.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
         MenuRestore.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
@@ -649,6 +650,40 @@ public partial class MainWindow : Window
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or ArgumentException)
         { StatusText.Text = L10n.T(ex is System.Security.Cryptography.CryptographicException or FileNotFoundException ? "AttachmentOpenFailed" : "AttachmentSaveFailed"); return false; }
     }
+    // Every attachment of the open (or every checked) note goes into a folder of the user's choosing; several notes
+    // get a subfolder each. Names are kept, with a counter when two files would collide.
+    private void SaveAttachmentsClick(object sender, RoutedEventArgs e)
+    {
+        var notes = Targets().Where(n => n.Attachments.Count > 0).ToList();
+        if (notes.Count == 0 || !SaveNow()) return;
+        var dialog = new OpenFolderDialog { Title = L10n.T("SaveAllAttachments").TrimEnd('…', '.') };
+        if (dialog.ShowDialog(this) != true) return;
+        int saved = SaveAttachments(notes, dialog.FolderName);
+        StatusText.Text = saved >= 0 ? L10n.T("AttachmentsSavedMany", saved, Path.GetFileName(dialog.FolderName)) : L10n.T("AttachmentSaveFailed");
+    }
+    public int SaveAttachments(IReadOnlyList<Note> notes, string folder)
+    {
+        int saved = 0;
+        try
+        {
+            foreach (var note in notes)
+            {
+                string target = notes.Count == 1 ? folder : Path.Combine(folder, Path.GetFileNameWithoutExtension(TextFiles.SuggestedName(note)));
+                Directory.CreateDirectory(target);
+                foreach (var attachment in note.Attachments)
+                {
+                    if (!session.Attachments.Exists(attachment)) continue;
+                    string name = string.Concat(attachment.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+                    if (string.IsNullOrWhiteSpace(Path.GetFileNameWithoutExtension(name))) name = attachment.Id[..8] + Path.GetExtension(name);
+                    string path = Path.Combine(target, name);
+                    for (int i = 2; File.Exists(path); i++) path = Path.Combine(target, Path.GetFileNameWithoutExtension(name) + " (" + i + ")" + Path.GetExtension(name));
+                    session.Attachments.Export(attachment, path); saved++;
+                }
+            }
+            return saved;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or ArgumentException) { return -1; }
+    }
     private void OpenAttachment(Attachment attachment)
     {
         if (!SaveNow()) return;
@@ -689,6 +724,7 @@ public partial class MainWindow : Window
         var menu = new ContextMenu();
         var open = new MenuItem { Header = L10n.T("AttachmentOpen") }; open.Click += (_, _) => OpenAttachment(attachment); menu.Items.Add(open);
         var save = new MenuItem { Header = L10n.T("AttachmentSaveAs") }; save.Click += (_, _) => SaveAttachmentCopy(attachment); menu.Items.Add(save);
+        var saveAll = new MenuItem { Header = L10n.T("SaveAllAttachments") }; saveAll.Click += (_, _) => SaveAttachmentsClick(this, new RoutedEventArgs()); menu.Items.Add(saveAll);
         if (!trash)
         {
             menu.Items.Add(new Separator());

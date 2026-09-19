@@ -42,6 +42,7 @@
             <ListBox.ContextMenu><ContextMenu>
               <MenuItem x:Name="MenuPin" Header="{local:T Pin}" Click="PinClick"/>
               <MenuItem x:Name="MenuExport" Header="{local:T ExportTxtMenu}" InputGestureText="Ctrl+Shift+S" Click="ExportClick"/>
+              <MenuItem x:Name="MenuSaveAttachments" Header="{local:T SaveAllAttachments}" Click="SaveAttachmentsClick"/>
               <MenuItem x:Name="MenuDelete" Header="{local:T Delete}" InputGestureText="Delete" Click="DeleteClick"/>
               <MenuItem x:Name="MenuRestore" Header="{local:T Restore}" Click="RestoreClick"/>
               <MenuItem x:Name="MenuPurge" Header="{local:T DeletePermanentlyMenu}" Style="{StaticResource DangerMenuItem}" Click="PurgeClick"/>

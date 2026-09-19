@@ -182,5 +182,7 @@
   "TrayOpen": "Open NoteBook",
   "TrayExit": "Exit",
   "TrayHint": "NoteBook keeps running here so your phone can sync. Right-click the icon to exit.",
-  "ChecklistAdd": "Checklist (Ctrl+Shift+L)"
+  "ChecklistAdd": "Checklist (Ctrl+Shift+L)",
+  "SaveAllAttachments": "Save all attachments…",
+  "AttachmentsSavedMany": "{0} files saved to “{1}”."
 }

@@ -182,5 +182,7 @@
   "TrayOpen": "NoteBook を開く",
   "TrayExit": "終了",
   "TrayHint": "iPhone と同期できるよう NoteBook はここで動作し続けます。終了するにはアイコンを右クリックしてください。",
-  "ChecklistAdd": "チェックリスト (Ctrl+Shift+L)"
+  "ChecklistAdd": "チェックリスト (Ctrl+Shift+L)",
+  "SaveAllAttachments": "添付をすべて保存…",
+  "AttachmentsSavedMany": "{0} 個のファイルを「{1}」に保存しました。"
 }

@@ -182,5 +182,7 @@
   "TrayOpen": "打开 NoteBook",
   "TrayExit": "退出",
   "TrayHint": "NoteBook 在这里继续运行，以便手机同步。右键点击图标可退出。",
-  "ChecklistAdd": "核对清单 (Ctrl+Shift+L)"
+  "ChecklistAdd": "核对清单 (Ctrl+Shift+L)",
+  "SaveAllAttachments": "保存全部附件…",
+  "AttachmentsSavedMany": "{0} 个文件已保存到“{1}”。"
 }

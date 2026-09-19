@@ -182,5 +182,7 @@
   "TrayOpen": "Notlar'ı aç",
   "TrayExit": "Çıkış",
   "TrayHint": "Notlar burada çalışmaya devam ediyor; telefon böylece eşitlenebilir. Çıkmak için simgeye sağ tıklayın.",
-  "ChecklistAdd": "Yapılacaklar listesi (Ctrl+Shift+L)"
+  "ChecklistAdd": "Yapılacaklar listesi (Ctrl+Shift+L)",
+  "SaveAllAttachments": "Tüm ekleri kaydet…",
+  "AttachmentsSavedMany": "{0} dosya “{1}” klasörüne kaydedildi."
 }

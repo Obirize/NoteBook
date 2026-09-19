@@ -182,5 +182,7 @@
   "TrayOpen": "Ouvrir NoteBook",
   "TrayExit": "Quitter",
   "TrayHint": "NoteBook continue de fonctionner ici pour que le téléphone puisse se synchroniser. Cliquez avec le bouton droit sur l’icône pour quitter.",
-  "ChecklistAdd": "Liste de tâches (Ctrl+Maj+L)"
+  "ChecklistAdd": "Liste de tâches (Ctrl+Maj+L)",
+  "SaveAllAttachments": "Enregistrer toutes les pièces jointes…",
+  "AttachmentsSavedMany": "{0} fichiers enregistrés dans « {1} »."
 }

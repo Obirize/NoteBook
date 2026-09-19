@@ -182,5 +182,7 @@
   "TrayOpen": "NoteBook öffnen",
   "TrayExit": "Beenden",
   "TrayHint": "NoteBook läuft hier weiter, damit das Telefon synchronisieren kann. Zum Beenden das Symbol mit der rechten Maustaste anklicken.",
-  "ChecklistAdd": "Checkliste (Strg+Umschalt+L)"
+  "ChecklistAdd": "Checkliste (Strg+Umschalt+L)",
+  "SaveAllAttachments": "Alle Anhänge sichern…",
+  "AttachmentsSavedMany": "{0} Dateien in „{1}“ gesichert."
 }

@@ -182,5 +182,7 @@
   "TrayOpen": "NoteBook खोलें",
   "TrayExit": "बाहर निकलें",
   "TrayHint": "NoteBook यहाँ चलता रहता है ताकि फ़ोन सिंक हो सके। बाहर निकलने के लिए आइकन पर राइट-क्लिक करें।",
-  "ChecklistAdd": "चेकलिस्ट (Ctrl+Shift+L)"
+  "ChecklistAdd": "चेकलिस्ट (Ctrl+Shift+L)",
+  "SaveAllAttachments": "सभी अनुलग्नक सहेजें…",
+  "AttachmentsSavedMany": "{0} फ़ाइलें “{1}” में सहेजी गईं।"
 }

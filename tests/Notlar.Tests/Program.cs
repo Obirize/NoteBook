@@ -475,6 +475,9 @@ static class Program
             string copy = Path.Combine(root, "kopya.mp4");
             Check(window.SaveAttachmentCopy(photoNote.Attachments[1], copy) && File.ReadAllBytes(copy).SequenceEqual(clip), "Save a copy writes the decrypted original");
             Check(window.AttachImage(Bitmap(200, 120, Colors.Teal)) && photoNote.Attachments.Count == 3 && photoNote.Attachments[2].MediaType == "image/png" && photoNote.Attachments[2].Width == 200, "A pasted picture becomes a PNG attachment");
+            string bulkFolder = Path.Combine(root, "bulk-save"); Directory.CreateDirectory(bulkFolder); File.WriteAllText(Path.Combine(bulkFolder, "Deniz kenarı.png"), "taken");
+            int bulkSaved = window.SaveAttachments([photoNote], bulkFolder);
+            Check(bulkSaved == 3 && File.Exists(Path.Combine(bulkFolder, "Deniz kenarı (2).png")) && File.ReadAllBytes(Path.Combine(bulkFolder, "yürüyüş.mp4")).SequenceEqual(clip), "Saving all attachments writes every file, never overwriting an existing name");
             string attachedBackup = Path.Combine(root, "with-files.vault");
             Check(window.ExportBackup(attachedBackup, "portable backup passphrase 42") && Directory.GetFiles(VaultSession.BackupFilesDirectory(attachedBackup)).Length == 3, "Portable backup carries the encrypted attachment files beside it");
             string restoreRoot = Path.Combine(root, "restore-target"); Directory.CreateDirectory(restoreRoot);
@@ -538,7 +541,7 @@ static class Program
             var languageMenu = Find<ContextMenu>(window, "LanguageMenu");
             Check(languageMenu.Items.Count == L10n.Languages.Length && languageMenu.Items.OfType<MenuItem>().Single(m => m.IsChecked).Tag as string == "en", "Language menu lists every language and marks the current one");
             var listMenu = Find<ListBox>(window, "NoteList").ContextMenu!;
-            Check(listMenu.Items.OfType<MenuItem>().Count() == 5, "Note cards get a themed action menu");
+            Check(listMenu.Items.OfType<MenuItem>().Count() == 6, "Note cards get a themed action menu");
             window.Width = 1160; window.Height = 780; Pump();
             Find<ListBox>(window, "NoteList").SelectedIndex = 0; Pump();
             // Closing only hides the window: the app stays in the notification area so the phone can keep syncing.

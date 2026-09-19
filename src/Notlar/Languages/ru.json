@@ -182,5 +182,7 @@
   "TrayOpen": "Открыть NoteBook",
   "TrayExit": "Выход",
   "TrayHint": "NoteBook продолжает работать здесь, чтобы телефон мог синхронизироваться. Щёлкните значок правой кнопкой, чтобы выйти.",
-  "ChecklistAdd": "Список дел (Ctrl+Shift+L)"
+  "ChecklistAdd": "Список дел (Ctrl+Shift+L)",
+  "SaveAllAttachments": "Сохранить все вложения…",
+  "AttachmentsSavedMany": "Файлов сохранено в «{1}»: {0}."
 }

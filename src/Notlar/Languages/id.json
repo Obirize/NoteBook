@@ -182,5 +182,7 @@
   "TrayOpen": "Buka NoteBook",
   "TrayExit": "Keluar",
   "TrayHint": "NoteBook tetap berjalan di sini agar ponsel dapat menyinkronkan. Klik kanan ikon untuk keluar.",
-  "ChecklistAdd": "Daftar periksa (Ctrl+Shift+L)"
+  "ChecklistAdd": "Daftar periksa (Ctrl+Shift+L)",
+  "SaveAllAttachments": "Simpan semua lampiran…",
+  "AttachmentsSavedMany": "{0} file disimpan ke “{1}”."
 }

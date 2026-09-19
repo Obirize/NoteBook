@@ -182,5 +182,7 @@
   "TrayOpen": "Abrir o NoteBook",
   "TrayExit": "Sair",
   "TrayHint": "O NoteBook continua em execução aqui para que o telefone possa sincronizar. Clique com o botão direito no ícone para sair.",
-  "ChecklistAdd": "Lista de tarefas (Ctrl+Shift+L)"
+  "ChecklistAdd": "Lista de tarefas (Ctrl+Shift+L)",
+  "SaveAllAttachments": "Salvar todos os anexos…",
+  "AttachmentsSavedMany": "{0} arquivos salvos em “{1}”."
 }

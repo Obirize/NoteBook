@@ -130,41 +130,58 @@ async function openNote(n) {
   await renderAttachments(n);
   $('editor').querySelector('.page').scrollTop = 0;
 }
+// Attachments sit in a compact grid of square tiles, as in the Notes app; a tap opens the viewer, where
+// saving, sharing and removing live, so nothing overlaps the media itself.
+const noteFiles = new Map();  // attachment id -> { url, file } for the open note (decrypted, ready to share)
 async function renderAttachments(n) {
-  for (const url of noteUrls) URL.revokeObjectURL(url); noteUrls.length = 0;
+  for (const url of noteUrls) URL.revokeObjectURL(url); noteUrls.length = 0; noteFiles.clear();
   const box = $('attachments'); box.replaceChildren();
-  for (const a of n.Attachments) {
-    const item = document.createElement('div'); item.className = 'attachment';
-    const encrypted = await get('files', a.Id);
-    if (!encrypted) { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b></div>'; w.firstChild.append(T('fromPc')); w.querySelector('b').textContent = a.Name; item.append(w); }
-    else {
-      let url, plain = null; try { plain = await decryptFile(encrypted, a); url = URL.createObjectURL(plain); noteUrls.push(url); } catch { url = null; }
-      // "Save to Photos" on iOS goes through the share sheet; the decrypted file is kept ready so share() runs
-      // straight from the tap (Safari only allows it within the tap).
-      if (plain) {
-        const share = document.createElement('button'); share.className = 'remove share'; share.setAttribute('aria-label', T('saveShare'));
-        share.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>';
-        const file = new File([plain], a.Name, { type: a.MediaType });
-        share.addEventListener('click', () => {
-          if (navigator.canShare?.({ files: [file] })) navigator.share({ files: [file] }).catch(() => {});
-          else { const link = document.createElement('a'); link.href = url; link.download = a.Name; link.click(); }
-        });
-        item.append(share);
-      }
-      if (url && a.MediaType.startsWith('image/')) { const img = document.createElement('img'); img.src = url; img.alt = a.Name; img.addEventListener('click', () => lightbox('img', url)); item.append(img); }
-      else if (url && a.MediaType.startsWith('video/')) { const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true; v.preload = 'metadata'; item.append(v); }
-      else { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b></div>'; w.firstChild.append(url ? T('noPreview') : T('cantOpen')); w.querySelector('b').textContent = a.Name; item.append(w); }
-    }
-    if (!n.Deleted) {
-      const remove = document.createElement('button'); remove.className = 'remove'; remove.setAttribute('aria-label', T('removeAttachment'));
-      remove.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
-      remove.addEventListener('click', () => sheet(a.Name, [{ label: T('removeAttachmentConfirm'), danger: true, run: () => run(async () => { n.Attachments = n.Attachments.filter(x => x.Id !== a.Id); touch(n); await localSave(n, true); await renderAttachments(n); }) }]));
-      item.append(remove);
-    }
-    box.append(item);
-  }
+  n.Attachments.forEach((a, index) => {
+    const tile = document.createElement('button'); tile.className = 'tile'; tile.type = 'button'; tile.setAttribute('aria-label', a.Name);
+    const badge = document.createElement('span'); badge.className = 'tile-badge';
+    badge.innerHTML = a.MediaType.startsWith('video/') ? '<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>' : a.MediaType.startsWith('image/') ? '' : '<svg viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></svg>';
+    const pending = document.createElement('span'); pending.className = 'tile-pending'; pending.textContent = T('fromPc');
+    tile.append(pending, badge);
+    tile.addEventListener('click', () => run(() => openViewer(n, index)));
+    box.append(tile);
+    get('files', a.Id).then(async encrypted => {
+      if (!encrypted) return;
+      let plain; try { plain = await decryptFile(encrypted, a); } catch { pending.textContent = T('cantOpen'); return; }
+      const url = URL.createObjectURL(plain); noteUrls.push(url);
+      noteFiles.set(a.Id, { url, file: new File([plain], a.Name, { type: a.MediaType }) });
+      pending.remove();
+      if (a.MediaType.startsWith('image/')) { const img = document.createElement('img'); img.src = url; img.alt = ''; tile.prepend(img); }
+      else if (a.MediaType.startsWith('video/')) { const v = document.createElement('video'); v.src = url + '#t=0.1'; v.muted = true; v.playsInline = true; v.preload = 'metadata'; tile.prepend(v); }
+      else { const name = document.createElement('span'); name.className = 'tile-name'; name.textContent = a.Name; tile.prepend(name); }
+    });
+  });
 }
-function lightbox(kind, url) { const l = $('lightbox'); l.replaceChildren(); const el = document.createElement(kind); el.src = url; if (kind === 'video') { el.controls = true; el.playsInline = true; } l.append(el); l.hidden = false; l.onclick = e => { if (e.target === l || kind === 'img') l.hidden = true; }; }
+function shareFiles(files) {
+  if (files.length && navigator.canShare?.({ files })) navigator.share({ files }).catch(() => {});
+  else for (const f of files) { const link = document.createElement('a'); link.href = URL.createObjectURL(f); link.download = f.name; link.click(); }
+}
+// Full-screen viewer: the media, a close button, and save/share and remove actions in the bar.
+async function openViewer(n, index) {
+  const a = n.Attachments[index]; const ready = noteFiles.get(a.Id);
+  const l = $('lightbox'); l.replaceChildren();
+  const bar = document.createElement('div'); bar.className = 'viewer-bar';
+  const close = document.createElement('button'); close.className = 'icon-button'; close.setAttribute('aria-label', T('done')); close.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'; close.addEventListener('click', () => { l.hidden = true; l.replaceChildren(); });
+  const name = document.createElement('span'); name.className = 'viewer-name'; name.textContent = a.Name;
+  const share = document.createElement('button'); share.className = 'icon-button'; share.setAttribute('aria-label', T('saveShare')); share.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>';
+  share.addEventListener('click', () => { if (ready) shareFiles([ready.file]); });
+  bar.append(close, name, share);
+  if (!n.Deleted) {
+    const remove = document.createElement('button'); remove.className = 'icon-button danger'; remove.setAttribute('aria-label', T('removeAttachment')); remove.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+    remove.addEventListener('click', () => sheet(a.Name, [{ label: T('removeAttachmentConfirm'), danger: true, run: () => run(async () => { l.hidden = true; l.replaceChildren(); n.Attachments = n.Attachments.filter(x => x.Id !== a.Id); touch(n); await localSave(n, true); await renderAttachments(n); }) }]));
+    bar.append(remove);
+  }
+  const stage = document.createElement('div'); stage.className = 'viewer-stage';
+  if (!ready) { const w = document.createElement('p'); w.className = 'fine'; w.textContent = T('fromPc'); stage.append(w); }
+  else if (a.MediaType.startsWith('image/')) { const img = document.createElement('img'); img.src = ready.url; img.alt = a.Name; stage.append(img); }
+  else if (a.MediaType.startsWith('video/')) { const v = document.createElement('video'); v.src = ready.url; v.controls = true; v.playsInline = true; v.autoplay = true; stage.append(v); }
+  else { const w = document.createElement('p'); w.className = 'fine'; w.textContent = T('noPreview'); stage.append(w); }
+  l.append(bar, stage); l.hidden = false;
+}
 function sheet(title, actions) {
   const s = $('sheet'), body = s.querySelector('.sheet-body'); body.replaceChildren();
   if (title) { const t = document.createElement('div'); t.className = 'sheet-title'; t.textContent = title; body.append(t); }
@@ -346,6 +363,7 @@ $('more').addEventListener('click', () => sheet(null, [
 ]));
 $('noteMore').addEventListener('click', () => { const n = current; if (!n) return; sheet(null, [
   { label: n.Pinned ? T('unpin') : T('pin'), run: () => $('pin').click() },
+  ...(noteFiles.size ? [{ label: T('saveAll', noteFiles.size), run: () => shareFiles([...noteFiles.values()].map(f => f.file)) }] : []),
   { label: T('delete'), danger: true, run: () => run(async () => { if (n.draft) { current = null; closeEditor(); } else await deleteNote(n); }) },
 ]); });
 $('pin').addEventListener('click', () => run(async () => { const n = current; if (!n || n.Deleted) return; await commitDraft(n); n.Pinned = !n.Pinned; touch(n); await localSave(n, true); $('pin').style.color = n.Pinned ? 'var(--accent)' : 'var(--muted)'; $('pin').setAttribute('aria-label', n.Pinned ? T('unpin') : T('pin')); }));
@@ -411,7 +429,7 @@ run(async () => {
   if ('serviceWorker' in navigator) try {
     // A first-generation worker (cache "notebook-phone-v1") served the old design cache-first and could sit on a
     // phone for a long time; when its cache is around, drop every registration and cache before registering anew.
-    const stale = (await caches.keys()).some(k => { const m = /^notebook-phone-v(\d+)$/.exec(k); return !m || Number(m[1]) < 10; });
+    const stale = (await caches.keys()).some(k => { const m = /^notebook-phone-v(\d+)$/.exec(k); return !m || Number(m[1]) < 11; });
     if (stale) { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); }
     await navigator.serviceWorker.register('/sw.js');
   } catch { /* offline copy is optional */ }

@@ -182,5 +182,7 @@
   "TrayOpen": "فتح NoteBook",
   "TrayExit": "خروج",
   "TrayHint": "يواصل NoteBook العمل هنا ليتمكن هاتفك من المزامنة. انقر بزر الفأرة الأيمن على الأيقونة للخروج.",
-  "ChecklistAdd": "قائمة مهام (Ctrl+Shift+L)"
+  "ChecklistAdd": "قائمة مهام (Ctrl+Shift+L)",
+  "SaveAllAttachments": "حفظ كل المرفقات…",
+  "AttachmentsSavedMany": "حُفظت {0} ملفات في ”{1}“."
 }

@@ -39,7 +39,7 @@ Kenar çubuğunun altındaki telefon düğmesi, her biri QR kodlu üç adımı g
 2. **Ana ekran uygulaması.** İkinci kod uygulamayı Safari'de açar; sayfa iki dokunuşu anlatır: *Paylaş → Ana Ekrana Ekle*. Bundan sonra Notlar'ı ana ekrandan açın (iOS ana ekran uygulamalarına ayrı bir depolama verir).
 3. **Eşleştirme kodu.** Ana ekrandaki uygulamada *Eşleştir*'e dokunup bilgisayarda görünen 6 haneli kodu yazın. Her dakika yeni kod gelir; kodlar yalnızca o pencere açıkken vardır.
 
-Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışırken (tepside gizli olsa da) eşitlenir. Evden uzakta çevrimdışı çalışmaya devam eder, dönünce birleşir. Fotoğraf ve videolar asla yeniden sıkıştırılmaz; uygulama iOS'tan orijinalleri ister.
+Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışırken (tepside gizli olsa da) eşitlenir. Evden uzakta çevrimdışı çalışmaya devam eder, dönünce birleşir. Fotoğraf ve videolar asla yeniden sıkıştırılmaz; uygulama iOS'tan orijinalleri ister. Notta kareler halinde dizilirler; birine dokununca görüntüleyici açılır: *kaydet veya paylaş* (paylaşım menüsündeki *Görüntüyü/Videoyu Kaydet* galeriye koyar) ve *kaldır*; notun *…* menüsü tüm ekleri bir seferde kaydeder. Bilgisayarda *Tüm ekleri kaydet…* (not kartına veya bir eke sağ tık) bir notun ya da işaretli tüm notların dosyalarını bir klasöre yazar.
 
 ## Kısayollar (Windows)
 

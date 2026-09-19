@@ -182,5 +182,7 @@
   "TrayOpen": "NoteBook 열기",
   "TrayExit": "종료",
   "TrayHint": "휴대전화가 동기화할 수 있도록 NoteBook이 여기서 계속 실행됩니다. 종료하려면 아이콘을 마우스 오른쪽 버튼으로 클릭하세요.",
-  "ChecklistAdd": "체크리스트 (Ctrl+Shift+L)"
+  "ChecklistAdd": "체크리스트 (Ctrl+Shift+L)",
+  "SaveAllAttachments": "첨부 파일 모두 저장…",
+  "AttachmentsSavedMany": "파일 {0}개를 “{1}”에 저장했습니다."
 }
