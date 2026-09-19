@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>../../notes.ico</ApplicationIcon>
     <AssemblyName>Notlar</AssemblyName>
-    <Version>1.6.1</Version>
+    <Version>1.6.2</Version>
     <Product>NoteBook</Product>
     <Company>Wallece</Company>
   </PropertyGroup>

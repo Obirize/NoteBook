@@ -18,7 +18,7 @@ public partial class App : Application
         base.OnStartup(e);
         L10n.Use(L10n.Detect(DataDirectory));
         AttachmentStore.CleanTemporary();
-        var files = e.Args.Where(a => a.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) && File.Exists(a)).Select(Path.GetFullPath).ToList();
+        var files = e.Args.Where(a => TextFiles.IsSupported(a) && File.Exists(a)).Select(Path.GetFullPath).ToList();
         bool fresh = e.Args.Contains("--new", StringComparer.OrdinalIgnoreCase);
         bool minimized = e.Args.Contains("--minimized", StringComparer.OrdinalIgnoreCase) && files.Count == 0 && !fresh;
         mutex = new Mutex(true, "Local\\" + InstanceName, out bool owns);

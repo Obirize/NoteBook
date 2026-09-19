@@ -14,7 +14,7 @@ Windows için Apple Notlar tarzında bir not defteri ve onunla kendi Wi‑Fi'ın
 
 ## Ne yapar
 
-- **Notlar**: başlık, metin, yapılacaklar listesi, fotoğraf ve video. Arama, sabitleme, toplu seçim, 30 günlük *Son silinenler*, TXT içe/dışa aktarma; bilgisayarda da telefonda da 13 arayüz dili.
+- **Notlar**: başlık, metin, yapılacaklar listesi, fotoğraf ve video. Arama, sabitleme, toplu seçim, 30 günlük *Son silinenler*, TXT, Markdown, HTML, RTF ve Word dosyalarını not olarak açma, notu TXT ya da Markdown olarak kaydetme; bilgisayarda da telefonda da 13 arayüz dili.
 - **Diskte şifreli.** Notlar AES‑256‑GCM ile mühürlenmiş bir kasada; her fotoğraf ve video kendi anahtarıyla şifrelenmiş ayrı bir dosyada. Bilgisayarda anahtarlar Windows oturumunuzla korunur; uygulama parola sormaz.
 - **Sunucusuz iPhone eşitlemesi.** Windows uygulamasının kendisi telefona küçük bir web uygulaması sunar; ana ekrana eklersiniz ve 6 haneli bir kodla eşleştirirsiniz. Sonra notlar ve dosyalar, iki cihaz aynı Wi‑Fi'dayken doğrudan aralarında eşitlenir. Telefon uygulaması Apple Notlar gibi görünür ve çevrimdışı çalışır.
 - **Arka planda çalışır.** Pencereyi kapatmak uygulamayı kapatmaz; Notlar bildirim alanında kalır ki telefon eşitlenebilsin. Kurulum sihirbazı Windows ile başlatmayı sunar.
@@ -25,7 +25,7 @@ Windows için Apple Notlar tarzında bir not defteri ve onunla kendi Wi‑Fi'ın
 
 ## Kurulum
 
-[Releases](https://github.com/Obirize/NoteBook/releases) sayfasından `NoteBook-Setup-<sürüm>.exe` dosyasını indirin. Kurulum kullanıcı bazlıdır (yönetici hakkı istemez), `%LocalAppData%\Programs\NoteBook` içine kurulur, notlarınızı `…\NoteBook\data` içinde tutar ve kaldırırken asla silmez. Masaüstü kısayolu, `.txt` için *Birlikte aç*, sağ tık menüsüne *Yeni not* ve *Windows ile başlat* seçeneklerini sunar.
+[Releases](https://github.com/Obirize/NoteBook/releases) sayfasından `NoteBook-Setup-<sürüm>.exe` dosyasını indirin. Kurulum kullanıcı bazlıdır (yönetici hakkı istemez), `%LocalAppData%\Programs\NoteBook` içine kurulur, notlarınızı `…\NoteBook\data` içinde tutar ve kaldırırken asla silmez. Masaüstü kısayolu, `.txt`, `.md`, `.markdown`, `.text` ve `.log` için *Birlikte aç*, sağ tık menüsüne *Yeni not* ve *Windows ile başlat* seçeneklerini sunar.
 
 Kurulum dosyası henüz kod imzalı değildir; ilk indirmede SmartScreen uyarısı çıkabilir ("Daha fazla bilgi → Yine de çalıştır"). Uygulama içi güncellemelerde çıkmaz.
 
@@ -46,11 +46,11 @@ Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışı
 | Kısayol | İşlem |
 | --- | --- |
 | Ctrl+N | Yeni not |
-| Ctrl+O | TXT dosyasını yeni not olarak aç |
+| Ctrl+O | Metin dosyalarını (TXT, Markdown, HTML, RTF, DOCX, …) yeni not olarak aç |
 | Ctrl+Shift+A | Açık nota fotoğraf veya video ekle |
 | Ctrl+Shift+L | Bulunulan satırı (veya seçili satırları) yapılacaklar maddesi yap, ya da geri çevir |
 | Ctrl+V | Panodaki resmi veya medya dosyalarını ek olarak yapıştır |
-| Ctrl+Shift+S | Açık notu şifresiz TXT kopyası olarak kaydet |
+| Ctrl+Shift+S | Açık notu şifresiz TXT ya da Markdown kopyası olarak kaydet |
 | Ctrl+K / Ctrl+F | Arama |
 | Ctrl+S | Hemen kaydet / hatalı kaydı yeniden dene |
 | Ctrl+Z / Ctrl+Y | Metin düzenlemesini geri al / yinele |
@@ -72,6 +72,19 @@ Kaynaklar: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/sy
 ## Yapılacaklar listesi
 
 Liste düğmesi (bilgisayarda Ctrl+Shift+L, telefonda üst çubuktaki liste simgesi) bulunulan satırı yuvarlak onay kutulu bir maddeye çevirir; Enter listeyi sürdürür, boş maddede Enter listeyi bitirir, madde başında Backspace onu düz metne çevirir, yuvarlağa dokunmak maddeyi tamamlanmış (üstü çizili) yapar. Maddeler `○` veya `●` ile başlayan düz satırlar olarak saklanır; bu yüzden başka her metin gibi eşitlenir, aranır ve dışa aktarılır.
+
+## Metin dosyalarını açma ve kaydetme
+
+Ctrl+O, *Metin dosyası aç* menüsü, pencereye sürükleyip bırakma veya Gezgin'de *Birlikte aç* bir dosyayı yeni nota çevirir (birden çok dosya birden çok not olur). Asıl dosyaya dokunulmaz. Desteklenenler:
+
+| Tür | Uzantılar | Nota ne geçer |
+|---|---|---|
+| Düz metin | `.txt` `.text` `.log` `.json` `.csv` `.tsv` `.xml` `.ini` `.cfg` `.conf` `.yaml` `.yml` `.nfo` | Metin olduğu gibi; UTF‑8, BOM'lu UTF‑16/32 ya da eski Not Defteri dosyalarının Windows‑1254 kod sayfası |
+| Markdown | `.md` `.markdown` | Metin; `- [ ]` / `- [x]` görev listeleri yapılacaklar listesi olur |
+| HTML | `.html` `.htm` | Etiketler, betikler ve stiller atılmış okunur metin |
+| Zengin metin / Word | `.rtf` `.docx` | Biçimsiz metin; resim ve tablolar alınmaz |
+
+8 MB'tan büyük dosyalar ve metin olmayan dosyalar reddedilir. Ctrl+Shift+S açık notu şifresiz kopya olarak kaydeder: **TXT** (metin yazıldığı gibi) ya da **Markdown** (başlık `#` başlığı, listeler görev listesi olarak). Kaydetme yalnızca metin uzantılarına izin verir; bir not asla kasanın ya da yedeğin üstüne yazılamaz.
 
 ## Dosyalar, yedek ve kurtarma
 

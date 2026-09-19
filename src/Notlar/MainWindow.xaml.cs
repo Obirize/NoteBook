@@ -449,8 +449,9 @@ public partial class MainWindow : Window
     }
     private void ImportClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Title = L10n.T("TxtOpenTitle"), Filter = L10n.T("TxtFilter"), CheckFileExists = true };
+        var dialog = new OpenFileDialog { Title = L10n.T("TxtOpenTitle"), Filter = L10n.T("TextFilesLabel") + " (" + TextFiles.OpenPatterns + ")|" + TextFiles.OpenPatterns + "|" + L10n.T("AllFiles") + " (*.*)|*.*", CheckFileExists = true, Multiselect = true };
         if (dialog.ShowDialog(this) != true) return;
+        if (dialog.FileNames.Length > 1) { ImportDropped(dialog.FileNames); return; }
         try { ImportTextFile(dialog.FileName); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
         { StatusText.Text = ex is InvalidDataException ? ex.Message : L10n.T("TxtOpenFailed"); }
@@ -459,7 +460,7 @@ public partial class MainWindow : Window
     {
         if (current == null || selecting || !SaveNow()) return;
         var note = current;
-        var dialog = new SaveFileDialog { Title = L10n.T("TxtSaveTitle"), Filter = L10n.T("TxtSaveFilter"), DefaultExt = ".txt", FileName = TextFiles.SuggestedName(note) };
+        var dialog = new SaveFileDialog { Title = L10n.T("TxtSaveTitle"), Filter = L10n.T("TxtSaveFilter"), DefaultExt = ".txt", AddExtension = true, FileName = TextFiles.SuggestedName(note) };
         if (dialog.ShowDialog(this) != true) return;
         try { TextFiles.Write(dialog.FileName, note); StatusText.Text = L10n.T("TxtSaved"); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
@@ -528,7 +529,7 @@ public partial class MainWindow : Window
     }
     private static string[] DroppedFiles(DragEventArgs e) =>
         e.Data.GetDataPresent(DataFormats.FileDrop) && e.Data.GetData(DataFormats.FileDrop) is string[] files ? files : [];
-    private static string[] TextFilesOf(string[] files) => files.Where(f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)).ToArray();
+    private static string[] TextFilesOf(string[] files) => files.Where(TextFiles.IsSupported).ToArray();
     private string[] MediaFilesOf(string[] files) => CanAttach ? files.Where(AttachmentStore.IsSupported).ToArray() : [];
     private bool CanAttach => current != null && !trash && !selecting && !importing;
     private void FileDragOver(object sender, DragEventArgs e)
@@ -546,7 +547,7 @@ public partial class MainWindow : Window
         if (media.Length > 0) _ = AttachFilesAsync(media);
         if (text.Length > 0) ImportDropped(text);
     }
-    // Imports each dropped .txt as a note; reports how many succeeded.
+    // Imports each dropped text file as a note; reports how many succeeded.
     public int ImportDropped(string[] files)
     {
         int count = 0; string? error = null;

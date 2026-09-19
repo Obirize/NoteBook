@@ -52,110 +52,110 @@ Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 english.Shortcuts=Shortcuts:
 english.Integration=Windows integration:
 english.TaskDesktop=Create a desktop shortcut
-english.TaskTxt=Add NoteBook to the "Open with" list and Default apps for .txt files
+english.TaskTxt=Add NoteBook to the "Open with" list and Default apps for text files (.txt, .md, .log…)
 english.TaskNewNote=Add "New note (NoteBook)" to the desktop and folder right-click menu
 english.TextNote=Text note
 english.OpenWith=Open with NoteBook
 english.NewNote=New note (NoteBook)
 english.AppDescription=Encrypted local notebook
 english.RunApp=Launch NoteBook
-english.OpenSettings=Open Settings to choose the default app for .txt files
+english.OpenSettings=Open Settings to choose the default app for text files
 english.TaskStartup=Start NoteBook with Windows (in the notification area)
 turkish.Shortcuts=Kısayollar:
 turkish.Integration=Windows ile bütünleşme:
 turkish.TaskDesktop=Masaüstüne kısayol ekle
-turkish.TaskTxt=NoteBook'u .txt dosyaları için "Birlikte aç" listesine ve Varsayılan uygulamalar'a ekle
+turkish.TaskTxt=NoteBook'u metin dosyaları (.txt, .md, .log…) için "Birlikte aç" listesine ve Varsayılan uygulamalar'a ekle
 turkish.TaskNewNote=Masaüstü ve klasör sağ tık menüsüne "Yeni not (NoteBook)" ekle
 turkish.TextNote=Metin notu
 turkish.OpenWith=NoteBook ile aç
 turkish.NewNote=Yeni not (NoteBook)
 turkish.AppDescription=Şifreli, yerel not defteri
 turkish.RunApp=NoteBook'u başlat
-turkish.OpenSettings=.txt için varsayılan uygulamayı seçmek üzere Ayarlar'ı aç
+turkish.OpenSettings=Metin dosyaları için varsayılan uygulamayı seçmek üzere Ayarlar'ı aç
 turkish.TaskStartup=NoteBook'u Windows ile başlat (bildirim alanında)
 spanish.Shortcuts=Accesos directos:
 spanish.Integration=Integración con Windows:
 spanish.TaskDesktop=Crear un acceso directo en el escritorio
-spanish.TaskTxt=Añadir NoteBook a la lista "Abrir con" y a Aplicaciones predeterminadas para archivos .txt
+spanish.TaskTxt=Añadir NoteBook a la lista "Abrir con" y a Aplicaciones predeterminadas para archivos de texto (.txt, .md, .log…)
 spanish.TaskNewNote=Añadir "Nueva nota (NoteBook)" al menú contextual del escritorio y las carpetas
 spanish.TextNote=Nota de texto
 spanish.OpenWith=Abrir con NoteBook
 spanish.NewNote=Nueva nota (NoteBook)
 spanish.AppDescription=Bloc de notas local cifrado
 spanish.RunApp=Iniciar NoteBook
-spanish.OpenSettings=Abrir Configuración para elegir la aplicación predeterminada de .txt
+spanish.OpenSettings=Abrir Configuración para elegir la aplicación predeterminada de los archivos de texto
 spanish.TaskStartup=Iniciar NoteBook con Windows (en el área de notificación)
 brazilianportuguese.Shortcuts=Atalhos:
 brazilianportuguese.Integration=Integração com o Windows:
 brazilianportuguese.TaskDesktop=Criar atalho na área de trabalho
-brazilianportuguese.TaskTxt=Adicionar o NoteBook à lista "Abrir com" e aos Aplicativos padrão para arquivos .txt
+brazilianportuguese.TaskTxt=Adicionar o NoteBook à lista "Abrir com" e aos Aplicativos padrão para arquivos de texto (.txt, .md, .log…)
 brazilianportuguese.TaskNewNote=Adicionar "Nova nota (NoteBook)" ao menu de contexto da área de trabalho e das pastas
 brazilianportuguese.TextNote=Nota de texto
 brazilianportuguese.OpenWith=Abrir com o NoteBook
 brazilianportuguese.NewNote=Nova nota (NoteBook)
 brazilianportuguese.AppDescription=Bloco de notas local criptografado
 brazilianportuguese.RunApp=Iniciar o NoteBook
-brazilianportuguese.OpenSettings=Abrir Configurações para escolher o aplicativo padrão de .txt
+brazilianportuguese.OpenSettings=Abrir Configurações para escolher o aplicativo padrão de arquivos de texto
 brazilianportuguese.TaskStartup=Iniciar o NoteBook com o Windows (na área de notificação)
 russian.Shortcuts=Ярлыки:
 russian.Integration=Интеграция с Windows:
 russian.TaskDesktop=Создать ярлык на рабочем столе
-russian.TaskTxt=Добавить NoteBook в список «Открыть с помощью» и в приложения по умолчанию для файлов .txt
+russian.TaskTxt=Добавить NoteBook в список «Открыть с помощью» и в приложения по умолчанию для текстовых файлов (.txt, .md, .log…)
 russian.TaskNewNote=Добавить «Новая заметка (NoteBook)» в контекстное меню рабочего стола и папок
 russian.TextNote=Текстовая заметка
 russian.OpenWith=Открыть в NoteBook
 russian.NewNote=Новая заметка (NoteBook)
 russian.AppDescription=Зашифрованный локальный блокнот
 russian.RunApp=Запустить NoteBook
-russian.OpenSettings=Открыть «Параметры», чтобы выбрать приложение по умолчанию для .txt
+russian.OpenSettings=Открыть «Параметры», чтобы выбрать приложение по умолчанию для текстовых файлов
 russian.TaskStartup=Запускать NoteBook вместе с Windows (в области уведомлений)
 japanese.Shortcuts=ショートカット:
 japanese.Integration=Windows との連携:
 japanese.TaskDesktop=デスクトップにショートカットを作成
-japanese.TaskTxt=.txt ファイルの「プログラムから開く」と既定のアプリに NoteBook を追加
+japanese.TaskTxt=テキストファイル (.txt, .md, .log…) の「プログラムから開く」と既定のアプリに NoteBook を追加
 japanese.TaskNewNote=デスクトップとフォルダーの右クリック メニューに「新規ノート (NoteBook)」を追加
 japanese.TextNote=テキスト ノート
 japanese.OpenWith=NoteBook で開く
 japanese.NewNote=新規ノート (NoteBook)
 japanese.AppDescription=暗号化されたローカル ノート
 japanese.RunApp=NoteBook を起動
-japanese.OpenSettings=設定を開いて .txt の既定のアプリを選ぶ
+japanese.OpenSettings=設定を開いてテキストファイルの既定のアプリを選ぶ
 japanese.TaskStartup=Windows と同時に NoteBook を起動（通知領域に）
 german.Shortcuts=Verknüpfungen:
 german.Integration=Windows-Integration:
 german.TaskDesktop=Desktop-Verknüpfung erstellen
-german.TaskTxt=NoteBook zur Liste „Öffnen mit“ und zu den Standard-Apps für .txt-Dateien hinzufügen
+german.TaskTxt=NoteBook zur Liste „Öffnen mit“ und zu den Standard-Apps für Textdateien (.txt, .md, .log…) hinzufügen
 german.TaskNewNote=„Neue Notiz (NoteBook)“ zum Rechtsklick-Menü von Desktop und Ordnern hinzufügen
 german.TextNote=Textnotiz
 german.OpenWith=Mit NoteBook öffnen
 german.NewNote=Neue Notiz (NoteBook)
 german.AppDescription=Verschlüsseltes lokales Notizbuch
 german.RunApp=NoteBook starten
-german.OpenSettings=Einstellungen öffnen, um die Standard-App für .txt zu wählen
+german.OpenSettings=Einstellungen öffnen, um die Standard-App für Textdateien zu wählen
 german.TaskStartup=NoteBook mit Windows starten (im Infobereich)
 french.Shortcuts=Raccourcis :
 french.Integration=Intégration à Windows :
 french.TaskDesktop=Créer un raccourci sur le Bureau
-french.TaskTxt=Ajouter NoteBook à la liste « Ouvrir avec » et aux applications par défaut pour les fichiers .txt
+french.TaskTxt=Ajouter NoteBook à la liste « Ouvrir avec » et aux applications par défaut pour les fichiers texte (.txt, .md, .log…)
 french.TaskNewNote=Ajouter « Nouvelle note (NoteBook) » au menu contextuel du Bureau et des dossiers
 french.TextNote=Note texte
 french.OpenWith=Ouvrir avec NoteBook
 french.NewNote=Nouvelle note (NoteBook)
 french.AppDescription=Bloc-notes local chiffré
 french.RunApp=Lancer NoteBook
-french.OpenSettings=Ouvrir les Paramètres pour choisir l'application par défaut des .txt
+french.OpenSettings=Ouvrir les Paramètres pour choisir l'application par défaut des fichiers texte
 french.TaskStartup=Lancer NoteBook avec Windows (dans la zone de notification)
 korean.Shortcuts=바로 가기:
 korean.Integration=Windows 통합:
 korean.TaskDesktop=바탕 화면 바로 가기 만들기
-korean.TaskTxt=.txt 파일의 "연결 프로그램" 목록과 기본 앱에 NoteBook 추가
+korean.TaskTxt=텍스트 파일(.txt, .md, .log…)의 "연결 프로그램" 목록과 기본 앱에 NoteBook 추가
 korean.TaskNewNote=바탕 화면 및 폴더 오른쪽 클릭 메뉴에 "새 메모 (NoteBook)" 추가
 korean.TextNote=텍스트 메모
 korean.OpenWith=NoteBook으로 열기
 korean.NewNote=새 메모 (NoteBook)
 korean.AppDescription=암호화된 로컬 메모장
 korean.RunApp=NoteBook 실행
-korean.OpenSettings=설정을 열어 .txt 기본 앱 선택
+korean.OpenSettings=설정을 열어 텍스트 파일 기본 앱 선택
 korean.TaskStartup=Windows와 함께 NoteBook 시작(알림 영역에)
 
 [Tasks]
@@ -178,21 +178,33 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 [Registry]
 ; Start with Windows, straight into the notification area (per user, no administrator rights).
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Notlar"; ValueData: """{app}\{#AppExe}"" --minimized"; Flags: uninsdeletevalue; Tasks: startup
-; ProgID and "Open with" for .txt — added next to Windows Notepad, which is not modified.
+; ProgID and "Open with" for .txt, .md, .markdown, .text and .log — added next to Windows Notepad, which is not modified.
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueData: "{cm:TextNote}"; Flags: uninsdeletekey; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}"; ValueType: string; ValueName: "FriendlyTypeName"; ValueData: "{cm:TextNote}"; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}\DefaultIcon"; ValueType: string; ValueData: """{app}\{#AppExe}"",0"; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}\shell\open"; ValueType: string; ValueData: "{cm:OpenWith}"; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\{#ProgId}\shell\open\command"; ValueType: string; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\.txt\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\.markdown\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\.text\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\.log\OpenWithProgids"; ValueType: none; ValueName: "{#ProgId}"; Flags: uninsdeletevalue; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\Applications\{#AppExe}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#AppName}"; Flags: uninsdeletekey; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\Applications\{#AppExe}\shell\open\command"; ValueType: string; ValueData: """{app}\{#AppExe}"" ""%1"""; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".txt"; ValueData: ""; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".md"; ValueData: ""; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".markdown"; ValueData: ""; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".text"; ValueData: ""; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\Classes\Applications\{#AppExe}\SupportedTypes"; ValueType: string; ValueName: ".log"; ValueData: ""; Tasks: txtopenwith
 ; Default Programs registration so the app appears in Settings > Default apps.
 Root: HKCU; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "{#AppName}"; ValueData: "Software\{#AppName}\Capabilities"; Flags: uninsdeletevalue; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\{#AppName}\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "{#AppName}"; Flags: uninsdeletekey; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\{#AppName}\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "{cm:AppDescription}"; Tasks: txtopenwith
 Root: HKCU; Subkey: "Software\{#AppName}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".txt"; ValueData: "{#ProgId}"; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\{#AppName}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".md"; ValueData: "{#ProgId}"; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\{#AppName}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".markdown"; ValueData: "{#ProgId}"; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\{#AppName}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".text"; ValueData: "{#ProgId}"; Tasks: txtopenwith
+Root: HKCU; Subkey: "Software\{#AppName}\Capabilities\FileAssociations"; ValueType: string; ValueName: ".log"; ValueData: "{#ProgId}"; Tasks: txtopenwith
 ; Right-click > "New note (NoteBook)" on the desktop and folder backgrounds. Creates no file; opens a note directly.
 Root: HKCU; Subkey: "Software\Classes\DesktopBackground\shell\NoteBook.NewNote"; ValueType: string; ValueData: "{cm:NewNote}"; Flags: uninsdeletekey; Tasks: newnote
 Root: HKCU; Subkey: "Software\Classes\DesktopBackground\shell\NoteBook.NewNote"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#AppExe}"",0"; Tasks: newnote

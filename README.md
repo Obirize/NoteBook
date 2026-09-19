@@ -14,7 +14,7 @@ An Apple Notes–style notebook for Windows with a matching iPhone app that sync
 
 ## What it does
 
-- **Notes** with a title, text, checklists, photos and videos. Search, pin, multi-select, a 30‑day *Recently deleted* folder, TXT import and export, 13 interface languages on both the PC and the phone.
+- **Notes** with a title, text, checklists, photos and videos. Search, pin, multi-select, a 30‑day *Recently deleted* folder, opens TXT, Markdown, HTML, RTF and Word files as notes and saves notes as TXT or Markdown, 13 interface languages on both the PC and the phone.
 - **Encrypted at rest.** Notes are stored in a vault sealed with AES‑256‑GCM; every photo and video is a separate file encrypted with its own key. On the PC the keys are protected by your Windows sign‑in, so the app never asks for a password.
 - **iPhone sync without a server.** The Windows app itself serves a small web app to your phone; you add it to the Home Screen and pair with a six‑digit code. Notes and files then sync directly between the two devices whenever both are on the same Wi‑Fi. The phone app looks like Apple Notes and works offline.
 - **Runs in the background.** Closing the window keeps NoteBook in the notification area so the phone can sync; the installer can start it with Windows.
@@ -25,7 +25,7 @@ An Apple Notes–style notebook for Windows with a matching iPhone app that sync
 
 ## Install
 
-Download `NoteBook-Setup-<version>.exe` from [Releases](https://github.com/Obirize/NoteBook/releases). The installer is per‑user (no administrator rights), installs to `%LocalAppData%\Programs\NoteBook`, keeps your notes in `…\NoteBook\data` and never deletes them on uninstall. It offers a desktop shortcut, *Open with* for `.txt` files, a *New note* entry in the right‑click menu and *Start with Windows*.
+Download `NoteBook-Setup-<version>.exe` from [Releases](https://github.com/Obirize/NoteBook/releases). The installer is per‑user (no administrator rights), installs to `%LocalAppData%\Programs\NoteBook`, keeps your notes in `…\NoteBook\data` and never deletes them on uninstall. It offers a desktop shortcut, *Open with* for `.txt`, `.md`, `.markdown`, `.text` and `.log` files, a *New note* entry in the right‑click menu and *Start with Windows*.
 
 The installer is not code‑signed yet, so the first download may show a SmartScreen prompt ("More info → Run anyway"). In‑app updates do not.
 
@@ -46,11 +46,11 @@ Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is 
 | Shortcut | Action |
 | --- | --- |
 | Ctrl+N | New note |
-| Ctrl+O | Open a TXT file as a new note |
+| Ctrl+O | Open text files (TXT, Markdown, HTML, RTF, DOCX, …) as new notes |
 | Ctrl+Shift+A | Add photos or videos to the open note |
 | Ctrl+Shift+L | Turn the current line (or the selected lines) into checklist items, and back |
 | Ctrl+V | Paste a picture or media files from the clipboard as attachments |
-| Ctrl+Shift+S | Save the open note as an unencrypted TXT copy |
+| Ctrl+Shift+S | Save the open note as an unencrypted TXT or Markdown copy |
 | Ctrl+K / Ctrl+F | Search |
 | Ctrl+S | Save now / retry a failed save |
 | Ctrl+Z / Ctrl+Y | Undo / redo text edits |
@@ -72,6 +72,19 @@ References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/s
 ## Checklists
 
 The checklist button (Ctrl+Shift+L on the PC, the list icon on the phone) turns the current line into an item with a round check box; Enter continues the list, Enter on an empty item ends it, Backspace at the start of an item turns it back into text, and tapping the circle marks it done (struck through). Items are stored as plain lines starting with `○` or `●`, so they sync, search and export like any other text.
+
+## Opening and saving text files
+
+Ctrl+O, the *Open a text file* menu entry, drag‑and‑drop onto the window or *Open with* in Explorer turn a file into a new note (several files at once become several notes). The original file is never touched. Supported:
+
+| Kind | Extensions | What becomes the note |
+|---|---|---|
+| Plain text | `.txt` `.text` `.log` `.json` `.csv` `.tsv` `.xml` `.ini` `.cfg` `.conf` `.yaml` `.yml` `.nfo` | The text as it is; UTF‑8, UTF‑16/32 with BOM, or the Windows‑1254 code page that old Notepad files use |
+| Markdown | `.md` `.markdown` | The text; `- [ ]` / `- [x]` task lists become checklists |
+| HTML | `.html` `.htm` | The readable text without tags, scripts and styles |
+| Rich text / Word | `.rtf` `.docx` | The text without formatting, images or tables |
+
+Files over 8 MB and files that are not text are refused. Ctrl+Shift+S saves the open note as an unencrypted copy: **TXT** (the text exactly as written) or **Markdown** (the title as a `#` heading, checklists as task lists). Saving is limited to text extensions, so a note can never be written over a vault or a backup.
 
 ## Files, backup and recovery
 

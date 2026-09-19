@@ -114,14 +114,14 @@ static class Program
         string importedText = "İstanbul, ıhlamur, çığ, şeker, öykü, güneş. 🌿\r\n\r\nSon satır\n";
         File.WriteAllText(importPath, importedText, new UTF8Encoding(false));
         Check(window.ImportTextFile(importPath), "TXT imports through editor into encrypted storage");
-        using (var reopened = VaultSession.OpenDevice(path)) Check(reopened.Book.Notes.Any(n => n.Title == "Türkçe örnek" && n.Text == importedText), "Imported Unicode and newlines survive encrypted reopen");
+        using (var reopened = VaultSession.OpenDevice(path)) Check(reopened.Book.Notes.Any(n => n.Title == "Türkçe örnek" && n.Text == importedText.Replace("\r\n", "\n")), "Imported Unicode survives encrypted reopen; line endings are normalised for the phone");
         Find<TextBox>(window, "BodyInput").Text += "Düzenleme"; window.SaveNow();
         Check(File.ReadAllText(importPath) == importedText, "Editing imported note never overwrites original TXT");
         string exportPath = Path.Combine(root, "export.txt");
         TextFiles.Write(exportPath, new Note { Title = "Title", Text = importedText });
         Check(File.ReadAllBytes(exportPath).SequenceEqual(new UTF8Encoding(false).GetBytes(importedText)), "Export writes interoperable UTF-8 with exact body and line endings");
         File.WriteAllText(importPath, importedText, Encoding.Unicode);
-        Check(TextFiles.Read(importPath).Text == importedText, "UTF-16 BOM Notepad file imports correctly");
+        Check(TextFiles.Read(importPath).Text == importedText.Replace("\r\n", "\n"), "UTF-16 BOM Notepad file imports correctly");
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         File.WriteAllText(importPath, "İıĞğŞşÇçÖöÜü", Encoding.GetEncoding(1254));
         Check(TextFiles.Read(importPath).Text == "İıĞğŞşÇçÖöÜü", "Legacy Turkish Windows-1254 TXT imports correctly");
@@ -452,6 +452,24 @@ static class Program
             int dropped = window.ImportDropped([drop1, drop2]);
             Check(dropped == 2 && session.Book.Notes.Count(n => n.Title.StartsWith("Bırakılan")) == 2 && Find<TextBlock>(window, "StatusText").Text == L10n.T("TxtImportedMany", 2), "Dropping TXT files imports each one as a note");
             Check(window.AllowDrop, "Main window accepts file drops");
+            // Other text formats: Markdown (task lists become checklists), HTML (tags stripped), RTF and DOCX (text only).
+            string mdFile = Path.Combine(root, "Plan.md"); File.WriteAllText(mdFile, "# Plan\n\n- [ ] Süt\n- [x] Ekmek\n\nNot.\n", new UTF8Encoding(false));
+            var mdNote = TextFiles.Read(mdFile);
+            Check(mdNote.Title == "Plan" && mdNote.Text == "# Plan\n\n" + Checklist.OpenPrefix + "Süt\n" + Checklist.DonePrefix + "Ekmek\n\nNot.\n", "Markdown opens as a note and its task list becomes a checklist");
+            string mdOut = Path.Combine(root, "out.md"); TextFiles.Write(mdOut, new Note { Title = "Liste", Text = Checklist.OpenPrefix + "Süt\n" + Checklist.DonePrefix + "Ekmek\ndüz" });
+            Check(File.ReadAllText(mdOut) == "# Liste\n\n- [ ] Süt\n- [x] Ekmek\ndüz\n", "Saving as Markdown writes the title as a heading and checklists as task lists");
+            string htmlFile = Path.Combine(root, "sayfa.html"); File.WriteAllText(htmlFile, "<html><head><style>p{}</style><script>x=1</script></head><body><h1>Başlık</h1><p>Bir &amp; iki<br>üç</p></body></html>");
+            Check(TextFiles.Read(htmlFile).Text == "Başlık\nBir & iki\nüç", "HTML opens as its readable text");
+            string rtfFile = Path.Combine(root, "eski.rtf"); File.WriteAllText(rtfFile, @"{\rtf1\ansi\ansicpg1254{\fonttbl{\f0 Arial;}}\f0 Merhaba \b d\u252?nya\b0\par ikinci sat\u305?r\par}");
+            var rtfNote = TextFiles.Read(rtfFile); Check(rtfNote.Text.Replace("\n", "|") == "Merhaba dünya|ikinci satır", "RTF opens as plain text without formatting codes");
+            string docxFile = Path.Combine(root, "belge.docx");
+            using (var zip = new System.IO.Compression.ZipArchive(File.Create(docxFile), System.IO.Compression.ZipArchiveMode.Create))
+            using (var writer = new StreamWriter(zip.CreateEntry("word/document.xml").Open()))
+                writer.Write("<?xml version=\"1.0\"?><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body><w:p><w:r><w:t>Birinci</w:t></w:r><w:r><w:tab/><w:t>paragraf</w:t></w:r></w:p><w:p><w:r><w:t>İkinci</w:t></w:r></w:p></w:body></w:document>");
+            Check(TextFiles.Read(docxFile).Text == "Birinci\tparagraf\nİkinci", "A Word document opens as its paragraphs");
+            Check(TextFiles.IsSupported("a.LOG") && TextFiles.IsSupported("b.markdown") && !TextFiles.IsSupported("c.exe") && TextFiles.SuggestedName(new Note { Title = "x" }, ".md") == "x.md", "Common text types are recognised by extension");
+            Reject(() => TextFiles.Read(dropBad), "Unsupported types are refused");
+            Check(window.ImportDropped([mdFile, htmlFile]) == 2 && session.Book.Notes.Any(n => n.Title == "sayfa"), "Dropping Markdown and HTML files imports them as notes");
             // Photos and videos on a note.
             var photoNote = (Note)Find<ListBox>(window, "NoteList").SelectedItem;
             string photoFile = Path.Combine(root, "Deniz kenarı.png"); File.WriteAllBytes(photoFile, Png(800, 500, Colors.DarkOrange));
@@ -512,7 +530,7 @@ static class Program
             Sounds.Enabled = true; Sounds.Click();
             Check(!Directory.Exists("src") || Directory.GetFiles(Path.Combine("src", "Notlar"), "*.cs").Where(f => !f.EndsWith("GateWindow.xaml.cs")).All(f => !File.ReadAllText(f).Contains("MessageBox.Show")), "No system message boxes remain outside the legacy gate window");
             var backupMenu = Find<ContextMenu>(window, "BackupMenu");
-            Check(backupMenu.Items.Count == 2 && TextFiles.SuggestedName(new Note { Title = "Alışveriş: süt/ekmek?" }) == "Alışveriş_ süt_ekmek_.txt", "Backup menu offers create and restore; TXT export suggests the note title as file name");
+            Check(backupMenu.Items.Count == 2 && TextFiles.SuggestedName(new Note { Title = "Alışveriş: süt/ekmek?" }) == "Alışveriş_ süt_ekmek_.txt", "Backup menu offers create and restore; export suggests the note title as file name");
             title.Text = "Kaydedilemeyen değişiklik";
             string moved = path + ".held"; File.Move(path, moved); Directory.CreateDirectory(path);
             Check(!window.SaveNow(), "Failed write is reported, never falsely marked saved");
