@@ -39,8 +39,9 @@ static class SyncChecks
         var media=host.Attachments.Import(new MemoryStream(Encoding.UTF8.GetBytes("desktop attachment")),"desktop.png","image/png");
         host.Book.Notes.Add(new Note { Title="Desktop",Text="from PC",Attachments=[media] });
         using var service=new SyncService(Path.Combine(root,"sync-test"),host);
-        service.Settings.Port=Random.Shared.Next(48000,58000);
-        service.Start();check(service.Running,"HTTPS sync server starts");
+        // A random port pair can be taken by something else on this machine; try a few before giving up.
+        for(int attempt=0;attempt<5&&!service.Running;attempt++){service.Settings.Port=Random.Shared.Next(48000,58000);service.Start();}
+        check(service.Running,"HTTPS sync server starts");
         check(service.PairCode==null && service.TryPair("000000")==null,"No pairing code exists until the sync window asks for one");
         string burn=service.NewPairCode();
         for(int i=0;i<5;i++)check(service.TryPair(burn=="111111"?"222222":"111111")==null,"Wrong pairing code attempt "+(i+1)+" is refused");

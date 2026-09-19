@@ -84,6 +84,8 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 4px 0 2px;
 .attachment .file b { color: var(--text); font-weight: 500; display: block; }
 .attachment .remove { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; display: flex; align-items: center; justify-content: center; }
 .attachment .remove svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.attachment .share { right: auto; left: 8px; }
+.attachment .share svg { stroke-width: 2; }
 .attachment .waiting { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; }
 .fine { color: var(--muted); font-size: 13px; line-height: 1.5; }
 

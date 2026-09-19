@@ -135,7 +135,19 @@ async function renderAttachments(n) {
     const encrypted = await get('files', a.Id);
     if (!encrypted) { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b>Bilgisayardan aktarılıyor…</div>'; w.querySelector('b').textContent = a.Name; item.append(w); }
     else {
-      let url; try { url = URL.createObjectURL(await decryptFile(encrypted, a)); noteUrls.push(url); } catch { url = null; }
+      let url, plain = null; try { plain = await decryptFile(encrypted, a); url = URL.createObjectURL(plain); noteUrls.push(url); } catch { url = null; }
+      // "Save to Photos" on iOS goes through the share sheet; the decrypted file is kept ready so share() runs
+      // straight from the tap (Safari only allows it within the tap).
+      if (plain) {
+        const share = document.createElement('button'); share.className = 'remove share'; share.setAttribute('aria-label', 'Kaydet veya paylaş');
+        share.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>';
+        const file = new File([plain], a.Name, { type: a.MediaType });
+        share.addEventListener('click', () => {
+          if (navigator.canShare?.({ files: [file] })) navigator.share({ files: [file] }).catch(() => {});
+          else { const link = document.createElement('a'); link.href = url; link.download = a.Name; link.click(); }
+        });
+        item.append(share);
+      }
       if (url && a.MediaType.startsWith('image/')) { const img = document.createElement('img'); img.src = url; img.alt = a.Name; img.addEventListener('click', () => lightbox('img', url)); item.append(img); }
       else if (url && a.MediaType.startsWith('video/')) { const v = document.createElement('video'); v.src = url; v.controls = true; v.playsInline = true; v.preload = 'metadata'; item.append(v); }
       else { const w = document.createElement('div'); w.className = 'file'; w.innerHTML = '<div><b></b>' + (url ? 'Önizleme yok' : 'Dosya açılamadı') + '</div>'; w.querySelector('b').textContent = a.Name; item.append(w); }
@@ -383,7 +395,7 @@ run(async () => {
   if ('serviceWorker' in navigator) try {
     // A first-generation worker (cache "notebook-phone-v1") served the old design cache-first and could sit on a
     // phone for a long time; when its cache is around, drop every registration and cache before registering anew.
-    const stale = (await caches.keys()).some(k => { const m = /^notebook-phone-v(\d+)$/.exec(k); return !m || Number(m[1]) < 8; });
+    const stale = (await caches.keys()).some(k => { const m = /^notebook-phone-v(\d+)$/.exec(k); return !m || Number(m[1]) < 9; });
     if (stale) { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); }
     await navigator.serviceWorker.register('/sw.js');
   } catch { /* offline copy is optional */ }
