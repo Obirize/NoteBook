@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "配对码被拒绝（错误或已过期）",
   "SyncLogKeyMismatch": "手机的密钥与这台电脑不匹配 — 请重新配对",
   "SyncLogAuthOk": "{0} 已验证，开始同步",
-  "SyncTrustWarning": "有一台手机在连接但不接受证书。在手机上打开 设置 → 通用 → 关于本机 → 证书信任设置，启用 NoteBook 证书。"
+  "SyncTrustWarning": "有一台手机在连接但不接受证书。在手机上打开 设置 → 通用 → 关于本机 → 证书信任设置，启用 NoteBook 证书。",
+  "SetupReinstallButton": "重新安装证书",
+  "SetupReinstallHelp": "下载后：设置 → 已下载描述文件 → 安装；然后 设置 → 通用 → 关于本机 → 证书信任设置 → 打开 NoteBook 开关，回到此页再次测试。",
+  "SetupOpenApp": "打开应用"
 }

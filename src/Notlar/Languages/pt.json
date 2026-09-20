@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "código de pareamento recusado (errado ou expirado)",
   "SyncLogKeyMismatch": "a chave do celular não corresponde a este PC — pareie de novo",
   "SyncLogAuthOk": "{0} verificado, sincronização iniciada",
-  "SyncTrustWarning": "Um celular conecta mas não aceita o certificado. No celular: Ajustes → Geral → Sobre → Ajustes de Confiança de Certificado → ative o certificado do NoteBook."
+  "SyncTrustWarning": "Um celular conecta mas não aceita o certificado. No celular: Ajustes → Geral → Sobre → Ajustes de Confiança de Certificado → ative o certificado do NoteBook.",
+  "SetupReinstallButton": "Reinstalar o certificado",
+  "SetupReinstallHelp": "Após o download: Ajustes → Perfil Baixado → Instalar; depois Ajustes → Geral → Sobre → Ajustes de Confiança de Certificado → ative NoteBook, volte aqui e teste de novo.",
+  "SetupOpenApp": "Abrir o app"
 }

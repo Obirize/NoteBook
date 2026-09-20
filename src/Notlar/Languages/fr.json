@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "code de jumelage refusé (erroné ou expiré)",
   "SyncLogKeyMismatch": "la clé du téléphone ne correspond pas à ce PC — jumelez à nouveau",
   "SyncLogAuthOk": "{0} vérifié, synchronisation lancée",
-  "SyncTrustWarning": "Un téléphone se connecte mais n’accepte pas le certificat. Sur le téléphone : Réglages → Général → Informations → Réglages de confiance des certificats → activez le certificat NoteBook."
+  "SyncTrustWarning": "Un téléphone se connecte mais n’accepte pas le certificat. Sur le téléphone : Réglages → Général → Informations → Réglages de confiance des certificats → activez le certificat NoteBook.",
+  "SetupReinstallButton": "Réinstaller le certificat",
+  "SetupReinstallHelp": "Après le téléchargement : Réglages → Profil téléchargé → Installer ; puis Réglages → Général → Informations → Réglages de confiance des certificats → activez NoteBook, revenez ici et testez à nouveau.",
+  "SetupOpenApp": "Ouvrir l’app"
 }

@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "ペアリングコードを拒否しました（誤りまたは期限切れ）",
   "SyncLogKeyMismatch": "iPhone のキーがこの PC と一致しません — 再ペアリングしてください",
   "SyncLogAuthOk": "{0} を確認、同期を開始",
-  "SyncTrustWarning": "iPhone が接続していますが証明書を受け入れていません。iPhone の 設定 → 一般 → 情報 → 証明書信頼設定 で NoteBook の証明書をオンにしてください。"
+  "SyncTrustWarning": "iPhone が接続していますが証明書を受け入れていません。iPhone の 設定 → 一般 → 情報 → 証明書信頼設定 で NoteBook の証明書をオンにしてください。",
+  "SetupReinstallButton": "証明書を再インストール",
+  "SetupReinstallHelp": "ダウンロード後：設定 → プロファイルがダウンロードされました → インストール。次に 設定 → 一般 → 情報 → 証明書信頼設定 で NoteBook をオンにし、このページに戻って再テストしてください。",
+  "SetupOpenApp": "アプリを開く"
 }

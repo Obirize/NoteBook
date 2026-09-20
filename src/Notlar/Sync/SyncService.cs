@@ -242,8 +242,16 @@ public sealed class SyncService : IDisposable
         sb.Append("<li>").Append(E(steps[3]).Replace(E(StartUrl), "<a href=\"" + E(StartUrl) + "\"><code>" + E(StartUrl) + "</code></a>")).Append("</li></ol>");
         // The check fetches /status over HTTPS: it only succeeds once the certificate is installed and fully trusted.
         sb.Append("<button class=\"b\" id=\"check\">").Append(E(L10n.T("SetupCheckButton"))).Append("</button><p id=\"result\" class=\"r\"></p>");
+        sb.Append("<p id=\"fix\" hidden><a class=\"b\" href=\"/ca.mobileconfig\">").Append(E(L10n.T("SetupReinstallButton"))).Append("</a><br><span class=\"f\">").Append(E(L10n.T("SetupReinstallHelp"))).Append("</span></p>");
+        sb.Append("<p id=\"go\" hidden><a class=\"b\" href=\"").Append(E(StartUrl)).Append("\">").Append(E(L10n.T("SetupOpenApp"))).Append("</a></p>");
         sb.Append("<div class=\"f\">").Append(E(L10n.T("SetupFingerprint"))).Append("<br>").Append(E(Certs!.RootFingerprint)).Append("</div>");
-        sb.Append("<script>const r=document.getElementById('result');document.getElementById('check').onclick=async()=>{r.textContent='…';r.className='r';try{const s=await fetch(").Append(System.Text.Json.JsonSerializer.Serialize(AppUrl + "status")).Append(",{cache:'no-store'});if(!s.ok)throw 0;r.textContent=").Append(System.Text.Json.JsonSerializer.Serialize(L10n.T("SetupCheckOk"))).Append(";r.className='r ok';}catch(e){r.textContent=").Append(System.Text.Json.JsonSerializer.Serialize(L10n.T("SetupCheckFail"))).Append(";r.className='r bad';}};</script></body></html>");
+        // The check runs by itself when the page opens and again on demand. A phone that gets this page but fails the
+        // HTTPS check has lost trust in the certificate: the page then leads straight to reinstalling it, so the fix is
+        // one tap plus the iOS trust switch rather than a search for what went wrong.
+        string J(string value) => System.Text.Json.JsonSerializer.Serialize(value);
+        sb.Append("<script>const r=document.getElementById('result'),fix=document.getElementById('fix'),go=document.getElementById('go');")
+          .Append("async function check(){r.textContent='…';r.className='r';fix.hidden=go.hidden=true;try{const s=await fetch(").Append(J(AppUrl + "status")).Append(",{cache:'no-store'});if(!s.ok)throw 0;r.textContent=").Append(J(L10n.T("SetupCheckOk"))).Append(";r.className='r ok';go.hidden=false;}catch(e){r.textContent=").Append(J(L10n.T("SetupCheckFail"))).Append(";r.className='r bad';fix.hidden=false;}}")
+          .Append("document.getElementById('check').onclick=check;check();</script></body></html>");
         return sb.ToString();
     }
 

@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "eşleştirme kodu reddedildi (yanlış ya da süresi dolmuş)",
   "SyncLogKeyMismatch": "telefonun anahtarı bu bilgisayara uymuyor — yeniden eşleştirin",
   "SyncLogAuthOk": "{0} doğrulandı, eşitleme başladı",
-  "SyncTrustWarning": "Bir telefon bağlanıyor ama güven belgesini kabul etmiyor. Telefonda Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları’nda Notlar belgesinin anahtarını açın."
+  "SyncTrustWarning": "Bir telefon bağlanıyor ama güven belgesini kabul etmiyor. Telefonda Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları’nda Notlar belgesinin anahtarını açın.",
+  "SetupReinstallButton": "Belgeyi yeniden kur",
+  "SetupReinstallHelp": "İndirdikten sonra: Ayarlar → Profil İndirildi → Yükle; sonra Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar anahtarını AÇIN ve bu sayfaya dönüp yeniden sınayın.",
+  "SetupOpenApp": "Uygulamayı aç"
 }

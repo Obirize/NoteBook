@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "código de emparejamiento rechazado (incorrecto o caducado)",
   "SyncLogKeyMismatch": "la clave del teléfono no coincide con este PC — empareja de nuevo",
   "SyncLogAuthOk": "{0} verificado, sincronización iniciada",
-  "SyncTrustWarning": "Un teléfono se conecta pero no acepta el certificado. En el teléfono: Ajustes → General → Información → Ajustes de confianza de certificados → activa el certificado de NoteBook."
+  "SyncTrustWarning": "Un teléfono se conecta pero no acepta el certificado. En el teléfono: Ajustes → General → Información → Ajustes de confianza de certificados → activa el certificado de NoteBook.",
+  "SetupReinstallButton": "Reinstalar el certificado",
+  "SetupReinstallHelp": "Tras la descarga: Ajustes → Perfil descargado → Instalar; luego Ajustes → General → Información → Ajustes de confianza de certificados → activa NoteBook, vuelve aquí y prueba de nuevo.",
+  "SetupOpenApp": "Abrir la app"
 }

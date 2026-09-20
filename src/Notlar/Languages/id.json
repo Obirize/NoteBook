@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "kode penyandingan ditolak (salah atau kedaluwarsa)",
   "SyncLogKeyMismatch": "kunci ponsel tidak cocok dengan PC ini — sandingkan lagi",
   "SyncLogAuthOk": "{0} terverifikasi, sinkronisasi dimulai",
-  "SyncTrustWarning": "Sebuah ponsel terhubung tetapi tidak menerima sertifikat. Di ponsel: Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan sertifikat NoteBook."
+  "SyncTrustWarning": "Sebuah ponsel terhubung tetapi tidak menerima sertifikat. Di ponsel: Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan sertifikat NoteBook.",
+  "SetupReinstallButton": "Pasang ulang sertifikat",
+  "SetupReinstallHelp": "Setelah diunduh: Pengaturan → Profil Terunduh → Pasang; lalu Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan NoteBook, kembali ke sini dan uji lagi.",
+  "SetupOpenApp": "Buka aplikasi"
 }

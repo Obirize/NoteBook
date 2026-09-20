@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "페어링 코드 거부됨 (잘못되었거나 만료됨)",
   "SyncLogKeyMismatch": "휴대폰의 키가 이 PC와 맞지 않음 — 다시 페어링하세요",
   "SyncLogAuthOk": "{0} 확인됨, 동기화 시작",
-  "SyncTrustWarning": "휴대폰이 연결되지만 인증서를 받아들이지 않습니다. 휴대폰에서 설정 → 일반 → 정보 → 인증서 신뢰 설정에서 NoteBook 인증서를 켜세요."
+  "SyncTrustWarning": "휴대폰이 연결되지만 인증서를 받아들이지 않습니다. 휴대폰에서 설정 → 일반 → 정보 → 인증서 신뢰 설정에서 NoteBook 인증서를 켜세요.",
+  "SetupReinstallButton": "인증서 다시 설치",
+  "SetupReinstallHelp": "다운로드 후: 설정 → 프로파일 다운로드됨 → 설치; 그다음 설정 → 일반 → 정보 → 인증서 신뢰 설정에서 NoteBook을 켜고 이 페이지로 돌아와 다시 테스트하세요.",
+  "SetupOpenApp": "앱 열기"
 }

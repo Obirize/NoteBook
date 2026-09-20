@@ -213,5 +213,8 @@
   "SyncLogPairRefused": "pairing code refused (wrong or expired)",
   "SyncLogKeyMismatch": "the phone’s key does not match this PC — pair again",
   "SyncLogAuthOk": "{0} verified, sync started",
-  "SyncTrustWarning": "A phone keeps connecting but does not accept the certificate. On the phone, open Settings → General → About → Certificate Trust Settings and turn on the NoteBook certificate."
+  "SyncTrustWarning": "A phone keeps connecting but does not accept the certificate. On the phone, open Settings → General → About → Certificate Trust Settings and turn on the NoteBook certificate.",
+  "SetupReinstallButton": "Reinstall the certificate",
+  "SetupReinstallHelp": "After the download: Settings → Profile Downloaded → Install; then Settings → General → About → Certificate Trust Settings → turn the NoteBook switch ON, come back here and test again.",
+  "SetupOpenApp": "Open the app"
 }
