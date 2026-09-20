@@ -31,11 +31,6 @@ static partial class Program
         e = JsonSerializer.Deserialize<VaultEnvelope>(valid)!; e.Content.Ciphertext[0] ^= 1; File.WriteAllBytes(path, JsonSerializer.SerializeToUtf8Bytes(e));
         Reject(() => VaultSession.OpenDevice(path), "Tampered automatic vault content rejected");
         File.WriteAllBytes(path, valid);
-        var legacy = VaultSession.Create(Path.Combine(root, "convert.vault"), Password, device.Book); using var previous = legacy.Session;
-        previous.Save(); previous.UseDeviceProtection();
-        using (var converted = VaultSession.OpenDevice(previous.FilePath)) Check(converted.Book.Notes[0].Text == "PASSWORDLESS-PRIVATE-TEXT", "Existing password vault converts without losing notes");
-        using (var convertedBackup = VaultSession.OpenDevice(previous.FilePath + ".bak")) Check(convertedBackup.IsDeviceProtected, "Converted rolling backup also opens without password");
-        Reject(() => VaultSession.Open(previous.FilePath, Password), "Converted vault no longer uses password wrapper");
         for (int i = 0; i < 50; i++) device.Book.Notes.Add(new Note { Title = "Not " + (i + 1), Text = "Kısa bir düşünce." });
         var longNote = device.Book.Notes[0]; longNote.Updated = DateTimeOffset.UtcNow.AddMinutes(1);
         longNote.Text = string.Join("\n\n", Enumerable.Range(1, 45).Select(i => i + ". Aklımdakileri yazmak için küçük bir alan.\nSadece notlarım, hepsi bu."));
@@ -48,7 +43,6 @@ static partial class Program
         Check(device.Book.Notes.First(n => n.Title == "Eski sürümden silinen").DeletedAt != null, "Deletions without a timestamp get a full grace period instead of instant purge");
         using (var purgedOnDisk = VaultSession.OpenDevice(path)) Check(purgedOnDisk.Book.Notes.All(n => n.Title != "Süresi dolan"), "Automatic purge is persisted");
         using (var purgedBackup = VaultSession.OpenDevice(path + ".bak")) Check(purgedBackup.Book.Notes.All(n => n.Title != "Süresi dolan"), "Automatic purge also rewrites the rolling backup");
-        Check(Find<Button>(window, "LockButton").Visibility == Visibility.Collapsed, "Automatic mode has no unnecessary lock button");
         Check(window.WindowStyle == WindowStyle.None, "Main window has no native white title bar");
         var body = Find<TextBox>(window, "BodyInput");
         var bars = Visuals<ScrollBar>(body).Where(b => b.IsVisible && b.Orientation == Orientation.Vertical).ToList();
@@ -165,68 +159,5 @@ static partial class Program
         var merged = new Notebook { Notes = [new Note { Id = book.Notes[0].Id, Title = "old", Revision = 0 }] };
         VaultSession.Merge(merged, book);
         Check(merged.Notes[0].Attachments.Count == 2 && merged.Notes[0].Attachments[1].Key.SequenceEqual(v.Key) && !ReferenceEquals(merged.Notes[0].Attachments[1], v), "Merge carries attachments (as copies) with the winning revision");
-    }
-    static void GateFlow(string root)
-    {
-        var folder = Path.Combine(root, "gate");
-        string recovery = "";
-        Exception? failure = null;
-        var gate = new GateWindow(folder);
-        gate.Loaded += async (_, _) =>
-        {
-            try
-            {
-                Find<PasswordBox>(gate, "Password").Password = Password;
-                Find<PasswordBox>(gate, "ConfirmPassword").Password = Password;
-                Click(gate, "Submit");
-                await Until(() => Find<StackPanel>(gate, "RecoveryPanel").Visibility == Visibility.Visible);
-                recovery = Find<TextBox>(gate, "RecoveryCode").Text;
-                Check(!File.Exists(Path.Combine(folder, "notes.vault")), "Setup UI waits for recovery acknowledgment");
-                Find<CheckBox>(gate, "Acknowledged").IsChecked = true; Click(gate, "Finish");
-            }
-            catch (Exception ex) { failure = ex; gate.Close(); }
-        };
-        Check(gate.ShowDialog() == true && gate.Session != null && failure == null, "Full setup UI opens a persisted vault");
-        gate.Session!.Dispose();
-        var unlock = new GateWindow(folder);
-        unlock.Loaded += async (_, _) =>
-        {
-            try
-            {
-                Find<PasswordBox>(unlock, "Password").Password = "wrong"; Click(unlock, "Submit");
-                await Until(() => Find<Button>(unlock, "Submit").IsEnabled);
-                Check(Find<TextBlock>(unlock, "Error").Text.Contains("Kilit açılamadı"), "Wrong password stays at lock screen");
-                Find<PasswordBox>(unlock, "Password").Password = Password; Click(unlock, "Submit");
-            }
-            catch (Exception ex) { failure = ex; unlock.Close(); }
-        };
-        Check(unlock.ShowDialog() == true && unlock.Session != null && failure == null, "Unlock UI returns original session"); unlock.Session!.Dispose();
-        var reset = new GateWindow(folder);
-        reset.Loaded += async (_, _) =>
-        {
-            try
-            {
-                Click(reset, "Recover"); Find<PasswordBox>(reset, "Password").Password = recovery; Click(reset, "Submit");
-                await Until(() => Find<StackPanel>(reset, "ConfirmPanel").Visibility == Visibility.Visible);
-                Find<PasswordBox>(reset, "Password").Password = "another long test password";
-                Find<PasswordBox>(reset, "ConfirmPassword").Password = "another long test password"; Click(reset, "Submit");
-            }
-            catch (Exception ex) { failure = ex; reset.Close(); }
-        };
-        Check(reset.ShowDialog() == true && reset.Session != null && failure == null, "Recovery UI resets password and opens vault"); reset.Session!.Dispose();
-        var restore = new GateWindow(folder);
-        File.WriteAllText(Path.Combine(folder, "notes.vault"), "corrupt test data");
-        restore.Loaded += async (_, _) =>
-        {
-            try
-            {
-                Find<PasswordBox>(restore, "Password").Password = "another long test password"; Click(restore, "Submit");
-                await Until(() => Find<CheckBox>(restore, "UseBackup").Visibility == Visibility.Visible);
-                Find<CheckBox>(restore, "UseBackup").IsChecked = true; Click(restore, "Submit");
-            }
-            catch (Exception ex) { failure = ex; restore.Close(); }
-        };
-        Check(restore.ShowDialog() == true && restore.Session != null && failure == null, "Backup recovery UI restores authenticated file"); restore.Session!.Dispose();
-        Check(Directory.GetFiles(folder, "*.damaged-*").Length == 1, "Backup recovery retains damaged encrypted source");
     }
 }

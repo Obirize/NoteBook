@@ -73,7 +73,7 @@ Ana ekrandaki uygulama bilgisayar güncellemesinden sonra bozuk ya da boş bir e
 
 ## Şifreleme nasıl çalışıyor
 
-**Bilgisayarda.** Not içerikleri, başlıklar, tarihler ve eski dosya arşivleri AES‑256‑GCM ile şifrelenir. Rastgele 256 bitlik içerik anahtarı Windows DPAPI (`CurrentUser`) ile sarılarak kasaya yazılır; her kayıtta yeni nonce kullanılır, her değişiklik doğrulamada yakalanır. Her ek `data/attachments/<id>.bin` olarak, kendi rastgele anahtarıyla 1 MB'lık AES‑256‑GCM parçaları halinde yazılır; anahtar ve dosya bilgileri yalnızca şifreli not defterinin içindedir ve her parça dosya başlığını, ek kimliğini, sırasını ve "son parça" işaretini doğrular — dosyalar kesilemez, sıralanamaz, değiştirilemez. Video oynatılırken oynatıcıya geçici klasörde çözülmüş bir kopya verilir; görüntüleyici kapanınca silinir.
+**Bilgisayarda.** Not içerikleri, başlıklar ve tarihler AES‑256‑GCM ile şifrelenir. Rastgele 256 bitlik içerik anahtarı Windows DPAPI (`CurrentUser`) ile sarılarak kasaya yazılır; her kayıtta yeni nonce kullanılır, her değişiklik doğrulamada yakalanır. Her ek `data/attachments/<id>.bin` olarak, kendi rastgele anahtarıyla 1 MB'lık AES‑256‑GCM parçaları halinde yazılır; anahtar ve dosya bilgileri yalnızca şifreli not defterinin içindedir ve her parça dosya başlığını, ek kimliğini, sırasını ve "son parça" işaretini doğrular — dosyalar kesilemez, sıralanamaz, değiştirilemez. Video oynatılırken oynatıcıya geçici klasörde çözülmüş bir kopya verilir; görüntüleyici kapanınca silinir.
 
 Ayrı bir uygulama parolası veya boşta kilidi yoktur: notları Windows oturumunuz korur. Amaç, **dosyaları tek başına kopyalayan birinin okuyamamasıdır**. Aynı Windows hesabında çalışan bir program ya da açık oturumunuza erişen biri notları açabilir; bu, yönetici yetkili zararlı yazılıma, klavye kaydına veya bellek dökümüne karşı bir savunma değildir.
 
@@ -125,7 +125,7 @@ Windows ve .NET 10 SDK; telefon testi için Node.js. Üçüncü taraf paket yok:
 
 - `src/Notlar/` — WPF uygulaması. Ana pencere konuya göre bölünmüştür (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` sunucu, oturumlar, protokol, sertifika ve QR kodunu; `Web/` telefon uygulamasını küçük ES modülleri halinde (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; düz JavaScript, WebCrypto, IndexedDB) içerir. Dosyalar bilerek 300 satır civarında tutulur.
 - `build.cmd` — kendi kendine yeten x64 derlemeyi `app/` içine yayınlar ve kök başlatıcıyı derler.
-- `test.cmd` — geçici verilerle kontrolleri çalıştırır (`NOTLAR_SHOT=<klasör>` ile pencere görüntüleri de kaydedilir): şifreleme ve tahrif tespiti, ekler, yedekler, silme politikası, toplu işlemler, tepsi davranışı, arayüz yerleşimi ve telefonu canlandıran bir Node betiği (eşleştirme kodu, iki yönlü eşitleme, çakışmalar, bayt bayt aynı dosyalar).
+- `test.cmd` — geçici verilerle kontrolleri çalıştırır (`NOTLAR_SHOT=docs` ile bu README'deki ekran görüntüleri örnek notlardan yeniden üretilir): şifreleme ve tahrif tespiti, ekler, yedekler, silme politikası, toplu işlemler, tepsi davranışı, arayüz yerleşimi ve telefonu canlandıran bir Node betiği (eşleştirme kodu, iki yönlü eşitleme, çakışmalar, bayt bayt aynı dosyalar).
 - `build-setup.cmd` — [Inno Setup 6](https://jrsoftware.org/isdl.php) ile kurulum dosyasını `dist/` içine üretir.
 
 Yayın: bir sürüm etiketi gönderin; `.github/workflows/release.yml` kurulum dosyasını derler, `.sha256` özetini yazar ve ikisini bir GitHub Release'e ekler. Çalışan uygulamalar birkaç saat içinde güncellemeyi sunar.

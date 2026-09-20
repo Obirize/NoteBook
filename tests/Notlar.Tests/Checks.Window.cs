@@ -24,7 +24,7 @@ static partial class Program
     var title = Find<TextBox>(window, "TitleInput"); var body = Find<TextBox>(window, "BodyInput");
     title.Text = "Yarın için birkaç fikir"; body.Text = "Her şeyi aynı anda yapmak zorunda değilim.\n\nÖnce önemli olanı seç.\nBiraz yavaşla.\nBaşlamak için küçük bir adım yeter.";
     Check(window.SaveNow(), "Editor saves title and text");
-    using (var reopened = VaultSession.Open(path, "replacement test passphrase")) Check(reopened.Book.Notes[0].Title == title.Text && reopened.Book.Notes[0].Text == body.Text, "Actual editor content survives reopen");
+    using (var reopened = VaultSession.Open(path, Password)) Check(reopened.Book.Notes[0].Title == title.Text && reopened.Book.Notes[0].Text == body.Text, "Actual editor content survives reopen");
     Click(window, "NewButton");
     Check(title.IsKeyboardFocused, "New note focuses title for immediate typing");
     title.Text = "Hafta sonu"; body.Text = "Uzun bir yürüyüş.\nYarım kalan kitaba dön.\nKahveyi acele etmeden iç.";
@@ -92,8 +92,8 @@ static partial class Program
     window.ConfirmDestructive = _ => true;
     Click(window, "PurgeButton");
     Check(!session.Book.Notes.Contains(purgeTarget) && session.Book.Notes.Count == 3, "Confirmed permanent delete removes the note from the notebook");
-    using (var reopened = VaultSession.Open(path, "replacement test passphrase")) Check(reopened.Book.Notes.All(n => n.Id != purgeTarget.Id), "Purged note is gone after reopen");
-    using (var reopenedBackup = VaultSession.Open(path + ".bak", "replacement test passphrase")) Check(reopenedBackup.Book.Notes.All(n => n.Id != purgeTarget.Id), "Purged note is also gone from the rolling backup");
+    using (var reopened = VaultSession.Open(path, Password)) Check(reopened.Book.Notes.All(n => n.Id != purgeTarget.Id), "Purged note is gone after reopen");
+    using (var reopenedBackup = VaultSession.Open(path + ".bak", Password)) Check(reopenedBackup.Book.Notes.All(n => n.Id != purgeTarget.Id), "Purged note is also gone from the rolling backup");
     Click(window, "SelectButton"); noteList.SelectedItems.Add(noteList.Items[0]); noteList.SelectedItems.Add(noteList.Items[1]); Pump();
     Click(window, "BulkPurgeButton");
     Check(session.Book.Notes.Count == 1 && session.Book.Notes[0].Deleted, "Bulk permanent delete removes the checked trash notes");
@@ -154,7 +154,7 @@ static partial class Program
     var thumbWatch = Stopwatch.StartNew(); while (thumbnail.Source == null && thumbWatch.ElapsedMilliseconds < 5000) { Pump(); Thread.Sleep(20); }
     Check(thumbnail.Source is BitmapSource thumb && thumb.PixelWidth == 264, "Photo tile decodes a small thumbnail from the encrypted file");
     Check(session.Attachments.Exists(photoNote.Attachments[0]) && session.Attachments.Directory == Path.Combine(Path.GetDirectoryName(path)!, "attachments"), "Encrypted attachment files live in the attachments folder beside the vault");
-    using (var reopened = VaultSession.Open(path, "replacement test passphrase")) Check(reopened.Book.Notes.Single(n => n.Id == photoNote.Id).Attachments.Count == 2, "Attachment metadata is saved with the note");
+    using (var reopened = VaultSession.Open(path, Password)) Check(reopened.Book.Notes.Single(n => n.Id == photoNote.Id).Attachments.Count == 2, "Attachment metadata is saved with the note");
     search.Text = "yürüyüş.mp4"; Pump();
     Check(Find<ListBox>(window, "NoteList").Items.Count == 1 && photoNote.AttachmentLabel == L10n.T("AttachmentCountMany", 2), "Search finds notes by attachment name; the card shows the attachment count");
     search.Clear(); Pump();
@@ -208,7 +208,7 @@ static partial class Program
     confirm.Close();
     Check(Assembly.GetAssembly(typeof(Sounds))!.GetManifestResourceStream("Notlar.Sounds.click.wav") is { Length: > 1000 }, "The click sound is embedded in the application");
     Sounds.Enabled = true; Sounds.Click();
-    Check(!Directory.Exists("src") || Directory.GetFiles(Path.Combine("src", "Notlar"), "*.cs").Where(f => !f.EndsWith("GateWindow.xaml.cs")).All(f => !File.ReadAllText(f).Contains("MessageBox.Show")), "No system message boxes remain outside the legacy gate window");
+    Check(!Directory.Exists("src") || Directory.GetFiles(Path.Combine("src", "Notlar"), "*.cs").All(f => !File.ReadAllText(f).Contains("MessageBox.Show")), "No system message boxes remain; every dialog is themed");
     var backupMenu = Find<ContextMenu>(window, "BackupMenu");
     Check(backupMenu.Items.Count == 2 && TextFiles.SuggestedName(new Note { Title = "Alışveriş: süt/ekmek?" }) == "Alışveriş_ süt_ekmek_.txt", "Backup menu offers create and restore; export suggests the note title as file name");
     title.Text = "Kaydedilemeyen değişiklik";
@@ -268,13 +268,12 @@ static partial class Program
     Check(body.Text.StartsWith(Checklist.OpenPrefix + "Plan") && window.SaveNow() && session.Book.Notes.Any(n => n.Text.StartsWith(Checklist.OpenPrefix + "Plan")), "The toolbar button turns the current line into an item and it is saved as plain text");
     var fromTag = Updater.FromTagUrl("https://github.com/Obirize/NoteBook/releases/tag/v9.8.7");
     Check(fromTag != null && fromTag.Version == new Version(9, 8, 7) && fromTag.InstallerUrl.EndsWith("/releases/download/v9.8.7/NoteBook-Setup-9.8.7.exe") && fromTag.ChecksumUrl!.EndsWith(".sha256") && Updater.FromTagUrl("https://github.com/x/y/releases") == null, "The releases page redirect alone is enough to find the newest installer");
-    Click(window, "LockButton"); Check(window.LockRequested && !window.IsVisible && body.Text == "", "Lock closes and clears visible plaintext");
-    session.Dispose(); Reject(session.Save, "Disposed session cannot save");
+    window.Close(); session.Dispose(); Reject(session.Save, "Disposed session cannot save");
     var large = new Notebook { Notes = Enumerable.Range(0, 1000).Select(i => new Note { Title = "Not " + i, Text = new string('x', 1000) }).ToList() };
-    var bulk = VaultSession.Create(Path.Combine(root, "bulk.vault"), Password, large); using var bulkSession = bulk.Session;
+    using var bulkSession = VaultSession.Create(Path.Combine(root, "bulk.vault"), Password, large);
     bulkSession.Save(); var results = NoteQuery.Find(large, "Not 99", Folder.Notes);
     Check(results.Count == 11, "1000-note search returns correct matches");
-    var empty = VaultSession.Create(Path.Combine(root, "empty.vault"), Password); using var emptySession = empty.Session; emptySession.Save();
+    using var emptySession = VaultSession.Create(Path.Combine(root, "empty.vault"), Password); emptySession.Save();
     var emptyWindow = new MainWindow(emptySession); emptyWindow.Show(); Pump();
     Check(Find<StackPanel>(emptyWindow, "EmptyState").Visibility == Visibility.Visible, "Fresh vault has a real empty state, no fake notes");
     emptyWindow.ExitFromTray();

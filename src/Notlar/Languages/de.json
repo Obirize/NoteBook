@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} Notizen",
   "OpenTxt": "Textdatei als neue Notiz öffnen (Strg+O)",
   "Backup": "Backup",
-  "Lock": "Sperren (Strg+L)",
   "Language": "Sprache",
   "PinNote": "Notiz anheften",
   "UnpinNote": "Lösen",
   "Pin": "Anheften",
-  "MoveToTrash": "In „Zuletzt gelöscht“ verschieben",
   "DeleteNote": "Notiz löschen",
   "Delete": "Löschen",
   "Restore": "Wiederherstellen",
@@ -98,7 +96,6 @@
   "OpenFailed": "NoteBook konnte nicht geöffnet werden. Lösche deinen Datenordner nicht. Stelle sicher, dass du mit dem Windows-Konto angemeldet bist, mit dem die Notizen erstellt wurden, und Zugriff auf den Ordner hast.",
   "OpenFileFailed": "Datei konnte nicht geöffnet werden: {0}",
   "TryBackup": "NoteBook konnte nicht geöffnet werden. Den vorherigen verschlüsselten Speicherstand versuchen? Die letzten Änderungen fehlen darin möglicherweise.",
-  "LegacyCleanupFailed": "Deine Notizen sind verschlüsselt gespeichert, aber die alten unverschlüsselten Dateien konnten nicht entfernt werden. Schließe die alte App und versuch es erneut.",
   "TxtSelectFile": "Wähle eine Textdatei: TXT, Markdown, HTML, RTF, DOCX oder ähnlich.",
   "TxtTooLarge": "Dateien bis 8 MB können geöffnet werden.",
   "TxtNotText": "Diese Datei lässt sich nicht als Text lesen.",
@@ -150,7 +147,6 @@
   "SyncPair": "2. App zum Home-Bildschirm hinzufügen",
   "SyncPairHelp": "Diesen Code scannen oder die Adresse in Safari öffnen, dann Teilen → Zum Home-Bildschirm wählen. Ab jetzt NoteBook vom Home-Bildschirm öffnen, nicht aus Safari.",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "Alle Telefone trennen und eine neue Kopplung mit neuem Code verlangen? Die Notizen auf den Telefonen bleiben erhalten.",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "Ein Telefon verbindet sich, akzeptiert aber das Zertifikat nicht. Am Telefon: Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen → NoteBook-Zertifikat einschalten.",
   "SetupReinstallButton": "Zertifikat neu installieren",
   "SetupReinstallHelp": "Nach dem Download: Einstellungen → Profil geladen → Installieren; dann Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen → NoteBook einschalten, hierher zurückkommen und erneut testen.",
-  "SetupOpenApp": "App öffnen"
+  "SetupOpenApp": "App öffnen",
+  "VaultTooOld": "Dieses Notizbuch liegt im passwortgeschützten Format der ersten Versionen vor. Installiere Version 1.8.2 und öffne es einmal; diese Version wandelt es um."
 }

@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} catatan",
   "OpenTxt": "Buka file teks sebagai catatan baru (Ctrl+O)",
   "Backup": "Cadangan",
-  "Lock": "Kunci (Ctrl+L)",
   "Language": "Bahasa",
   "PinNote": "Sematkan catatan",
   "UnpinNote": "Lepas sematan",
   "Pin": "Sematkan",
-  "MoveToTrash": "Pindahkan ke Baru dihapus",
   "DeleteNote": "Hapus catatan",
   "Delete": "Hapus",
   "Restore": "Pulihkan",
@@ -98,7 +96,6 @@
   "OpenFailed": "NoteBook tidak bisa dibuka. Jangan hapus folder data. Pastikan kamu masuk dengan akun Windows yang membuat catatan ini dan bisa mengakses foldernya.",
   "OpenFileFailed": "Gagal membuka file: {0}",
   "TryBackup": "NoteBook tidak bisa dibuka. Coba simpanan terenkripsi sebelumnya? Perubahan terbaru mungkin tidak ada di sana.",
-  "LegacyCleanupFailed": "Catatanmu tersimpan dengan enkripsi, tetapi file lama tanpa enkripsi tidak bisa dihapus. Tutup aplikasi lama dan coba lagi.",
   "TxtSelectFile": "Pilih file teks: TXT, Markdown, HTML, RTF, DOCX, atau sejenisnya.",
   "TxtTooLarge": "File hingga 8 MB dapat dibuka.",
   "TxtNotText": "File ini tidak dapat dibaca sebagai teks.",
@@ -150,7 +147,6 @@
   "SyncPair": "2. Tambahkan aplikasi ke Layar Utama",
   "SyncPairHelp": "Pindai kode ini atau buka alamatnya di Safari, lalu pilih Bagikan → Tambah ke Layar Utama. Setelah itu buka NoteBook dari Layar Utama, bukan dari Safari.",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "Putuskan semua ponsel dan wajibkan pemasangan ulang dengan kode baru? Catatan di ponsel tetap tersimpan.",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "Sebuah ponsel terhubung tetapi tidak menerima sertifikat. Di ponsel: Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan sertifikat NoteBook.",
   "SetupReinstallButton": "Pasang ulang sertifikat",
   "SetupReinstallHelp": "Setelah diunduh: Pengaturan → Profil Terunduh → Pasang; lalu Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan NoteBook, kembali ke sini dan uji lagi.",
-  "SetupOpenApp": "Buka aplikasi"
+  "SetupOpenApp": "Buka aplikasi",
+  "VaultTooOld": "Buku catatan ini dalam format berkata sandi dari rilis pertama. Pasang versi 1.8.2 dan buka sekali; versi itu mengonversinya."
 }

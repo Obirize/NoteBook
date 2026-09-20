@@ -102,12 +102,14 @@ public sealed class ChecklistAdorner : Adorner
             bool done = Checklist.IsDone(line);
             if (at == start)
             {
-                // Hide the marker glyph and draw the check box in its place.
+                // Hide the marker glyph and its gap, and draw the check box in their place. Positions come from the
+                // TextBox in its own coordinate frame (mirrored for right-to-left text, as is this drawing), and the
+                // text begins at the trailing edge of the gap character whichever way the text runs.
                 var glyph = box.GetRectFromCharacterIndex(start);
-                double textLeft = line.Length > 2 ? box.GetRectFromCharacterIndex(start + 2).Left : box.GetRectFromCharacterIndex(start + Math.Min(1, line.Length - 1), true).Left;
-                var cover = new Rect(glyph.Left - 1, glyph.Top, Math.Max(0, textLeft - glyph.Left), glyph.Height);
+                double textEdge = box.GetRectFromCharacterIndex(start + Math.Min(1, line.Length - 1), true).Left;
+                var cover = new Rect(glyph.Left - 1, glyph.Top, Math.Max(0, textEdge - glyph.Left), glyph.Height);
                 dc.DrawRectangle(canvas, null, cover);
-                double d = Math.Min(16, Math.Max(10, textLeft - glyph.Left - 8)), cx = glyph.Left + d / 2 + 1, cy = glyph.Top + glyph.Height / 2;
+                double d = Math.Min(16, Math.Max(10, cover.Width - 8)), cx = glyph.Left + d / 2 + 1, cy = glyph.Top + glyph.Height / 2;
                 if (done) { dc.DrawEllipse(accent, null, new Point(cx, cy), d / 2, d / 2); dc.DrawLine(tick, new Point(cx - d * 0.26, cy), new Point(cx - d * 0.07, cy + d * 0.2)); dc.DrawLine(tick, new Point(cx - d * 0.07, cy + d * 0.2), new Point(cx + d * 0.28, cy - d * 0.22)); }
                 else dc.DrawEllipse(null, ring, new Point(cx, cy), d / 2, d / 2);
             }
@@ -117,8 +119,8 @@ public sealed class ChecklistAdorner : Adorner
             int textStart = at == start ? Math.Min(start + 2, rowEnd) : at;
             if (rowEnd <= textStart) continue;
             var a = box.GetRectFromCharacterIndex(textStart); var b = box.GetRectFromCharacterIndex(rowEnd - 1, true);
-            double y = a.Top + a.Height * 0.55;
-            dc.DrawLine(new Pen(muted, 1.2), new Point(a.Left, y), new Point(Math.Max(a.Left, b.Left - 1), y));
+            double y = a.Top + a.Height * 0.55, x1 = Math.Min(a.Left, b.Left), x2 = Math.Max(a.Left, b.Left);
+            if (x2 - x1 > 1) dc.DrawLine(new Pen(muted, 1.2), new Point(x1, y), new Point(x2 - 1, y));
         }
         dc.Pop();
     }

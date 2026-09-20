@@ -107,22 +107,17 @@ public partial class App : Application
         string path = Path.Combine(DataDirectory, "notes.vault");
         if (!File.Exists(path) && !File.Exists(path + ".bak"))
         {
-            var created = VaultSession.CreateDevice(path, LegacyImport.Read(DataDirectory));
-            try { created.Save(); created.VerifySaved(); created.Save(); CleanLegacy(created); return created; }
+            var created = VaultSession.CreateDevice(path);
+            try { created.Save(); created.VerifySaved(); return created; }
             catch { created.Dispose(); throw; }
         }
         string source = File.Exists(path) ? path : path + ".bak";
         VaultSession? session = null;
         try
         {
-            if (VaultSession.ReadVersion(source) == 1)
-            {
-                // Only an already encrypted, older vault requires its existing secret once.
-                var gate = new GateWindow(DataDirectory); MainWindow = gate;
-                if (gate.ShowDialog() != true) return null;
-                session = gate.Session!; session.UseDeviceProtection();
-            }
-            else session = VaultSession.OpenDevice(source, path);
+            // Password-locked vaults were only ever written by the first releases; 1.8.2 was the last version that converted them.
+            if (VaultSession.ReadVersion(source) == 1) { MessageDialog.Info(null, L10n.T("VaultTooOld")); return null; }
+            session = VaultSession.OpenDevice(source, path);
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException or ArgumentException)
         {
@@ -143,14 +138,8 @@ public partial class App : Application
                 { stream.Write(File.ReadAllBytes(source)); stream.Flush(true); }
                 if (File.Exists(path)) File.Replace(temp, path, null, true); else File.Move(temp, path);
             }
-            session!.VerifySaved(); CleanLegacy(session); return session;
+            session!.VerifySaved(); return session;
         }
         catch { session?.Dispose(); throw; }
-    }
-    private static void CleanLegacy(VaultSession session)
-    {
-        try { LegacyImport.RemoveVerifiedOriginals(DataDirectory, session); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        { MessageDialog.Info(null, L10n.T("LegacyCleanupFailed")); }
     }
 }

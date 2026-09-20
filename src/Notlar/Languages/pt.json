@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} notas",
   "OpenTxt": "Abrir um arquivo de texto como nova nota (Ctrl+O)",
   "Backup": "Backup",
-  "Lock": "Bloquear (Ctrl+L)",
   "Language": "Idioma",
   "PinNote": "Fixar nota",
   "UnpinNote": "Desafixar",
   "Pin": "Fixar",
-  "MoveToTrash": "Mover para Apagadas recentemente",
   "DeleteNote": "Apagar nota",
   "Delete": "Excluir",
   "Restore": "Restaurar",
@@ -98,7 +96,6 @@
   "OpenFailed": "Não foi possível abrir o NoteBook. Não apague sua pasta de dados. Verifique se está na conta do Windows que criou estas notas e se tem acesso à pasta.",
   "OpenFileFailed": "Não foi possível abrir o arquivo: {0}",
   "TryBackup": "Não foi possível abrir o NoteBook. Tentar o salvamento criptografado anterior? As alterações recentes podem não estar nele.",
-  "LegacyCleanupFailed": "Suas notas foram salvas com criptografia, mas os arquivos antigos sem criptografia não puderam ser removidos. Feche o aplicativo antigo e tente novamente.",
   "TxtSelectFile": "Escolha um arquivo de texto: TXT, Markdown, HTML, RTF, DOCX ou semelhante.",
   "TxtTooLarge": "Arquivos de até 8 MB podem ser abertos.",
   "TxtNotText": "Este arquivo não pode ser lido como texto.",
@@ -150,7 +147,6 @@
   "SyncPair": "2. Adicione o app à Tela de Início",
   "SyncPairHelp": "Leia este código ou abra o endereço no Safari e escolha Compartilhar → Adicionar à Tela de Início. Daqui em diante abra o NoteBook pela Tela de Início, não pelo Safari.",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "Desconectar todos os telefones e exigir novo emparelhamento com outro código? As notas nos telefones permanecem.",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "Um celular conecta mas não aceita o certificado. No celular: Ajustes → Geral → Sobre → Ajustes de Confiança de Certificado → ative o certificado do NoteBook.",
   "SetupReinstallButton": "Reinstalar o certificado",
   "SetupReinstallHelp": "Após o download: Ajustes → Perfil Baixado → Instalar; depois Ajustes → Geral → Sobre → Ajustes de Confiança de Certificado → ative NoteBook, volte aqui e teste de novo.",
-  "SetupOpenApp": "Abrir o app"
+  "SetupOpenApp": "Abrir o app",
+  "VaultTooOld": "Este caderno está no formato protegido por senha das primeiras versões. Instale a versão 1.8.2 e abra-o uma vez; essa versão o converte."
 }

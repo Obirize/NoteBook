@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} ملاحظات",
   "OpenTxt": "فتح ملف نصي كملاحظة جديدة (Ctrl+O)",
   "Backup": "نسخة احتياطية",
-  "Lock": "قفل (Ctrl+L)",
   "Language": "اللغة",
   "PinNote": "تثبيت الملاحظة",
   "UnpinNote": "إلغاء التثبيت",
   "Pin": "تثبيت",
-  "MoveToTrash": "نقل إلى المحذوفة مؤخرًا",
   "DeleteNote": "حذف الملاحظة",
   "Delete": "حذف",
   "Restore": "استعادة",
@@ -98,7 +96,6 @@
   "OpenFailed": "تعذّر فتح NoteBook. لا تحذف مجلد البيانات. تأكد من تسجيل الدخول بحساب Windows الذي أنشأ هذه الملاحظات ومن إمكانية الوصول إلى المجلد.",
   "OpenFileFailed": "تعذّر فتح الملف: {0}",
   "TryBackup": "تعذّر فتح NoteBook. هل تريد تجربة الحفظ المشفّر السابق؟ قد تكون التغييرات الأخيرة غير موجودة فيه.",
-  "LegacyCleanupFailed": "تم حفظ ملاحظاتك مع التشفير، لكن تعذّر إزالة الملفات القديمة غير المشفّرة. أغلق التطبيق القديم وحاول مرة أخرى.",
   "TxtSelectFile": "اختر ملفًا نصيًا: TXT أو Markdown أو HTML أو RTF أو DOCX أو ما شابه.",
   "TxtTooLarge": "يمكن فتح الملفات حتى 8 م.ب.",
   "TxtNotText": "يتعذّر قراءة هذا الملف كنص.",
@@ -150,7 +147,6 @@
   "SyncPair": "٢. أضف التطبيق إلى الشاشة الرئيسية",
   "SyncPairHelp": "امسح هذا الرمز أو افتح العنوان في Safari، ثم اختر مشاركة ← إضافة إلى الشاشة الرئيسية. من الآن افتح NoteBook من الشاشة الرئيسية لا من Safari.",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "هل تريد فصل كل الهواتف وطلب الاقتران من جديد برمز جديد؟ تبقى الملاحظات على الهواتف.",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "هاتف يتصل لكنه لا يقبل الشهادة. على الهاتف افتح الإعدادات → عام → حول → إعدادات الثقة بالشهادات وفعّل شهادة NoteBook.",
   "SetupReinstallButton": "أعد تثبيت الشهادة",
   "SetupReinstallHelp": "بعد التنزيل: الإعدادات → تم تنزيل ملف التعريف → تثبيت؛ ثم الإعدادات → عام → حول → إعدادات الثقة بالشهادات → فعّل NoteBook، ثم عد إلى هنا وأعد الاختبار.",
-  "SetupOpenApp": "افتح التطبيق"
+  "SetupOpenApp": "افتح التطبيق",
+  "VaultTooOld": "هذا الدفتر بصيغة الإصدارات الأولى المحمية بكلمة مرور. ثبّت الإصدار 1.8.2 وافتحه مرة واحدة؛ ذلك الإصدار يحوّله."
 }

@@ -87,18 +87,6 @@ public static class TrashPolicy
         }
         book.Purged.RemoveAll(p => p.At < now.AddDays(-PurgeMemoryDays));
         int count = book.Notes.RemoveAll(n => n.Deleted && ids.Contains(n.Id));
-        // Do not retain deleted contents in the imported historical source files.
-        foreach (string name in book.LegacyArchive.Keys.ToList())
-        {
-            try
-            {
-                var root = System.Text.Json.Nodes.JsonNode.Parse(book.LegacyArchive[name]);
-                if (root?["Notes"] is not System.Text.Json.Nodes.JsonArray array) { book.LegacyArchive.Remove(name); continue; }
-                foreach (var item in array.ToList()) if (item?["Id"]?.GetValue<string>() is string id && ids.Contains(id)) array.Remove(item);
-                book.LegacyArchive[name] = root.ToJsonString();
-            }
-            catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidOperationException) { book.LegacyArchive.Remove(name); }
-        }
         return count;
     }
 }
@@ -111,8 +99,6 @@ public sealed class Notebook
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public List<Note> Notes { get; set; } = [];
     public List<PurgeRecord> Purged { get; set; } = [];
-    // Preserve the complete original files (including rich text) inside encryption.
-    public Dictionary<string, string> LegacyArchive { get; set; } = [];
 }
 
 // The three lists the user can look at: everyday notes, the archive, and what was deleted.

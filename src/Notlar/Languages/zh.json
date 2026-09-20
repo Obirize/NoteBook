@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} 条笔记",
   "OpenTxt": "将文本文件作为新笔记打开 (Ctrl+O)",
   "Backup": "备份",
-  "Lock": "锁定 (Ctrl+L)",
   "Language": "语言",
   "PinNote": "置顶笔记",
   "UnpinNote": "取消置顶",
   "Pin": "置顶",
-  "MoveToTrash": "移到最近删除",
   "DeleteNote": "删除笔记",
   "Delete": "删除",
   "Restore": "恢复",
@@ -98,7 +96,6 @@
   "OpenFailed": "无法打开 NoteBook。请勿删除数据文件夹。请确认你登录的是创建这些笔记的 Windows 账户，并且可以访问该文件夹。",
   "OpenFileFailed": "无法打开文件：{0}",
   "TryBackup": "无法打开 NoteBook。要尝试上一次的加密保存吗？其中可能缺少最近的更改。",
-  "LegacyCleanupFailed": "笔记已加密保存，但无法移除旧的未加密文件。请关闭旧应用后重试。",
   "TxtSelectFile": "请选择文本文件：TXT、Markdown、HTML、RTF、DOCX 或类似格式。",
   "TxtTooLarge": "可打开 8 MB 以内的文件。",
   "TxtNotText": "无法将此文件作为文本读取。",
@@ -150,7 +147,6 @@
   "SyncPair": "2. 将应用添加到主屏幕",
   "SyncPairHelp": "扫描此码或在 Safari 中打开该地址，然后选择“共享 → 添加到主屏幕”。此后请从主屏幕打开 NoteBook，而不是从 Safari。",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "断开所有手机并要求使用新代码重新配对？手机上的笔记会保留。",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "有一台手机在连接但不接受证书。在手机上打开 设置 → 通用 → 关于本机 → 证书信任设置，启用 NoteBook 证书。",
   "SetupReinstallButton": "重新安装证书",
   "SetupReinstallHelp": "下载后：设置 → 已下载描述文件 → 安装；然后 设置 → 通用 → 关于本机 → 证书信任设置 → 打开 NoteBook 开关，回到此页再次测试。",
-  "SetupOpenApp": "打开应用"
+  "SetupOpenApp": "打开应用",
+  "VaultTooOld": "此笔记本是早期版本的密码保护格式。请先安装 1.8.2 版本并打开一次，该版本会完成转换。"
 }

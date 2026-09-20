@@ -62,5 +62,5 @@ public partial class MainWindow
     }
     public void ExitFromTray() { exiting = true; Close(); }
     // True when the close should only hide the window.
-    private bool CloseHides => !exiting && !LockRequested && !RestartRequested;
+    private bool CloseHides => !exiting && !RestartRequested;
 }

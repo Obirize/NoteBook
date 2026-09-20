@@ -73,7 +73,7 @@ If the app on the Home Screen shows a broken or empty screen after a PC update, 
 
 ## How the encryption works
 
-**On the PC.** Notes, titles, dates and imported legacy files are encrypted with AES‑256‑GCM. A random 256‑bit content key is wrapped with Windows DPAPI (`CurrentUser`) and stored in the vault; every save uses a fresh nonce and any tampering fails authentication. Each attachment is written to `data/attachments/<id>.bin` in 1 MB AES‑256‑GCM chunks under its own random key; the key and metadata live only inside the encrypted notebook, and every chunk authenticates the file header, the attachment id, its index and a "last chunk" flag, so files cannot be truncated, reordered or swapped. Playing a video hands the player a decrypted copy in the temp folder that is deleted when the viewer closes.
+**On the PC.** Notes, titles and dates are encrypted with AES‑256‑GCM. A random 256‑bit content key is wrapped with Windows DPAPI (`CurrentUser`) and stored in the vault; every save uses a fresh nonce and any tampering fails authentication. Each attachment is written to `data/attachments/<id>.bin` in 1 MB AES‑256‑GCM chunks under its own random key; the key and metadata live only inside the encrypted notebook, and every chunk authenticates the file header, the attachment id, its index and a "last chunk" flag, so files cannot be truncated, reordered or swapped. Playing a video hands the player a decrypted copy in the temp folder that is deleted when the viewer closes.
 
 There is no separate application password or idle lock: your Windows sign‑in protects the notes. The goal is that **someone who copies the files alone cannot read them**. A program running under the same Windows account, or a person at your unlocked session, can open the notes; this is not a defense against malware with administrator rights, keyloggers or memory dumps.
 
@@ -125,7 +125,7 @@ Windows and the .NET 10 SDK; Node.js for the phone test. No third‑party packag
 
 - `src/Notlar/` — the WPF app. The main window is split by concern (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` holds the server, sessions, protocol, certificates and QR code; `Web/` holds the phone app as small ES modules (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; vanilla JavaScript, WebCrypto, IndexedDB). Files stay under about 300 lines on purpose.
 - `build.cmd` — publishes a self‑contained x64 build to `app/` and compiles the root launcher.
-- `test.cmd` — runs the checks with temporary data (`NOTLAR_SHOT=<folder>` also saves window snapshots): encryption and tamper detection, attachments, backups, trash policy, bulk actions, tray behaviour, UI layout, and a Node script that plays the phone (pairing code, sync in both directions, conflicts, byte‑identical files).
+- `test.cmd` — runs the checks with temporary data (`NOTLAR_SHOT=docs` also regenerates the screenshots in this README from sample notes): encryption and tamper detection, attachments, backups, trash policy, bulk actions, tray behaviour, UI layout, and a Node script that plays the phone (pairing code, sync in both directions, conflicts, byte‑identical files).
 - `build-setup.cmd` — builds the installer with [Inno Setup 6](https://jrsoftware.org/isdl.php) into `dist/`.
 
 Releasing: push a version tag and `.github/workflows/release.yml` builds the installer, writes its `.sha256` and attaches both to a GitHub Release; running apps offer it within a few hours.

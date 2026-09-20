@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} नोट्स",
   "OpenTxt": "टेक्स्ट फ़ाइल को नए नोट के रूप में खोलें (Ctrl+O)",
   "Backup": "बैकअप",
-  "Lock": "लॉक करें (Ctrl+L)",
   "Language": "भाषा",
   "PinNote": "नोट पिन करें",
   "UnpinNote": "पिन हटाएँ",
   "Pin": "पिन करें",
-  "MoveToTrash": "हाल ही में हटाए गए में ले जाएँ",
   "DeleteNote": "नोट हटाएँ",
   "Delete": "हटाएँ",
   "Restore": "पुनर्स्थापित करें",
@@ -98,7 +96,6 @@
   "OpenFailed": "NoteBook नहीं खोला जा सका। अपना डेटा फ़ोल्डर न हटाएँ। सुनिश्चित करें कि आप उसी Windows खाते में हैं जिसने ये नोट्स बनाए थे और फ़ोल्डर तक पहुँच है।",
   "OpenFileFailed": "फ़ाइल नहीं खोली जा सकी: {0}",
   "TryBackup": "NoteBook नहीं खोला जा सका। पिछला एन्क्रिप्टेड सेव आज़माएँ? उसमें हाल के बदलाव नहीं हो सकते।",
-  "LegacyCleanupFailed": "आपके नोट्स एन्क्रिप्ट करके सहेजे गए, लेकिन पुरानी बिना एन्क्रिप्शन वाली फ़ाइलें हटाई नहीं जा सकीं। पुराना ऐप बंद करके पुनः प्रयास करें।",
   "TxtSelectFile": "कोई टेक्स्ट फ़ाइल चुनें: TXT, Markdown, HTML, RTF, DOCX या समान।",
   "TxtTooLarge": "8 MB तक की फ़ाइलें खोली जा सकती हैं।",
   "TxtNotText": "यह फ़ाइल टेक्स्ट के रूप में नहीं पढ़ी जा सकती।",
@@ -150,7 +147,6 @@
   "SyncPair": "2. ऐप को होम स्क्रीन पर जोड़ें",
   "SyncPairHelp": "यह कोड स्कैन करें या पता Safari में खोलें, फिर शेयर → होम स्क्रीन में जोड़ें चुनें। अब से NoteBook को Safari से नहीं, होम स्क्रीन से खोलें।",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "सभी फ़ोन डिस्कनेक्ट करके नए कोड से दोबारा जोड़ना ज़रूरी करें? फ़ोन के नोट वहीं रहेंगे।",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "एक फ़ोन जुड़ रहा है पर प्रमाणपत्र स्वीकार नहीं कर रहा। फ़ोन पर सेटिंग्स → सामान्य → इसके बारे में → प्रमाणपत्र विश्वास सेटिंग्स में NoteBook प्रमाणपत्र चालू करें।",
   "SetupReinstallButton": "प्रमाणपत्र फिर से इंस्टॉल करें",
   "SetupReinstallHelp": "डाउनलोड के बाद: सेटिंग्स → प्रोफ़ाइल डाउनलोड हुई → इंस्टॉल; फिर सेटिंग्स → सामान्य → इसके बारे में → प्रमाणपत्र विश्वास सेटिंग्स → NoteBook चालू करें, यहाँ लौटकर फिर जाँचें।",
-  "SetupOpenApp": "ऐप खोलें"
+  "SetupOpenApp": "ऐप खोलें",
+  "VaultTooOld": "यह नोटबुक शुरुआती संस्करणों के पासवर्ड-सुरक्षित प्रारूप में है। संस्करण 1.8.2 इंस्टॉल कर एक बार खोलें; वह संस्करण इसे बदल देगा।"
 }

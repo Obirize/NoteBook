@@ -19,7 +19,6 @@ public sealed class VaultEnvelope
     public int Iterations { get; set; } = 600_000;
     public byte[] Salt { get; set; } = RandomNumberGenerator.GetBytes(32);
     public SealedData PasswordKey { get; set; } = new();
-    public SealedData RecoveryKey { get; set; } = new();
     public SealedData Content { get; set; } = new();
     public byte[] DeviceKey { get; set; } = [];
 }
@@ -31,7 +30,6 @@ public sealed class VaultSession : IDisposable
     public Notebook Book { get; private set; }
     public string FilePath { get; }
     public bool Disposed { get; private set; }
-    public bool IsDeviceProtected => envelope.Version == 2;
     // Encrypted photo and video files: "attachments" beside the vault, or "<backup>.files" beside a portable backup.
     public AttachmentStore Attachments { get; private set; }
     private VaultSession(string path, VaultEnvelope header, byte[] secret, Notebook book)
@@ -73,18 +71,6 @@ public sealed class VaultSession : IDisposable
         }
         finally { if (secret != null) CryptographicOperations.ZeroMemory(secret); if (plain != null) CryptographicOperations.ZeroMemory(plain); }
     }
-    public void UseDeviceProtection()
-    {
-        ObjectDisposedException.ThrowIf(Disposed, this);
-        if (IsDeviceProtected) return;
-        var old = envelope;
-        var next = new VaultEnvelope { Version = 2, Id = old.Id, Salt = [], Iterations = 0 };
-        next.DeviceKey = ProtectedData.Protect(key, Aad(next, "device"), DataProtectionScope.CurrentUser);
-        envelope = next;
-        try { Save(); VerifySaved(); }
-        catch { envelope = old; throw; }
-        Save();
-    }
     private static byte[] Derive(string password, VaultEnvelope e) => Rfc2898DeriveBytes.Pbkdf2(password, e.Salt, e.Iterations, HashAlgorithmName.SHA256, 32);
     private static SealedData Seal(byte[] secret, byte[] bytes, byte[] aad)
     {
@@ -100,36 +86,29 @@ public sealed class VaultSession : IDisposable
         try { using var aes = new AesGcm(secret, 16); aes.Decrypt(data.Nonce, data.Ciphertext, data.Tag, bytes, aad); return bytes; }
         catch { CryptographicOperations.ZeroMemory(bytes); throw; }
     }
-    public static (VaultSession Session, string RecoveryCode) Create(string path, string password, Notebook? book = null)
+    // A password-protected vault: the portable backup format. The password wraps the content key through PBKDF2.
+    public static VaultSession Create(string path, string password, Notebook? book = null)
     {
         if (password.Length < 12) throw new ArgumentException("Use a password of at least 12 characters.");
         if (File.Exists(path) || File.Exists(path + ".bak")) throw new IOException("A vault already exists at this location.");
         var e = new VaultEnvelope();
         var secret = RandomNumberGenerator.GetBytes(32);
-        var recovery = RandomNumberGenerator.GetBytes(32);
         var passwordKey = Derive(password, e);
-        try
-        {
-            e.PasswordKey = Seal(passwordKey, secret, Aad(e, "password"));
-            e.RecoveryKey = Seal(recovery, secret, Aad(e, "recovery"));
-            var session = new VaultSession(path, e, secret, book ?? new());
-            // Setup is not persisted until the recovery code has been acknowledged.
-            return (session, Convert.ToHexString(recovery));
-        }
+        try { e.PasswordKey = Seal(passwordKey, secret, Aad(e, "password")); return new VaultSession(path, e, secret, book ?? new()); }
         catch { CryptographicOperations.ZeroMemory(secret); throw; }
-        finally { CryptographicOperations.ZeroMemory(passwordKey); CryptographicOperations.ZeroMemory(recovery); }
+        finally { CryptographicOperations.ZeroMemory(passwordKey); }
     }
-    public static VaultSession Open(string path, string password, bool recovery = false, string? targetPath = null)
+    public static VaultSession Open(string path, string password, string? targetPath = null)
     {
         var e = JsonSerializer.Deserialize<VaultEnvelope>(File.ReadAllBytes(path)) ?? throw new InvalidDataException("The vault could not be read.");
         if (e.Version != 1 || e.Salt.Length != 32 || e.Iterations != 600_000 || e.Id.Length != 32) throw new InvalidDataException("Unsupported vault format.");
-        byte[] wrapping = recovery ? Convert.FromHexString(password.Replace(" ", "").Replace("-", "").Trim()) : Derive(password, e);
+        byte[] wrapping = Derive(password, e);
         byte[]? secret = null;
         byte[]? plain = null;
         try
         {
             if (wrapping.Length != 32) throw new CryptographicException();
-            secret = Unseal(wrapping, recovery ? e.RecoveryKey : e.PasswordKey, Aad(e, recovery ? "recovery" : "password"));
+            secret = Unseal(wrapping, e.PasswordKey, Aad(e, "password"));
             plain = Unseal(secret, e.Content, Aad(e, "content"));
             var book = ParseNotebook(plain);
             var session = new VaultSession(targetPath ?? path, e, secret, book);
@@ -200,7 +179,6 @@ public sealed class VaultSession : IDisposable
                 updated++;
             }
         }
-        foreach (var pair in from.LegacyArchive) into.LegacyArchive.TryAdd(pair.Key, pair.Value);
         foreach (var purge in from.Purged) if (!into.Purged.Any(p => p.Id == purge.Id && p.Revision >= purge.Revision)) { into.Purged.RemoveAll(p => p.Id == purge.Id); into.Purged.Add(new PurgeRecord { Id = purge.Id, Revision = purge.Revision, At = purge.At }); }
         return (added, updated);
     }
@@ -229,19 +207,6 @@ public sealed class VaultSession : IDisposable
             if (File.Exists(FilePath + ".bak")) File.Replace(temp, FilePath + ".bak", null, true);
             else File.Move(temp, FilePath + ".bak");
         }
-    }
-    public void ChangePassword(string password)
-    {
-        ObjectDisposedException.ThrowIf(Disposed, this);
-        if (password.Length < 12) throw new ArgumentException("Use at least 12 characters.");
-        var oldSalt = envelope.Salt; var oldWrap = envelope.PasswordKey;
-        envelope.Salt = RandomNumberGenerator.GetBytes(32);
-        var wrapping = Derive(password, envelope);
-        try { envelope.PasswordKey = Seal(wrapping, key, Aad(envelope, "password")); Save(); }
-        catch { envelope.Salt = oldSalt; envelope.PasswordKey = oldWrap; throw; }
-        finally { CryptographicOperations.ZeroMemory(wrapping); }
-        // Replace the local rolling backup too, so it does not retain the old password wrapper.
-        Save();
     }
     public void VerifySaved()
     {
@@ -277,59 +242,5 @@ public sealed class VaultSession : IDisposable
     {
         if (Disposed) return;
         CryptographicOperations.ZeroMemory(key); key = []; Book = new(); Disposed = true;
-    }
-}
-
-public static class LegacyImport
-{
-    public static readonly string[] Names = ["notes.json", "notes.backup.json"];
-    public static Notebook Read(string directory)
-    {
-        var book = new Notebook();
-        bool loaded = false;
-        foreach (string name in Names)
-        {
-            string path = Path.Combine(directory, name);
-            if (!File.Exists(path)) continue;
-            string raw = File.ReadAllText(path);
-            book.LegacyArchive[name] = raw;
-            if (loaded) continue;
-            try
-            {
-                using var json = JsonDocument.Parse(raw);
-                var notes = json.RootElement.GetProperty("Notes");
-                var converted = new List<Note>();
-                foreach (var item in notes.EnumerateArray())
-                {
-                    string S(string field) => item.TryGetProperty(field, out var x) ? x.GetString() ?? "" : "";
-                    bool B(string field) => item.TryGetProperty(field, out var x) && x.ValueKind == JsonValueKind.True;
-                    DateTimeOffset D(string field)
-                    {
-                        string value = S(field);
-                        if (value.StartsWith("/Date(") && long.TryParse(value.AsSpan(6, value.Length - 8), out long ms)) return DateTimeOffset.FromUnixTimeMilliseconds(ms);
-                        return DateTimeOffset.TryParse(value, out var date) ? date : DateTimeOffset.UtcNow;
-                    }
-                    converted.Add(new Note { Id = string.IsNullOrEmpty(S("Id")) ? Guid.NewGuid().ToString("N") : S("Id"), Title = S("Title"), Text = S("Text"), Created = D("Created"), Updated = D("Updated"), Pinned = B("Pinned"), Deleted = B("Deleted") });
-                }
-                book.Notes = converted; loaded = true;
-            }
-            catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException or ArgumentOutOfRangeException) { }
-        }
-        if (book.LegacyArchive.Count > 0 && !loaded) throw new InvalidDataException("Legacy note files could not be read. They were left untouched; import stopped.");
-        return book;
-    }
-    public static void RemoveVerifiedOriginals(string directory, VaultSession session)
-    {
-        session.VerifySaved();
-        foreach (var pair in session.Book.LegacyArchive)
-        {
-            if (!Names.Contains(pair.Key)) continue;
-            string path = Path.Combine(directory, pair.Key);
-            if (File.Exists(path))
-            {
-                if (File.ReadAllText(path) != pair.Value) throw new IOException("A legacy file changed during import; it was left untouched.");
-                File.Delete(path);
-            }
-        }
     }
 }

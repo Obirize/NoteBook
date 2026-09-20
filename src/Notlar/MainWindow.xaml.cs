@@ -25,9 +25,6 @@ public partial class MainWindow
     private Folder CurrentFolder => trash ? Folder.Trash : archive ? Folder.Archive : Folder.Notes;
     private readonly Dictionary<string, BitmapSource> thumbnails = [];
     private readonly DispatcherTimer saveTimer = new() { Interval = TimeSpan.FromMilliseconds(650) };
-    private readonly DispatcherTimer idleTimer = new() { Interval = TimeSpan.FromSeconds(15) };
-    private DateTime lastInput = DateTime.UtcNow;
-    public bool LockRequested { get; private set; }
     // Permanent deletion asks before proceeding; tests replace this to avoid a modal dialog.
     public Func<string, bool> ConfirmDestructive { get; set; }
     public Func<string, bool> ConfirmRemoveAttachment { get; set; }
@@ -49,17 +46,13 @@ public partial class MainWindow
         InitializeTray();
         InitializeChecklist();
         BuildLanguageMenu();
-        LockButton.Visibility = session.IsDeviceProtected ? Visibility.Collapsed : Visibility.Visible;
         saveTimer.Tick += (_, _) => SaveNow();
-        idleTimer.Tick += (_, _) => { if (DateTime.UtcNow - lastInput >= TimeSpan.FromMinutes(5)) Lock(); };
         PreviewKeyDown += Shortcut;
-        PreviewMouseDown += (_, _) => lastInput = DateTime.UtcNow;
-        PreviewMouseMove += (_, _) => lastInput = DateTime.UtcNow;
         Closing += WindowClosing;
         Closed += (_, _) =>
         {
             phoneSync?.Dispose();
-            saveTimer.Stop(); idleTimer.Stop(); SystemEvents.SessionSwitch -= SessionSwitch; SystemEvents.PowerModeChanged -= PowerChanged;
+            saveTimer.Stop(); SystemEvents.SessionSwitch -= SessionSwitch; SystemEvents.PowerModeChanged -= PowerChanged;
             loading = true; TitleInput.Clear(); BodyInput.Clear(); ClearUndo(BodyInput); ClearUndo(TitleInput); SearchInput.Clear(); NoteList.ItemsSource = null;
             current = null; lastDeleted = []; thumbnails.Clear(); AttachmentPanel.Children.Clear();
         };
@@ -70,7 +63,6 @@ public partial class MainWindow
         // Files left behind by a crash or by an older save no note refers to any more.
         session.Attachments.Sweep(session.Book);
         RefreshList(session.Book.Notes.Where(n => !n.Deleted).OrderByDescending(n => n.Updated).FirstOrDefault()?.Id);
-        if (!session.IsDeviceProtected) idleTimer.Start();
         VersionText.Text = L10n.T("OnThisPc") + " · " + Updater.CurrentLabel;
         // The app may live in the tray for days: look for updates shortly after start, every hour, and whenever the
         // window comes to the front after a while. Each check is one small request to the releases page.
@@ -121,11 +113,11 @@ public partial class MainWindow
         if (expired.Count > 0) { TrashPolicy.Purge(session.Book, expired); purged = true; sweep = true; changed = true; }
         if (changed) { dirty = true; SaveNow(); }
     }
-    private void SessionSwitch(object sender, SessionSwitchEventArgs e) { if (e.Reason == SessionSwitchReason.SessionLock) Dispatcher.BeginInvoke(() => { if (session.IsDeviceProtected) SaveNow(); else Lock(); }); }
-    private void PowerChanged(object sender, PowerModeChangedEventArgs e) { if (e.Mode == PowerModes.Suspend) Dispatcher.BeginInvoke(() => { if (session.IsDeviceProtected) SaveNow(); else Lock(); }); }
+    // Locking the PC or putting it to sleep is a moment to make sure everything is on disk.
+    private void SessionSwitch(object sender, SessionSwitchEventArgs e) { if (e.Reason == SessionSwitchReason.SessionLock) Dispatcher.BeginInvoke(SaveNow); }
+    private void PowerChanged(object sender, PowerModeChangedEventArgs e) { if (e.Mode == PowerModes.Suspend) Dispatcher.BeginInvoke(SaveNow); }
     private void Shortcut(object sender, KeyEventArgs e)
     {
-        lastInput = DateTime.UtcNow;
         // Delete acts on the list unless a text box (search, title, body) owns the keyboard.
         if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Delete && Keyboard.FocusedElement is not TextBoxBase && (selecting || NoteList.IsKeyboardFocusWithin || current != null))
         { if (trash) PurgeClick(this, e); else DeleteClick(this, e); e.Handled = true; return; }
@@ -143,16 +135,14 @@ public partial class MainWindow
         if (e.Key == Key.A && selecting) { SelectAllClick(this, e); e.Handled = true; }
         if (e.Key == Key.K || e.Key == Key.F) { SearchInput.Focus(); SearchInput.SelectAll(); e.Handled = true; }
         if (e.Key == Key.S) { SaveNow(); e.Handled = true; }
-        if (e.Key == Key.L && !session.IsDeviceProtected) { Lock(); e.Handled = true; }
     }
 
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
-        if (!SaveNow()) { e.Cancel = true; LockRequested = false; MessageDialog.Info(this, L10n.T("CloseSaveFailed"), L10n.T("CloseSaveFailedTitle")); return; }
+        if (!SaveNow()) { e.Cancel = true; MessageDialog.Info(this, L10n.T("CloseSaveFailed"), L10n.T("CloseSaveFailedTitle")); return; }
         // The X only hides the window; the phone link keeps working from the notification area.
         if (CloseHides) { e.Cancel = true; HideToTray(); }
     }
-    private void Lock() { if (SaveNow()) { LockRequested = true; Close(); } }
     // Language is applied at window creation; choosing another one saves it and restarts the application.
     public bool RestartRequested { get; private set; }
     private void BuildLanguageMenu()
@@ -178,7 +168,6 @@ public partial class MainWindow
         LanguageMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
         LanguageMenu.IsOpen = true;
     }
-    private void LockClick(object sender, RoutedEventArgs e) => Lock();
     private void MinimizeClick(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
     private void MaximizeClick(object sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     private void CloseClick(object sender, RoutedEventArgs e) => Close();

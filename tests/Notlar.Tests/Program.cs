@@ -63,6 +63,7 @@ static partial class Program
             var core = CoreChecks(root);
             using var session = core.Session;
             WindowChecks(root, session, core.Path, core.Book);
+            Screenshots(root);
             Console.WriteLine("PASS TOTAL: " + checks);
             return 0;
         }

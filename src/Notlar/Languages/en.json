@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} notes",
   "OpenTxt": "Open a text file as a new note (Ctrl+O)",
   "Backup": "Backup",
-  "Lock": "Lock (Ctrl+L)",
   "Language": "Language",
   "PinNote": "Pin note",
   "UnpinNote": "Unpin",
   "Pin": "Pin",
-  "MoveToTrash": "Move to Recently deleted",
   "DeleteNote": "Delete note",
   "Delete": "Delete",
   "Restore": "Restore",
@@ -98,7 +96,6 @@
   "OpenFailed": "NoteBook could not be opened. Do not delete your data folder. Make sure you are signed in to the Windows account that created these notes and can access the folder.",
   "OpenFileFailed": "Could not open the file: {0}",
   "TryBackup": "NoteBook could not be opened. Try the previous encrypted save? Recent changes may be missing from it.",
-  "LegacyCleanupFailed": "Your notes are saved with encryption, but the old unencrypted files could not be removed. Close the old app and try again.",
   "TxtSelectFile": "Choose a text file: TXT, Markdown, HTML, RTF, DOCX or similar.",
   "TxtTooLarge": "Files up to 8 MB can be opened.",
   "TxtNotText": "This file cannot be read as text.",
@@ -150,7 +147,6 @@
   "SyncPair": "2. Add the app to the Home Screen",
   "SyncPairHelp": "Scan this code or open the address in Safari, then choose Share → Add to Home Screen. From now on open NoteBook from the Home Screen, not from Safari.",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "Disconnect all phones and require pairing again with a new code? Notes on phones stay there.",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "A phone keeps connecting but does not accept the certificate. On the phone, open Settings → General → About → Certificate Trust Settings and turn on the NoteBook certificate.",
   "SetupReinstallButton": "Reinstall the certificate",
   "SetupReinstallHelp": "After the download: Settings → Profile Downloaded → Install; then Settings → General → About → Certificate Trust Settings → turn the NoteBook switch ON, come back here and test again.",
-  "SetupOpenApp": "Open the app"
+  "SetupOpenApp": "Open the app",
+  "VaultTooOld": "This notebook is in the password-protected format of the first releases. Install version 1.8.2 and open it once; that version converts it."
 }

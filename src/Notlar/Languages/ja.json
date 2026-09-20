@@ -17,12 +17,10 @@
   "NoteCountMany": "{0} 件のノート",
   "OpenTxt": "テキストファイルを新しいメモとして開く (Ctrl+O)",
   "Backup": "バックアップ",
-  "Lock": "ロック (Ctrl+L)",
   "Language": "言語",
   "PinNote": "ノートをピン留め",
   "UnpinNote": "ピン留めを解除",
   "Pin": "ピン留め",
-  "MoveToTrash": "最近削除した項目へ移動",
   "DeleteNote": "ノートを削除",
   "Delete": "削除",
   "Restore": "復元",
@@ -98,7 +96,6 @@
   "OpenFailed": "NoteBook を開けませんでした。データ フォルダーを削除しないでください。これらのノートを作成した Windows アカウントでサインインし、フォルダーにアクセスできることを確認してください。",
   "OpenFileFailed": "ファイルを開けませんでした: {0}",
   "TryBackup": "NoteBook を開けませんでした。前回の暗号化された保存データを試しますか？最近の変更が含まれていない場合があります。",
-  "LegacyCleanupFailed": "ノートは暗号化して保存されましたが、古い暗号化されていないファイルを削除できませんでした。古いアプリを閉じてからもう一度お試しください。",
   "TxtSelectFile": "テキストファイルを選んでください: TXT、Markdown、HTML、RTF、DOCX など。",
   "TxtTooLarge": "8 MB までのファイルを開けます。",
   "TxtNotText": "このファイルはテキストとして読めません。",
@@ -150,7 +147,6 @@
   "SyncPair": "2. アプリをホーム画面に追加",
   "SyncPairHelp": "このコードを読み取るか Safari でアドレスを開き、共有 → ホーム画面に追加 を選びます。以後は Safari ではなくホーム画面から NoteBook を開いてください。",
   "SyncNetworkHelp": "If the page does not open, allow NoteBook through Windows Firewall on private networks only. Use the same Wi-Fi; guest network isolation can block the connection.",
-  "SyncConnected": "Connected devices: {0}",
   "SyncReset": "Reset pairing",
   "SyncResetConfirm": "すべての端末を切断し、新しいコードで再ペアリングを求めますか？端末上のメモはそのまま残ります。",
   "SyncPortBusy": "The sync port is busy. Close the other instance and try again.",
@@ -216,5 +212,6 @@
   "SyncTrustWarning": "iPhone が接続していますが証明書を受け入れていません。iPhone の 設定 → 一般 → 情報 → 証明書信頼設定 で NoteBook の証明書をオンにしてください。",
   "SetupReinstallButton": "証明書を再インストール",
   "SetupReinstallHelp": "ダウンロード後：設定 → プロファイルがダウンロードされました → インストール。次に 設定 → 一般 → 情報 → 証明書信頼設定 で NoteBook をオンにし、このページに戻って再テストしてください。",
-  "SetupOpenApp": "アプリを開く"
+  "SetupOpenApp": "アプリを開く",
+  "VaultTooOld": "このノートは初期リリースのパスワード保護形式です。バージョン 1.8.2 をインストールして一度開いてください。そのバージョンが変換します。"
 }
