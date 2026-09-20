@@ -184,5 +184,16 @@
   "ChecklistAdd": "Checklist (Ctrl+Shift+L)",
   "SaveAllAttachments": "Save all attachments…",
   "AttachmentsSavedMany": "{0} files saved to “{1}”.",
-  "TextFilesLabel": "Text files"
+  "TextFilesLabel": "Text files",
+  "Archive": "Archive",
+  "ArchiveNote": "Archive (Ctrl+E)",
+  "UnarchiveNote": "Unarchive",
+  "ArchiveMany": "Archive {0} notes",
+  "UnarchiveMany": "Unarchive {0} notes",
+  "ArchivedOne": "Note archived.",
+  "ArchivedMany": "{0} notes archived.",
+  "UnarchivedOne": "Note unarchived.",
+  "UnarchivedMany": "{0} notes unarchived.",
+  "EmptyArchiveHeading": "The archive is empty.",
+  "EmptyArchiveDescription": "Archive notes you want out of the way but not gone; bring them back whenever you like."
 }

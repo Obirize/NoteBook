@@ -184,5 +184,16 @@
   "ChecklistAdd": "核对清单 (Ctrl+Shift+L)",
   "SaveAllAttachments": "保存全部附件…",
   "AttachmentsSavedMany": "{0} 个文件已保存到“{1}”。",
-  "TextFilesLabel": "文本文件"
+  "TextFilesLabel": "文本文件",
+  "Archive": "归档",
+  "ArchiveNote": "归档 (Ctrl+E)",
+  "UnarchiveNote": "取消归档",
+  "ArchiveMany": "归档 {0} 条备忘录",
+  "UnarchiveMany": "取消归档 {0} 条备忘录",
+  "ArchivedOne": "备忘录已归档。",
+  "ArchivedMany": "已归档 {0} 条备忘录。",
+  "UnarchivedOne": "备忘录已取消归档。",
+  "UnarchivedMany": "已取消归档 {0} 条备忘录。",
+  "EmptyArchiveHeading": "归档为空。",
+  "EmptyArchiveDescription": "把暂时不想看到但又不想删除的备忘录归档，随时可以取回。"
 }

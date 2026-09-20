@@ -184,5 +184,16 @@
   "ChecklistAdd": "Lista de tarefas (Ctrl+Shift+L)",
   "SaveAllAttachments": "Salvar todos os anexos…",
   "AttachmentsSavedMany": "{0} arquivos salvos em “{1}”.",
-  "TextFilesLabel": "Arquivos de texto"
+  "TextFilesLabel": "Arquivos de texto",
+  "Archive": "Arquivo",
+  "ArchiveNote": "Arquivar (Ctrl+E)",
+  "UnarchiveNote": "Desarquivar",
+  "ArchiveMany": "Arquivar {0} notas",
+  "UnarchiveMany": "Desarquivar {0} notas",
+  "ArchivedOne": "Nota arquivada.",
+  "ArchivedMany": "{0} notas arquivadas.",
+  "UnarchivedOne": "Nota desarquivada.",
+  "UnarchivedMany": "{0} notas desarquivadas.",
+  "EmptyArchiveHeading": "O arquivo está vazio.",
+  "EmptyArchiveDescription": "Arquive as notas que quer tirar da frente sem apagar; traga de volta quando quiser."
 }

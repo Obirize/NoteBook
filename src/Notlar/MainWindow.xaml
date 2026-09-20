@@ -24,11 +24,11 @@
               <Button x:Name="ClearSearch" Grid.Column="2" Content="×" Padding="0" Foreground="{DynamicResource Muted}" Visibility="Collapsed" Click="ClearSearchClick" AutomationProperties.Name="{local:T ClearSearch}"/>
             </Grid>
           </Border>
-          <Grid Margin="0,16,0,0">
-            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-            <Button x:Name="AllFilter" Content="{local:T AllNotes}" FontSize="12" Padding="8,7" Background="{DynamicResource Surface}" Click="AllClick"/>
-            <Button x:Name="TrashFilter" Grid.Column="1" Content="{local:T RecentlyDeleted}" FontSize="12" Padding="8,7" Foreground="{DynamicResource Muted}" Click="TrashClick"/>
-          </Grid>
+          <WrapPanel Margin="0,16,0,-6">
+            <Button x:Name="AllFilter" Content="{local:T AllNotes}" Focusable="False" FontSize="12" Padding="10,7" Margin="0,0,6,6" Background="{DynamicResource Surface}" Click="AllClick"/>
+            <Button x:Name="ArchiveFilter" Content="{local:T Archive}" Focusable="False" FontSize="12" Padding="10,7" Margin="0,0,6,6" Foreground="{DynamicResource Muted}" Click="ArchiveFilterClick"/>
+            <Button x:Name="TrashFilter" Content="{local:T RecentlyDeleted}" Focusable="False" FontSize="12" Padding="10,7" Margin="0,0,6,6" Foreground="{DynamicResource Muted}" Click="TrashClick"/>
+          </WrapPanel>
           <DockPanel Margin="2,10,0,0">
             <Button x:Name="SelectButton" Content="{local:T Select}" FontSize="12" Padding="8,4" DockPanel.Dock="Right" Click="SelectModeClick"/>
             <Button x:Name="SelectAllButton" Content="{local:T SelectAll}" FontSize="12" Padding="8,4" DockPanel.Dock="Right" Click="SelectAllClick" Visibility="Collapsed"/>
@@ -41,6 +41,7 @@
           <ListBox x:Name="NoteList" Margin="12,0,12,0" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource Ink}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="False" local:SmoothScroll.Scale="0.65" SelectionMode="Single" SelectionChanged="SelectionChanged" ContextMenuOpening="ListMenuOpening" AutomationProperties.Name="{local:T MyNotes}">
             <ListBox.ContextMenu><ContextMenu>
               <MenuItem x:Name="MenuPin" Header="{local:T Pin}" Click="PinClick"/>
+              <MenuItem x:Name="MenuArchive" Header="{local:T ArchiveNote}" InputGestureText="Ctrl+E" Click="ArchiveClick"/>
               <MenuItem x:Name="MenuExport" Header="{local:T ExportTxtMenu}" InputGestureText="Ctrl+Shift+S" Click="ExportClick"/>
               <MenuItem x:Name="MenuSaveAttachments" Header="{local:T SaveAllAttachments}" Click="SaveAttachmentsClick"/>
               <MenuItem x:Name="MenuDelete" Header="{local:T Delete}" InputGestureText="Delete" Click="DeleteClick"/>
@@ -106,6 +107,7 @@
         <Grid Grid.Row="0" Margin="16,0,8,0">
           <StackPanel x:Name="NoteActions" Orientation="Horizontal" VerticalAlignment="Center" shell:WindowChrome.IsHitTestVisibleInChrome="True">
             <Button x:Name="PinButton" Content="&#xE718;" Style="{StaticResource IconButton}" ToolTip="{local:T PinNote}" AutomationProperties.Name="{local:T PinNote}" Click="PinClick"/>
+            <Button x:Name="ArchiveButton" Content="&#xF12B;" Style="{StaticResource IconButton}" ToolTip="{local:T ArchiveNote}" AutomationProperties.Name="{local:T ArchiveNote}" Click="ArchiveClick"/>
             <Button x:Name="DeleteButton" Content="&#xE74D;" Style="{StaticResource IconButton}" ToolTip="{local:T Delete}" AutomationProperties.Name="{local:T DeleteNote}" Click="DeleteClick"/>
             <Button x:Name="RestoreButton" Content="{local:T Restore}" FontSize="12" Foreground="{DynamicResource Accent}" Visibility="Collapsed" Click="RestoreClick"/>
             <Button x:Name="PurgeButton" Content="{local:T DeletePermanently}" FontSize="12" Foreground="{DynamicResource Danger}" Visibility="Collapsed" ToolTip="{local:T DeletePermanentlyHint}" Click="PurgeClick"/>
@@ -148,6 +150,7 @@
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
             <Button x:Name="BulkDeleteButton" Content="{local:T Delete}" Style="{StaticResource Primary}" Click="DeleteClick"/>
             <Button x:Name="BulkRestoreButton" Content="{local:T Restore}" Style="{StaticResource Primary}" Visibility="Collapsed" Click="RestoreClick"/>
+            <Button x:Name="BulkArchiveButton" Content="{local:T ArchiveNote}" Padding="20,13" Margin="8,0,0,0" Click="ArchiveClick"/>
             <Button x:Name="BulkPurgeButton" Content="{local:T DeletePermanentlyMenu}" Foreground="{DynamicResource Danger}" Padding="20,13" Margin="8,0,0,0" Click="PurgeClick"/>
           </StackPanel>
           <TextBlock Text="{local:T SelectAllHint}" FontSize="11" Foreground="{DynamicResource Muted}" HorizontalAlignment="Center" Margin="0,12,0,0"/>

@@ -184,5 +184,16 @@
   "ChecklistAdd": "قائمة مهام (Ctrl+Shift+L)",
   "SaveAllAttachments": "حفظ كل المرفقات…",
   "AttachmentsSavedMany": "حُفظت {0} ملفات في ”{1}“.",
-  "TextFilesLabel": "الملفات النصية"
+  "TextFilesLabel": "الملفات النصية",
+  "Archive": "الأرشيف",
+  "ArchiveNote": "أرشفة (Ctrl+E)",
+  "UnarchiveNote": "إلغاء الأرشفة",
+  "ArchiveMany": "أرشفة {0} ملاحظات",
+  "UnarchiveMany": "إلغاء أرشفة {0} ملاحظات",
+  "ArchivedOne": "تمت أرشفة الملاحظة.",
+  "ArchivedMany": "تمت أرشفة {0} ملاحظات.",
+  "UnarchivedOne": "تم إخراج الملاحظة من الأرشيف.",
+  "UnarchivedMany": "تم إخراج {0} ملاحظات من الأرشيف.",
+  "EmptyArchiveHeading": "الأرشيف فارغ.",
+  "EmptyArchiveDescription": "أرشِف الملاحظات التي تريد إبعادها دون حذفها، واسترجعها متى شئت."
 }

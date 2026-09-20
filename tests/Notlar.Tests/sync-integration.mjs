@@ -30,7 +30,7 @@ const clipBytes=new Uint8Array(2621440+123);for(let i=0;i<clipBytes.length;i++)c
 const clip=await encryptFile(new File([clipBytes],'tempImage1234.mov',{type:''}));
 assert.match(clip.meta.Name,/^IMG .*\.mov$/);assert.equal(clip.meta.MediaType,'video/quicktime');
 assert.deepEqual(new Uint8Array(await (await decryptFile(clip.blob,clip.meta)).arrayBuffer()),clipBytes);
-const phone={Id:id(),Title:'Phone',Text:'from phone 🔐',Created:now,Updated:now,Revision:1,Pinned:false,Deleted:false,DeletedAt:null,Attachments:[encrypted.meta,clip.meta]};
+const phone={Id:id(),Title:'Phone',Text:'from phone 🔐',Created:now,Updated:now,Revision:1,Pinned:false,Archived:true,Deleted:false,DeletedAt:null,Attachments:[encrypted.meta,clip.meta]};
 c.send({t:'note',id:phone.Id,rev:1,blob:b64(await seal(keys,phone))});c.send({t:'flush'});
 while((await c.next()).t!=='flush'){}
 c.send({t:'file',id:encrypted.meta.Id,size:encrypted.blob.size});c.ws.send(await encrypted.blob.arrayBuffer());c.send({t:'file-end',id:encrypted.meta.Id});

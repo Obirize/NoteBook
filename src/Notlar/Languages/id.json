@@ -184,5 +184,16 @@
   "ChecklistAdd": "Daftar periksa (Ctrl+Shift+L)",
   "SaveAllAttachments": "Simpan semua lampiran…",
   "AttachmentsSavedMany": "{0} file disimpan ke “{1}”.",
-  "TextFilesLabel": "File teks"
+  "TextFilesLabel": "File teks",
+  "Archive": "Arsip",
+  "ArchiveNote": "Arsipkan (Ctrl+E)",
+  "UnarchiveNote": "Keluarkan dari arsip",
+  "ArchiveMany": "Arsipkan {0} catatan",
+  "UnarchiveMany": "Keluarkan {0} catatan dari arsip",
+  "ArchivedOne": "Catatan diarsipkan.",
+  "ArchivedMany": "{0} catatan diarsipkan.",
+  "UnarchivedOne": "Catatan dikeluarkan dari arsip.",
+  "UnarchivedMany": "{0} catatan dikeluarkan dari arsip.",
+  "EmptyArchiveHeading": "Arsip kosong.",
+  "EmptyArchiveDescription": "Arsipkan catatan yang ingin disingkirkan tanpa dihapus; ambil kembali kapan saja."
 }

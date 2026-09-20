@@ -184,5 +184,16 @@
   "ChecklistAdd": "Lista de tareas (Ctrl+Mayús+L)",
   "SaveAllAttachments": "Guardar todos los adjuntos…",
   "AttachmentsSavedMany": "{0} archivos guardados en “{1}”.",
-  "TextFilesLabel": "Archivos de texto"
+  "TextFilesLabel": "Archivos de texto",
+  "Archive": "Archivo",
+  "ArchiveNote": "Archivar (Ctrl+E)",
+  "UnarchiveNote": "Desarchivar",
+  "ArchiveMany": "Archivar {0} notas",
+  "UnarchiveMany": "Desarchivar {0} notas",
+  "ArchivedOne": "Nota archivada.",
+  "ArchivedMany": "{0} notas archivadas.",
+  "UnarchivedOne": "Nota desarchivada.",
+  "UnarchivedMany": "{0} notas desarchivadas.",
+  "EmptyArchiveHeading": "El archivo está vacío.",
+  "EmptyArchiveDescription": "Archiva las notas que quieres apartar sin borrarlas; recupéralas cuando quieras."
 }

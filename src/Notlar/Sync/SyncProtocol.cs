@@ -109,7 +109,7 @@ public static class SyncMerge
                 var newer = note.Updated >= existing.Updated ? note : existing;
                 older.Id = Guid.NewGuid().ToString("N"); older.Revision = 1; older.Updated = now;
                 older.Title = L10n.T("ConflictCopyTitle", older.DisplayTitle, note.Updated >= existing.Updated ? L10n.T("OnThisPc") : deviceName);
-                older.Deleted = false; older.DeletedAt = null; older.Pinned = false;
+                older.Deleted = false; older.DeletedAt = null; older.Pinned = false; older.Archived = false;
                 book.Notes.Add(older); result.Conflicts++; result.Changed.Add(older.Id);
                 if (!ReferenceEquals(newer, existing)) Copy(newer, existing);
                 existing.Revision++; existing.Updated = now;
@@ -127,14 +127,14 @@ public static class SyncMerge
         }
         return result;
     }
-    public static bool SameContent(Note a, Note b) => a.Title == b.Title && a.Text == b.Text && a.Pinned == b.Pinned && a.Deleted == b.Deleted
+    public static bool SameContent(Note a, Note b) => a.Title == b.Title && a.Text == b.Text && a.Pinned == b.Pinned && a.Archived == b.Archived && a.Deleted == b.Deleted
         && a.Attachments.Select(x => x.Id).SequenceEqual(b.Attachments.Select(x => x.Id));
     private static void Copy(Note from, Note to)
     {
-        to.Title = from.Title; to.Text = from.Text; to.Created = from.Created; to.Updated = from.Updated; to.Pinned = from.Pinned;
+        to.Title = from.Title; to.Text = from.Text; to.Created = from.Created; to.Updated = from.Updated; to.Pinned = from.Pinned; to.Archived = from.Archived;
         to.Deleted = from.Deleted; to.DeletedAt = from.DeletedAt; to.Revision = from.Revision;
         to.Attachments = from.Attachments.Select(Clone).ToList();
     }
-    public static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision, Attachments = n.Attachments.Select(Clone).ToList() };
+    public static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Archived = n.Archived, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision, Attachments = n.Attachments.Select(Clone).ToList() };
     private static Attachment Clone(Attachment a) => new() { Id = a.Id, Name = a.Name, MediaType = a.MediaType, Size = a.Size, Key = (byte[])a.Key.Clone(), Sha256 = (byte[])a.Sha256.Clone(), Width = a.Width, Height = a.Height, Added = a.Added };
 }

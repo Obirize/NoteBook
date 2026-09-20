@@ -370,7 +370,7 @@ public sealed class SyncSession : IDisposable
             {
                 note.Id = Guid.NewGuid().ToString("N"); note.Revision = 1;
                 note.Title = L10n.T("ConflictCopyTitle", note.DisplayTitle, Device?.Name ?? "phone");
-                note.Deleted = false; note.DeletedAt = null;
+                note.Deleted = false; note.DeletedAt = null; note.Archived = false;
             }
         }
         bases.Clear();

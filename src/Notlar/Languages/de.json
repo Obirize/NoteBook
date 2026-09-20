@@ -184,5 +184,16 @@
   "ChecklistAdd": "Checkliste (Strg+Umschalt+L)",
   "SaveAllAttachments": "Alle Anhänge sichern…",
   "AttachmentsSavedMany": "{0} Dateien in „{1}“ gesichert.",
-  "TextFilesLabel": "Textdateien"
+  "TextFilesLabel": "Textdateien",
+  "Archive": "Archiv",
+  "ArchiveNote": "Archivieren (Strg+E)",
+  "UnarchiveNote": "Aus dem Archiv holen",
+  "ArchiveMany": "{0} Notizen archivieren",
+  "UnarchiveMany": "{0} Notizen aus dem Archiv holen",
+  "ArchivedOne": "Notiz archiviert.",
+  "ArchivedMany": "{0} Notizen archiviert.",
+  "UnarchivedOne": "Notiz aus dem Archiv geholt.",
+  "UnarchivedMany": "{0} Notizen aus dem Archiv geholt.",
+  "EmptyArchiveHeading": "Das Archiv ist leer.",
+  "EmptyArchiveDescription": "Archiviere Notizen, die aus dem Weg sollen, aber nicht weg; hol sie jederzeit zurück."
 }

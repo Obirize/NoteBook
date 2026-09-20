@@ -184,5 +184,16 @@
   "ChecklistAdd": "Liste de tâches (Ctrl+Maj+L)",
   "SaveAllAttachments": "Enregistrer toutes les pièces jointes…",
   "AttachmentsSavedMany": "{0} fichiers enregistrés dans « {1} ».",
-  "TextFilesLabel": "Fichiers texte"
+  "TextFilesLabel": "Fichiers texte",
+  "Archive": "Archives",
+  "ArchiveNote": "Archiver (Ctrl+E)",
+  "UnarchiveNote": "Désarchiver",
+  "ArchiveMany": "Archiver {0} notes",
+  "UnarchiveMany": "Désarchiver {0} notes",
+  "ArchivedOne": "Note archivée.",
+  "ArchivedMany": "{0} notes archivées.",
+  "UnarchivedOne": "Note désarchivée.",
+  "UnarchivedMany": "{0} notes désarchivées.",
+  "EmptyArchiveHeading": "Les archives sont vides.",
+  "EmptyArchiveDescription": "Archivez les notes que vous voulez écarter sans les supprimer ; retrouvez-les quand vous voulez."
 }

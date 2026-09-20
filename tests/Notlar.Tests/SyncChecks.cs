@@ -32,6 +32,9 @@ static class SyncChecks
         check(result.Conflicts==1 && book.Notes.Count==2 && book.Notes.Any(n=>n.Text=="secret") && book.Notes.Any(n=>n.Text=="phone edit"),"Sync preserves equal-revision conflicting edits");
         SyncMerge.Apply(book,[edited],[],"phone");
         check(book.Notes.Count==2,"Sync conflict replay does not duplicate copies");
+        var archived=SyncMerge.Clone(book.Notes.First(n=>n.Id==note.Id));archived.Archived=true;archived.Revision++;archived.Updated=archived.Updated.AddSeconds(5);
+        SyncMerge.Apply(book,[archived],[],"phone");
+        check(book.Notes.First(n=>n.Id==note.Id).Archived && !SyncMerge.SameContent(edited,archived),"Archiving on one device reaches the other through sync");
         SyncMerge.Apply(book,[],[new(note.Id,99)],"phone");
         SyncMerge.Apply(book,[note],[],"phone");
         check(!book.Notes.Any(n=>n.Id==note.Id),"Purge prevents stale note resurrection");
@@ -74,7 +77,7 @@ static class SyncChecks
         Console.WriteLine(stdout.GetAwaiter().GetResult());
         if(process.ExitCode!=0)throw new Exception(stderr.GetAwaiter().GetResult());
         check(service.PairCode==null,"A used pairing code cannot be used again");
-        check(host.Book.Notes.Any(n=>n.Title=="Phone"),"WebCrypto phone uploads encrypted note to C#");
+        check(host.Book.Notes.Any(n=>n.Title=="Phone" && n.Archived),"WebCrypto phone uploads encrypted note to C#, archive flag included");
         var phone=host.Book.Notes.First(n=>n.Title=="Phone");
         using var output=new MemoryStream();host.Attachments.Decrypt(phone.Attachments.First(a=>a.Name=="phone.png"),output);
         check(Encoding.UTF8.GetString(output.ToArray())=="phone attachment","WebCrypto attachment decrypts on desktop");

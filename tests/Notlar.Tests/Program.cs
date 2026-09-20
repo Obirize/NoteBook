@@ -347,11 +347,20 @@ static class Program
             Check(TrashPolicy.Purge(stale, [stale.Notes.First(n => n.Title == "Canlı")]) == 0 && stale.Notes.Count == 3, "Purge never removes a live note");
             TrashPolicy.Delete([stale.Notes[2]], now); Check(stale.Notes[2].Deleted && stale.Notes[2].DeletedAt == now && stale.Notes[2].TrashLabel == L10n.T("TrashLabelDays", 30), "Delete records the deletion time and shows remaining days");
             TrashPolicy.Restore([stale.Notes[2]], now); Check(!stale.Notes[2].Deleted && stale.Notes[2].DeletedAt == null && stale.Notes[2].TrashLabel == "", "Restore clears the deletion time");
-            Check(NoteQuery.Find(book, "istanbul", false).Count == 1 && NoteQuery.Find(book, "ISTANBUL", false).Count == 1, "Search ignores case and dotted/undotted i in any UI language");
-            L10n.Use("tr"); Check(NoteQuery.Find(book, "istanbul", false).Count == 1 && NoteQuery.Find(book, "ıstanbul", false).Count == 0, "Turkish culture keeps dotted and dotless i distinct"); L10n.Use("en");
+            Check(NoteQuery.Find(book, "istanbul", Folder.Notes).Count == 1 && NoteQuery.Find(book, "ISTANBUL", Folder.Notes).Count == 1, "Search ignores case and dotted/undotted i in any UI language");
+            L10n.Use("tr"); Check(NoteQuery.Find(book, "istanbul", Folder.Notes).Count == 1 && NoteQuery.Find(book, "ıstanbul", Folder.Notes).Count == 0, "Turkish culture keeps dotted and dotless i distinct"); L10n.Use("en");
             book.Notes[0].Deleted = true;
-            Check(NoteQuery.Find(book, "", false).Count == 0 && NoteQuery.Find(book, "", true).Count == 1, "Deleted tombstone filtered from live notes");
+            Check(NoteQuery.Find(book, "", Folder.Notes).Count == 0 && NoteQuery.Find(book, "", Folder.Trash).Count == 1, "Deleted tombstone filtered from live notes");
             book.Notes[0].Deleted = false;
+            // Archive: a third folder beside the main list and the trash; restoring from the trash always lands in the main list.
+            TrashPolicy.Archive([book.Notes[0]], true, now);
+            Check(book.Notes[0].Archived && NoteQuery.Find(book, "", Folder.Notes).Count == 0 && NoteQuery.Find(book, "", Folder.Archive).Count == 1 && NoteQuery.Find(book, "", Folder.Trash).Count == 0, "Archived notes leave the main list for the archive");
+            TrashPolicy.Delete([book.Notes[0]], now);
+            Check(NoteQuery.Find(book, "", Folder.Archive).Count == 0 && NoteQuery.Find(book, "", Folder.Trash).Count == 1, "A deleted archived note shows only in the trash");
+            TrashPolicy.Restore([book.Notes[0]], now);
+            Check(!book.Notes[0].Archived && NoteQuery.Find(book, "", Folder.Notes).Count == 1, "Restoring from the trash brings the note back to the main list");
+            var archivedJson = new Note { Title = "a", Archived = true };
+            Check(System.Text.Json.JsonSerializer.Deserialize<Note>(System.Text.Json.JsonSerializer.Serialize(archivedJson))!.Archived && !System.Text.Json.JsonSerializer.Deserialize<Note>("{\"Title\":\"old\"}")!.Archived, "The archive flag is stored with the note and older notes read as not archived");
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/Notlar;component/Styles.xaml") });
             DeviceFlow(root);
@@ -383,6 +392,15 @@ static class Program
             Click(window, "RestoreButton"); Check(session.Book.Notes.All(n => !n.Deleted), "Trash restore returns note");
             var pinTarget = (Note)Find<ListBox>(window, "NoteList").SelectedItem; bool wasPinned = pinTarget.Pinned;
             Click(window, "PinButton"); Check(pinTarget.Pinned != wasPinned, "Pin toggles from UI");
+            var archiveTarget = (Note)Find<ListBox>(window, "NoteList").SelectedItem; int liveBefore = Find<ListBox>(window, "NoteList").Items.Count;
+            Click(window, "ArchiveButton"); Pump();
+            Check(archiveTarget.Archived && Find<ListBox>(window, "NoteList").Items.Count == liveBefore - 1 && Find<Button>(window, "ArchiveFilter").Visibility == Visibility.Visible, "Archive button moves the note out of the main list");
+            Click(window, "ArchiveFilter"); Pump();
+            Check(Find<ListBox>(window, "NoteList").Items.Cast<Note>().Single() == archiveTarget && !body.IsReadOnly && Find<Button>(window, "EmptyNew").Visibility == Visibility.Collapsed && (string)Find<Button>(window, "ArchiveButton").ToolTip == L10n.T("UnarchiveNote"), "The archive lists the note, still editable, with an unarchive button");
+            Click(window, "ArchiveButton"); Pump();
+            Check(!archiveTarget.Archived && Find<ListBox>(window, "NoteList").Items.Count == 0, "Unarchiving from the archive empties it");
+            Click(window, "AllFilter"); Pump();
+            Check(Find<ListBox>(window, "NoteList").Items.Count == liveBefore, "The note is back in the main list");
             Click(window, "NewButton"); title.Text = "Toplu 1"; body.Text = "PURGE-ME-4411"; window.SaveNow();
             Click(window, "NewButton"); title.Text = "Toplu 2"; window.SaveNow();
             var noteList = Find<ListBox>(window, "NoteList");
@@ -559,7 +577,7 @@ static class Program
             var languageMenu = Find<ContextMenu>(window, "LanguageMenu");
             Check(languageMenu.Items.Count == L10n.Languages.Length && languageMenu.Items.OfType<MenuItem>().Single(m => m.IsChecked).Tag as string == "en", "Language menu lists every language and marks the current one");
             var listMenu = Find<ListBox>(window, "NoteList").ContextMenu!;
-            Check(listMenu.Items.OfType<MenuItem>().Count() == 6, "Note cards get a themed action menu");
+            Check(listMenu.Items.OfType<MenuItem>().Count() == 7, "Note cards get a themed action menu");
             window.Width = 1160; window.Height = 780; Pump();
             Find<ListBox>(window, "NoteList").SelectedIndex = 0; Pump();
             // Closing only hides the window: the app stays in the notification area so the phone can keep syncing.
@@ -592,7 +610,7 @@ static class Program
             session.Dispose(); Reject(session.Save, "Disposed session cannot save");
             var large = new Notebook { Notes = Enumerable.Range(0, 1000).Select(i => new Note { Title = "Not " + i, Text = new string('x', 1000) }).ToList() };
             var bulk = VaultSession.Create(Path.Combine(root, "bulk.vault"), Password, large); using var bulkSession = bulk.Session;
-            bulkSession.Save(); var results = NoteQuery.Find(large, "Not 99", false);
+            bulkSession.Save(); var results = NoteQuery.Find(large, "Not 99", Folder.Notes);
             Check(results.Count == 11, "1000-note search returns correct matches");
             var empty = VaultSession.Create(Path.Combine(root, "empty.vault"), Password); using var emptySession = empty.Session; emptySession.Save();
             var emptyWindow = new MainWindow(emptySession); emptyWindow.Show(); Pump();

@@ -184,5 +184,16 @@
   "ChecklistAdd": "チェックリスト (Ctrl+Shift+L)",
   "SaveAllAttachments": "添付をすべて保存…",
   "AttachmentsSavedMany": "{0} 個のファイルを「{1}」に保存しました。",
-  "TextFilesLabel": "テキストファイル"
+  "TextFilesLabel": "テキストファイル",
+  "Archive": "アーカイブ",
+  "ArchiveNote": "アーカイブ (Ctrl+E)",
+  "UnarchiveNote": "アーカイブを解除",
+  "ArchiveMany": "{0} 件のメモをアーカイブ",
+  "UnarchiveMany": "{0} 件のメモのアーカイブを解除",
+  "ArchivedOne": "メモをアーカイブしました。",
+  "ArchivedMany": "{0} 件のメモをアーカイブしました。",
+  "UnarchivedOne": "メモのアーカイブを解除しました。",
+  "UnarchivedMany": "{0} 件のメモのアーカイブを解除しました。",
+  "EmptyArchiveHeading": "アーカイブは空です。",
+  "EmptyArchiveDescription": "手元に置きたくないけれど削除もしたくないメモをアーカイブへ。いつでも戻せます。"
 }

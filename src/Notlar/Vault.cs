@@ -195,7 +195,7 @@ public sealed class VaultSession : IDisposable
             if (note.Revision > existing.Revision || (note.Revision == existing.Revision && note.Updated > existing.Updated))
             {
                 existing.Title = note.Title; existing.Text = note.Text; existing.Created = note.Created; existing.Updated = note.Updated;
-                existing.Pinned = note.Pinned; existing.Deleted = note.Deleted; existing.DeletedAt = note.DeletedAt; existing.Revision = note.Revision;
+                existing.Pinned = note.Pinned; existing.Archived = note.Archived; existing.Deleted = note.Deleted; existing.DeletedAt = note.DeletedAt; existing.Revision = note.Revision;
                 existing.Attachments = note.Attachments.Select(Clone).ToList();
                 updated++;
             }
@@ -204,7 +204,7 @@ public sealed class VaultSession : IDisposable
         foreach (var purge in from.Purged) if (!into.Purged.Any(p => p.Id == purge.Id && p.Revision >= purge.Revision)) { into.Purged.RemoveAll(p => p.Id == purge.Id); into.Purged.Add(new PurgeRecord { Id = purge.Id, Revision = purge.Revision, At = purge.At }); }
         return (added, updated);
     }
-    private static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision, Attachments = n.Attachments.Select(Clone).ToList() };
+    private static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Archived = n.Archived, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision, Attachments = n.Attachments.Select(Clone).ToList() };
     private static Attachment Clone(Attachment a) => new() { Id = a.Id, Name = a.Name, MediaType = a.MediaType, Size = a.Size, Key = (byte[])a.Key.Clone(), Sha256 = (byte[])a.Sha256.Clone(), Width = a.Width, Height = a.Height, Added = a.Added };
     public void Save() => Save(false);
     public void Save(bool redactBackup)

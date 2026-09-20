@@ -11,6 +11,8 @@ public sealed class Note
     public DateTimeOffset Created { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset Updated { get; set; } = DateTimeOffset.UtcNow;
     public bool Pinned { get; set; }
+    // Out of the way but not gone: archived notes live in their own folder and come back with one click.
+    public bool Archived { get; set; }
     public bool Deleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public long Revision { get; set; } = 1;
@@ -61,8 +63,11 @@ public static class TrashPolicy
     public const int RetentionDays = 30, PurgeMemoryDays = 180;
     public static void Delete(IEnumerable<Note> notes, DateTimeOffset now)
     { foreach (var n in notes) { n.Deleted = true; n.DeletedAt = now; n.Updated = now; n.Revision++; } }
+    // A restored note lands back in the main list, whatever folder it was in before; that is where the user will look for it.
     public static void Restore(IEnumerable<Note> notes, DateTimeOffset now)
-    { foreach (var n in notes) { n.Deleted = false; n.DeletedAt = null; n.Updated = now; n.Revision++; } }
+    { foreach (var n in notes) { n.Deleted = false; n.DeletedAt = null; n.Archived = false; n.Updated = now; n.Revision++; } }
+    public static void Archive(IEnumerable<Note> notes, bool archived, DateTimeOffset now)
+    { foreach (var n in notes) { n.Archived = archived; n.Updated = now; n.Revision++; } }
     public static bool InitializeDates(Notebook book, DateTimeOffset now)
     {
         bool changed = false;
@@ -110,10 +115,14 @@ public sealed class Notebook
     public Dictionary<string, string> LegacyArchive { get; set; } = [];
 }
 
+// The three lists the user can look at: everyday notes, the archive, and what was deleted.
+public enum Folder { Notes, Archive, Trash }
+
 public static class NoteQuery
 {
-    public static List<Note> Find(Notebook book, string query, bool trash) => book.Notes
-        .Where(n => n.Deleted == trash && (string.IsNullOrWhiteSpace(query) ||
+    public static bool In(Note n, Folder folder) => folder == Folder.Trash ? n.Deleted : !n.Deleted && n.Archived == (folder == Folder.Archive);
+    public static List<Note> Find(Notebook book, string query, Folder folder) => book.Notes
+        .Where(n => In(n, folder) && (string.IsNullOrWhiteSpace(query) ||
             L10n.Culture.CompareInfo.IndexOf(n.Title + "\n" + n.Text + "\n" + string.Join("\n", n.Attachments.Select(a => a.Name)), query.Trim(), CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0))
         .OrderByDescending(n => n.Pinned).ThenByDescending(n => n.Updated).ToList();
 }

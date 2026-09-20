@@ -184,5 +184,16 @@
   "ChecklistAdd": "Yapılacaklar listesi (Ctrl+Shift+L)",
   "SaveAllAttachments": "Tüm ekleri kaydet…",
   "AttachmentsSavedMany": "{0} dosya “{1}” klasörüne kaydedildi.",
-  "TextFilesLabel": "Metin dosyaları"
+  "TextFilesLabel": "Metin dosyaları",
+  "Archive": "Arşiv",
+  "ArchiveNote": "Arşivle (Ctrl+E)",
+  "UnarchiveNote": "Arşivden çıkar",
+  "ArchiveMany": "{0} notu arşivle",
+  "UnarchiveMany": "{0} notu arşivden çıkar",
+  "ArchivedOne": "Not arşivlendi.",
+  "ArchivedMany": "{0} not arşivlendi.",
+  "UnarchivedOne": "Not arşivden çıkarıldı.",
+  "UnarchivedMany": "{0} not arşivden çıkarıldı.",
+  "EmptyArchiveHeading": "Arşiv boş.",
+  "EmptyArchiveDescription": "Elinizin altında durmasını istemediğiniz ama silmek de istemediğiniz notları arşivleyin; istediğiniz zaman geri alın."
 }

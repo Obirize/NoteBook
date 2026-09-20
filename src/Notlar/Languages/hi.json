@@ -184,5 +184,16 @@
   "ChecklistAdd": "चेकलिस्ट (Ctrl+Shift+L)",
   "SaveAllAttachments": "सभी अनुलग्नक सहेजें…",
   "AttachmentsSavedMany": "{0} फ़ाइलें “{1}” में सहेजी गईं।",
-  "TextFilesLabel": "टेक्स्ट फ़ाइलें"
+  "TextFilesLabel": "टेक्स्ट फ़ाइलें",
+  "Archive": "संग्रह",
+  "ArchiveNote": "संग्रहित करें (Ctrl+E)",
+  "UnarchiveNote": "संग्रह से निकालें",
+  "ArchiveMany": "{0} नोट संग्रहित करें",
+  "UnarchiveMany": "{0} नोट संग्रह से निकालें",
+  "ArchivedOne": "नोट संग्रहित किया गया।",
+  "ArchivedMany": "{0} नोट संग्रहित किए गए।",
+  "UnarchivedOne": "नोट संग्रह से निकाला गया।",
+  "UnarchivedMany": "{0} नोट संग्रह से निकाले गए।",
+  "EmptyArchiveHeading": "संग्रह खाली है।",
+  "EmptyArchiveDescription": "जिन नोट्स को सामने नहीं रखना पर हटाना भी नहीं, उन्हें संग्रहित करें; जब चाहें वापस लाएँ।"
 }

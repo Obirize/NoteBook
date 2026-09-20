@@ -19,7 +19,8 @@ public partial class MainWindow : Window
     private readonly VaultSession session;
     private Note? current;
     private List<Note> lastDeleted = [];
-    private bool loading, dirty, trash, selecting, purged, sweep, importing;
+    private bool loading, dirty, trash, archive, selecting, purged, sweep, importing;
+    private Folder CurrentFolder => trash ? Folder.Trash : archive ? Folder.Archive : Folder.Notes;
     private readonly Dictionary<string, BitmapSource> thumbnails = [];
     private readonly DispatcherTimer saveTimer = new() { Interval = TimeSpan.FromMilliseconds(650) };
     private readonly DispatcherTimer idleTimer = new() { Interval = TimeSpan.FromSeconds(15) };
@@ -132,6 +133,7 @@ public partial class MainWindow : Window
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.A) { AttachClick(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.L) { ChecklistClick(this, e); e.Handled = true; return; }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
+        if (e.Key == Key.E) { ArchiveClick(this, e); e.Handled = true; return; }
         // Ctrl+V with a picture or media files on the clipboard (and no text) attaches instead of pasting nothing.
         if (e.Key == Key.V && PasteAttachment()) { e.Handled = true; return; }
         if (e.Key == Key.O) { ImportClick(this, e); e.Handled = true; }
@@ -145,7 +147,7 @@ public partial class MainWindow : Window
     {
         if (NoteList == null) return;
         selectedId ??= current?.Id;
-        var notes = NoteQuery.Find(session.Book, SearchInput.Text, trash);
+        var notes = NoteQuery.Find(session.Book, SearchInput.Text, CurrentFolder);
         var scroll = FindVisual<ScrollViewer>(NoteList);
         double offset = scroll?.VerticalOffset ?? 0;
         loading = true;
@@ -159,9 +161,10 @@ public partial class MainWindow : Window
         if (current != selected) OpenNote(selected);
         CountText.Text = L10n.Count("NoteCountOne", "NoteCountMany", notes.Count);
         NoResults.Visibility = notes.Count == 0 && SearchInput.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-        AllFilter.SetResourceReference(BackgroundProperty, trash ? "Side" : "Surface");
-        TrashFilter.SetResourceReference(BackgroundProperty, trash ? "Surface" : "Side");
-        ListHeading.Text = L10n.T(trash ? "RecentlyDeleted" : "MyNotes");
+        AllFilter.SetResourceReference(BackgroundProperty, CurrentFolder == Folder.Notes ? "Surface" : "Side");
+        ArchiveFilter.SetResourceReference(BackgroundProperty, CurrentFolder == Folder.Archive ? "Surface" : "Side");
+        TrashFilter.SetResourceReference(BackgroundProperty, CurrentFolder == Folder.Trash ? "Surface" : "Side");
+        ListHeading.Text = L10n.T(trash ? "RecentlyDeleted" : archive ? "Archive" : "MyNotes");
         UpdateState();
     }
     private void OpenNote(Note? note)
@@ -184,17 +187,19 @@ public partial class MainWindow : Window
         TitleInput.IsReadOnly = BodyInput.IsReadOnly = trash;
         TitleHint.Visibility = TitleInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         BodyHint.Visibility = BodyInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        PinButton.Visibility = DeleteButton.Visibility = ExportButton.Visibility = AttachButton.Visibility = ChecklistButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        PinButton.Visibility = ArchiveButton.Visibility = DeleteButton.Visibility = ExportButton.Visibility = AttachButton.Visibility = ChecklistButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        ArchiveButton.ToolTip = L10n.T(current?.Archived == true ? "UnarchiveNote" : "ArchiveNote");
+        System.Windows.Automation.AutomationProperties.SetName(ArchiveButton, (string)ArchiveButton.ToolTip);
         AttachButton.IsEnabled = !importing;
         RestoreButton.Visibility = PurgeButton.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
         PinButton.ToolTip = L10n.T(current?.Pinned == true ? "UnpinNote" : "PinNote");
         System.Windows.Automation.AutomationProperties.SetName(PinButton, (string)PinButton.ToolTip);
         PinButton.SetResourceReference(ForegroundProperty, current?.Pinned == true ? "Accent" : "Muted");
         DateText.Text = current?.Updated.LocalDateTime.ToString("f", L10n.Culture) ?? "";
-        EmptyHeading.Text = L10n.T(trash ? "EmptyTrashHeading" : SearchInput.Text.Length > 0 ? "EmptySearchHeading" : "EmptyHeading");
-        EmptyDescription.Text = trash ? L10n.T("EmptyTrashDescription", TrashPolicy.RetentionDays) : L10n.T(SearchInput.Text.Length > 0 ? "EmptySearchDescription" : "EmptyDescription");
+        EmptyHeading.Text = L10n.T(SearchInput.Text.Length > 0 ? "EmptySearchHeading" : trash ? "EmptyTrashHeading" : archive ? "EmptyArchiveHeading" : "EmptyHeading");
+        EmptyDescription.Text = SearchInput.Text.Length > 0 ? L10n.T("EmptySearchDescription") : trash ? L10n.T("EmptyTrashDescription", TrashPolicy.RetentionDays) : L10n.T(archive ? "EmptyArchiveDescription" : "EmptyDescription");
         EmptyNew.Content = L10n.T(session.Book.Notes.Any(n => !n.Deleted) ? "WriteNewNote" : "WriteFirstNote");
-        EmptyNew.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        EmptyNew.Visibility = trash || archive ? Visibility.Collapsed : Visibility.Visible;
         TrashNotice.Text = L10n.T("TrashNotice", TrashPolicy.RetentionDays);
         TrashNotice.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
         SelectButton.Content = L10n.T(selecting ? "Cancel" : "Select");
@@ -204,11 +209,12 @@ public partial class MainWindow : Window
         SelectionCount.Text = selecting ? count == 0 ? L10n.T("NoSelection") : L10n.Count("SelectedCountOne", "SelectedCountMany", count) : "";
         SelectionHeading.Text = count == 0 ? L10n.T("SelectionPrompt") : L10n.Count("SelectedCountOne", "SelectedCountMany", count);
         SelectionDescription.Text = trash ? L10n.T("SelectionDescriptionTrash") : L10n.T("SelectionDescription", TrashPolicy.RetentionDays);
-        BulkDeleteButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        BulkDeleteButton.Visibility = BulkArchiveButton.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        BulkArchiveButton.Content = L10n.T(archive ? "UnarchiveNote" : "ArchiveNote");
         BulkRestoreButton.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
         SelectionDeleteButton.Visibility = selecting && !trash ? Visibility.Visible : Visibility.Collapsed;
         SelectionDeleteButton.IsEnabled = count > 0;
-        BulkDeleteButton.IsEnabled = BulkRestoreButton.IsEnabled = BulkPurgeButton.IsEnabled = count > 0;
+        BulkDeleteButton.IsEnabled = BulkRestoreButton.IsEnabled = BulkPurgeButton.IsEnabled = BulkArchiveButton.IsEnabled = count > 0;
     }
     private void Touch()
     {
@@ -281,7 +287,7 @@ public partial class MainWindow : Window
     {
         if (!SaveNow()) return;
         if (selecting) SetSelecting(false);
-        trash = false; loading = true; SearchInput.Clear(); loading = false;
+        trash = archive = false; loading = true; SearchInput.Clear(); loading = false;
         SearchHint.Visibility = Visibility.Visible; ClearSearch.Visibility = Visibility.Collapsed;
         var note = new Note(); session.Book.Notes.Add(note);
         dirty = true; RefreshList(note.Id); SaveNow(); TitleInput.Focus();
@@ -307,6 +313,8 @@ public partial class MainWindow : Window
         MenuPin.Visibility = MenuExport.Visibility = single ? Visibility.Visible : Visibility.Collapsed;
         MenuSaveAttachments.Visibility = targets.Any(n => n.Attachments.Count > 0) ? Visibility.Visible : Visibility.Collapsed;
         MenuPin.Header = L10n.T(targets[0].Pinned ? "UnpinNote" : "Pin");
+        MenuArchive.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
+        MenuArchive.Header = targets.Count == 1 ? L10n.T(archive ? "UnarchiveNote" : "ArchiveNote") : L10n.T(archive ? "UnarchiveMany" : "ArchiveMany", targets.Count);
         MenuDelete.Visibility = trash ? Visibility.Collapsed : Visibility.Visible;
         MenuRestore.Visibility = trash ? Visibility.Visible : Visibility.Collapsed;
         MenuDelete.Header = targets.Count == 1 ? L10n.T("Delete") : L10n.T("MoveManyToTrash", targets.Count);
@@ -314,8 +322,19 @@ public partial class MainWindow : Window
         MenuPurge.Header = targets.Count == 1 ? L10n.T("DeletePermanentlyMenu") : L10n.T("PurgeMany", targets.Count);
     }
     private void ClearSearchClick(object sender, RoutedEventArgs e) { SearchInput.Clear(); SearchInput.Focus(); }
-    private void AllClick(object sender, RoutedEventArgs e) { if (!SaveNow()) return; trash = false; RefreshList(); }
-    private void TrashClick(object sender, RoutedEventArgs e) { if (!SaveNow()) return; trash = true; RefreshList(); }
+    private void AllClick(object sender, RoutedEventArgs e) { if (!SaveNow()) return; trash = archive = false; RefreshList(); }
+    private void ArchiveFilterClick(object sender, RoutedEventArgs e) { if (!SaveNow()) return; trash = false; archive = true; RefreshList(); }
+    private void TrashClick(object sender, RoutedEventArgs e) { if (!SaveNow()) return; trash = true; archive = false; RefreshList(); }
+    // Archiving moves the note (or every checked note) between the main list and the archive; nothing is lost either way.
+    private void ArchiveClick(object sender, RoutedEventArgs e)
+    {
+        var notes = Targets();
+        if (notes.Count == 0 || trash || !SaveNow()) return;
+        TrashPolicy.Archive(notes, !archive, DateTimeOffset.UtcNow); dirty = true;
+        if (!SaveNow()) return;
+        StatusText.Text = L10n.Count(archive ? "UnarchivedOne" : "ArchivedOne", archive ? "UnarchivedMany" : "ArchivedMany", notes.Count);
+        if (selecting) SetSelecting(false);
+    }
     private void PinClick(object sender, RoutedEventArgs e) { if (current == null || selecting) return; current.Pinned = !current.Pinned; Touch(); SaveNow(); }
 
     private void DeleteClick(object sender, RoutedEventArgs e)
@@ -334,7 +353,7 @@ public partial class MainWindow : Window
         if (notes.Count == 0 || !trash || !SaveNow()) return;
         TrashPolicy.Restore(notes, DateTimeOffset.UtcNow); dirty = true;
         if (!SaveNow()) return;
-        trash = false; selecting = false; NoteList.SelectionMode = SelectionMode.Single;
+        trash = archive = false; selecting = false; NoteList.SelectionMode = SelectionMode.Single;
         loading = true; SearchInput.Clear(); loading = false;
         SearchHint.Visibility = Visibility.Visible; ClearSearch.Visibility = Visibility.Collapsed;
         RefreshList(notes[0].Id);
@@ -360,7 +379,7 @@ public partial class MainWindow : Window
         if (notes.Count == 0) { UndoDelete.Visibility = Visibility.Collapsed; return; }
         TrashPolicy.Restore(notes, DateTimeOffset.UtcNow); dirty = true;
         if (!SaveNow()) return;
-        trash = false; if (selecting) SetSelecting(false);
+        trash = archive = false; if (selecting) SetSelecting(false);
         loading = true; SearchInput.Clear(); loading = false;
         SearchHint.Visibility = Visibility.Visible; ClearSearch.Visibility = Visibility.Collapsed;
         RefreshList(notes[0].Id); UndoDelete.Visibility = Visibility.Collapsed; lastDeleted = [];
@@ -440,7 +459,7 @@ public partial class MainWindow : Window
         var note = TextFiles.Read(path);
         session.Book.Notes.Add(note); dirty = true;
         if (selecting) SetSelecting(false);
-        trash = false; loading = true; SearchInput.Clear(); loading = false;
+        trash = archive = false; loading = true; SearchInput.Clear(); loading = false;
         SearchHint.Visibility = Visibility.Visible; ClearSearch.Visibility = Visibility.Collapsed;
         RefreshList(note.Id);
         bool saved = SaveNow();

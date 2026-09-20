@@ -6,7 +6,10 @@ import * as Checklist from './checklist.js';
 
 const $ = x => document.getElementById(x);
 const MAX_FILE = 256 * 1024 * 1024, SEND_DELAY = 400, RETRY_MIN = 3000, RETRY_MAX = 20000;
-let db, keys, device, notes = [], purges = [], current = null, trash = false, selecting = false;
+let db, keys, device, notes = [], purges = [], current = null, trash = false, archive = false, selecting = false;
+// Which of the three lists a note belongs to: the main list, the archive, or Recently Deleted.
+const inFolder = n => trash ? n.Deleted : !n.Deleted && !!n.Archived === archive;
+const folderTitle = () => trash ? T('recentlyDeleted') : archive ? T('archive') : T('notes');
 const selected = new Set();
 let socket = null, ready = false, receiving = null, serverNonce, clientNonce, retry, retryDelay = RETRY_MIN, lastSynced = null;
 let queue = Promise.resolve();
@@ -18,7 +21,7 @@ let toastTimer;
 function toast(text) { const t = $('toast'); t.textContent = text; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3200); }
 function request(store, mode, fn) { return new Promise((resolve, reject) => { const tx = db.transaction(store, mode), r = fn(tx.objectStore(store)); tx.oncomplete = () => resolve(r?.result); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error || Error(T('storage'))); }); }
 const get = (s, k) => request(s, 'readonly', t => t.get(k)), put = (s, k, v) => request(s, 'readwrite', t => t.put(v, k)), del = (s, k) => request(s, 'readwrite', t => t.delete(k));
-const same = (a, b) => a.Title === b.Title && a.Text === b.Text && a.Pinned === b.Pinned && a.Deleted === b.Deleted && JSON.stringify(a.Attachments) === JSON.stringify(b.Attachments);
+const same = (a, b) => a.Title === b.Title && a.Text === b.Text && a.Pinned === b.Pinned && !!a.Archived === !!b.Archived && a.Deleted === b.Deleted && JSON.stringify(a.Attachments) === JSON.stringify(b.Attachments);
 const persist = async n => put('notes', n.Id, { id: n.Id, rev: n.Revision, blob: await seal(keys, n) });
 const savePurges = () => put('meta', 'purges', purges);
 const send = m => { if (ready && socket?.readyState === 1) socket.send(JSON.stringify(m)); };
@@ -43,10 +46,10 @@ async function flushAll() { for (const n of notes) if (await get('pending', n.Id
 // ---------- list ----------
 function renderList() {
   const q = $('search').value.trim().toLocaleLowerCase(locale);
-  const shown = notes.filter(n => n.Deleted === trash && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
+  const shown = notes.filter(n => inFolder(n) && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
     .sort((a, b) => Number(b.Pinned) - Number(a.Pinned) || Date.parse(b.Updated) - Date.parse(a.Updated));
-  $('listTitle').textContent = trash ? T('recentlyDeleted') : T('notes');
-  $('folderBack').hidden = !trash || selecting; $('trashLink').hidden = trash || selecting; $('compose').hidden = trash;
+  $('listTitle').textContent = folderTitle();
+  $('folderBack').hidden = !(trash || archive) || selecting; $('trashLink').hidden = $('archiveLink').hidden = trash || archive || selecting; $('compose').hidden = trash || archive;
   $('select').hidden = selecting || shown.length === 0; $('selectDone').hidden = !selecting; $('more').hidden = selecting;
   $('list').classList.toggle('selecting', selecting);
   $('selectBar').hidden = !selecting; $('list').querySelector('.toolbar:not(#selectBar)').hidden = selecting;
@@ -54,8 +57,9 @@ function renderList() {
   $('selectAll').textContent = selected.size === shown.length && shown.length > 0 ? T('deselectAll') : T('selectAll');
   $('selectDelete').disabled = selected.size === 0; $('selectRestore').disabled = selected.size === 0; $('selectRestore').hidden = !trash;
   $('selectDelete').textContent = trash ? T('deletePermanently') : T('delete');
+  $('selectArchive').hidden = trash; $('selectArchive').disabled = selected.size === 0; $('selectArchive').textContent = archive ? T('unarchive') : T('archiveNote');
   $('count').textContent = selecting ? (selected.size === 0 ? T('selectPrompt') : T('selectedCount', selected.size)) : shown.length === 0 ? T('countNone') : T('countMany', shown.length);
-  $('empty').hidden = shown.length > 0; $('empty').textContent = q ? T('noResults') : trash ? T('noDeleted') : T('noNotes');
+  $('empty').hidden = shown.length > 0; $('empty').textContent = q ? T('noResults') : trash ? T('noDeleted') : archive ? T('noArchived') : T('noNotes');
   const sections = $('sections'); sections.replaceChildren();
   let group = null, lastSection;
   for (const n of shown) {
@@ -66,7 +70,7 @@ function renderList() {
 }
 function row(n) {
   const el = document.createElement('div'); el.className = 'row';
-  const action = document.createElement('div'); action.className = 'row-action' + (trash ? ' restore' : ''); action.textContent = trash ? T('restore') : T('delete');
+  const action = document.createElement('div'); action.className = 'row-action' + (trash ? ' restore' : archive ? ' archive' : ''); action.textContent = trash ? T('restore') : archive ? T('unarchive') : T('delete');
   const inner = document.createElement('div'); inner.className = 'row-inner';
   const check = document.createElement('div'); check.className = 'row-check'; check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>'; inner.append(check);
   if (selected.has(n.Id)) el.classList.add('checked');
@@ -80,7 +84,7 @@ function row(n) {
   const image = n.Attachments.find(a => a.MediaType.startsWith('image/'));
   if (image) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; inner.append(img); thumbnail(image).then(url => { if (url) img.src = url; else img.remove(); }); }
   el.append(action, inner);
-  if (!selecting) swipe(el, inner, () => run(() => trash ? restoreNote(n) : deleteNote(n)));
+  if (!selecting) swipe(el, inner, () => run(() => trash ? restoreNote(n) : archive ? archiveNote(n, false) : deleteNote(n)));
   inner.addEventListener('click', () => {
     if (el.dataset.swiped) return;
     if (selecting) { if (selected.has(n.Id)) selected.delete(n.Id); else selected.add(n.Id); renderList(); return; }
@@ -120,7 +124,7 @@ let installSkipped = false; try { installSkipped = sessionStorage.getItem('skipI
 const needsInstall = () => !navigator.standalone && !installSkipped && /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches;
 async function openNote(n) {
   current = n; show('editor');
-  $('backLabel').textContent = trash ? T('recentlyDeleted') : T('notes');
+  $('backLabel').textContent = folderTitle();
   $('noteDate').textContent = fmt.full.format(new Date(n.Updated));
   $('title').value = n.Title; Checklist.setBody($('body'), n.Text); autosize($('title'));
   $('title').readOnly = n.Deleted; $('body').contentEditable = n.Deleted ? 'false' : 'true';
@@ -194,8 +198,8 @@ $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('shee
 // A new note is only a draft until something is typed or attached; an untouched draft simply disappears on the way back.
 async function newNote() {
   const now = new Date().toISOString();
-  const n = { Id: id(), Title: '', Text: '', Created: now, Updated: now, Pinned: false, Deleted: false, DeletedAt: null, Revision: 0, Attachments: [], draft: true };
-  trash = false; await openNote(n); $('title').focus();
+  const n = { Id: id(), Title: '', Text: '', Created: now, Updated: now, Pinned: false, Archived: false, Deleted: false, DeletedAt: null, Revision: 0, Attachments: [], draft: true };
+  trash = archive = false; await openNote(n); $('title').focus();
 }
 const isEmpty = n => !n.Title.trim() && !n.Text.trim() && n.Attachments.length === 0;
 async function commitDraft(n) { if (!n.draft) return; delete n.draft; notes.push(n); }
@@ -210,18 +214,20 @@ async function leaveEditor() {
   closeEditor();
 }
 async function deleteNote(n) { n.Deleted = true; n.DeletedAt = new Date().toISOString(); touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast(T('movedToTrash')); }
-async function restoreNote(n) { n.Deleted = false; n.DeletedAt = null; touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast(T('restored')); }
+async function archiveNote(n, archived) { if (n.draft && isEmpty(n)) return; await commitDraft(n); n.Archived = archived; touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast(T(archived ? 'movedToArchive' : 'unarchived')); }
+async function restoreNote(n) { n.Deleted = false; n.DeletedAt = null; n.Archived = false; touch(n); await localSave(n, true); if (current === n) closeEditor(); else renderList(); toast(T('restored')); }
 async function purgeNote(n, quiet = false) { purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); await del('notes', n.Id); await del('pending', n.Id); notes = notes.filter(x => x !== n); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); if (current === n) closeEditor(); else renderList(); if (!quiet) toast(T('purged')); }
 function closeEditor() { current = null; $('editor').style.transform = ''; show('list'); renderList(); }
 async function bulk(action) {
   const targets = notes.filter(n => selected.has(n.Id)); if (targets.length === 0) return;
   for (const n of targets) {
     if (action === 'delete') { n.Deleted = true; n.DeletedAt = new Date().toISOString(); touch(n); await localSave(n, true); }
-    else if (action === 'restore') { n.Deleted = false; n.DeletedAt = null; touch(n); await localSave(n, true); }
+    else if (action === 'restore') { n.Deleted = false; n.DeletedAt = null; n.Archived = false; touch(n); await localSave(n, true); }
+    else if (action === 'archive' || action === 'unarchive') { n.Archived = action === 'archive'; touch(n); await localSave(n, true); }
     else if (action === 'purge') await purgeNote(n, true);
   }
   selected.clear(); selecting = false; renderList();
-  toast(action === 'delete' ? T('movedManyToTrash', targets.length) : action === 'restore' ? T('restoredMany', targets.length) : T('purgedMany', targets.length));
+  toast(action === 'delete' ? T('movedManyToTrash', targets.length) : action === 'restore' ? T('restoredMany', targets.length) : action === 'archive' ? T('movedManyToArchive', targets.length) : action === 'unarchive' ? T('unarchivedMany', targets.length) : T('purgedMany', targets.length));
 }
 
 // ---------- sync ----------
@@ -341,13 +347,15 @@ $('pairCode').addEventListener('input', () => { const v = $('pairCode').value.re
 $('pairLinkButton').addEventListener('click', () => run(() => pair($('pairLink').value)));
 $('search').addEventListener('input', renderList);
 $('compose').addEventListener('click', () => run(newNote));
-$('trashLink').addEventListener('click', () => { trash = true; selected.clear(); renderList(); });
-$('folderBack').addEventListener('click', () => { trash = false; selected.clear(); renderList(); });
+$('trashLink').addEventListener('click', () => { trash = true; archive = false; selected.clear(); renderList(); });
+$('archiveLink').addEventListener('click', () => { archive = true; trash = false; selected.clear(); renderList(); });
+$('folderBack').addEventListener('click', () => { trash = archive = false; selected.clear(); renderList(); });
 $('select').addEventListener('click', () => { selecting = true; selected.clear(); renderList(); });
 $('selectDone').addEventListener('click', () => { selecting = false; selected.clear(); renderList(); });
-$('selectAll').addEventListener('click', () => { const ids = notes.filter(n => n.Deleted === trash).map(n => n.Id); if (selected.size === ids.length && ids.length > 0) selected.clear(); else for (const id of ids) selected.add(id); renderList(); });
+$('selectAll').addEventListener('click', () => { const ids = notes.filter(inFolder).map(n => n.Id); if (selected.size === ids.length && ids.length > 0) selected.clear(); else for (const id of ids) selected.add(id); renderList(); });
 $('selectDelete').addEventListener('click', () => { if (trash) sheet(T('purgeManyConfirm', selected.size), [{ label: T('deletePermanently'), danger: true, run: () => run(() => bulk('purge')) }]); else run(() => bulk('delete')); });
 $('selectRestore').addEventListener('click', () => run(() => bulk('restore')));
+$('selectArchive').addEventListener('click', () => run(() => bulk(archive ? 'unarchive' : 'archive')));
 $('back').addEventListener('click', () => run(leaveEditor));
 // Swiping in from the left edge of a note goes back, as in the Notes app.
 {
@@ -363,6 +371,7 @@ $('more').addEventListener('click', () => sheet(null, [
 ]));
 $('noteMore').addEventListener('click', () => { const n = current; if (!n) return; sheet(null, [
   { label: n.Pinned ? T('unpin') : T('pin'), run: () => $('pin').click() },
+  { label: n.Archived ? T('unarchive') : T('archiveNote'), run: () => run(() => archiveNote(n, !n.Archived)) },
   ...(noteFiles.size ? [{ label: T('saveAll', noteFiles.size), run: () => shareFiles([...noteFiles.values()].map(f => f.file)) }] : []),
   { label: T('delete'), danger: true, run: () => run(async () => { if (n.draft) { current = null; closeEditor(); } else await deleteNote(n); }) },
 ]); });

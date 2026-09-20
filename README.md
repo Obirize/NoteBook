@@ -14,7 +14,7 @@ An Apple Notes–style notebook for Windows with a matching iPhone app that sync
 
 ## What it does
 
-- **Notes** with a title, text, checklists, photos and videos. Search, pin, multi-select, a 30‑day *Recently deleted* folder, opens TXT, Markdown, HTML, RTF and Word files as notes and saves notes as TXT or Markdown, 13 interface languages on both the PC and the phone.
+- **Notes** with a title, text, checklists, photos and videos. Search, pin, multi-select, an *Archive* for notes you want out of the way, a 30‑day *Recently deleted* folder, opens TXT, Markdown, HTML, RTF and Word files as notes and saves notes as TXT or Markdown, 13 interface languages on both the PC and the phone.
 - **Encrypted at rest.** Notes are stored in a vault sealed with AES‑256‑GCM; every photo and video is a separate file encrypted with its own key. On the PC the keys are protected by your Windows sign‑in, so the app never asks for a password.
 - **iPhone sync without a server.** The Windows app itself serves a small web app to your phone; you add it to the Home Screen and pair with a six‑digit code. Notes and files then sync directly between the two devices whenever both are on the same Wi‑Fi. The phone app looks like Apple Notes and works offline.
 - **Runs in the background.** Closing the window keeps NoteBook in the notification area so the phone can sync; the installer can start it with Windows.
@@ -49,6 +49,7 @@ Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is 
 | Ctrl+O | Open text files (TXT, Markdown, HTML, RTF, DOCX, …) as new notes |
 | Ctrl+Shift+A | Add photos or videos to the open note |
 | Ctrl+Shift+L | Turn the current line (or the selected lines) into checklist items, and back |
+| Ctrl+E | Archive the open or checked notes, or bring them back from the archive |
 | Ctrl+V | Paste a picture or media files from the clipboard as attachments |
 | Ctrl+Shift+S | Save the open note as an unencrypted TXT or Markdown copy |
 | Ctrl+K / Ctrl+F | Search |
@@ -68,6 +69,10 @@ There is no separate application password or idle lock: your Windows sign‑in p
 **Between the devices.** The phone and the PC share a 256‑bit sync key that travels once, over TLS, in exchange for the pairing code. From it both derive an authentication key (a mutual HMAC challenge on every connection) and a content key (AES‑256‑GCM). Every note travels and is stored on the phone as ciphertext under that content key; attachments travel as the already encrypted files, byte for byte. The server listens on TCP 47831 (HTTPS + WebSocket) and 47832 (the plain setup page that hands out the certificate), answers only addresses on the local network and talks only to devices that prove the key. Merging keeps the higher revision of a note; if both devices edited the same revision, the newer one stays and the other is kept as a "conflict copy". Permanent deletions are remembered for 180 days so a phone cannot bring a purged note back.
 
 References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope), [AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm). No telemetry. Not independently audited.
+
+## Archive
+
+The folder row above the list has three entries: *All notes*, *Archive* and *Recently deleted*. The folder button in the note toolbar (Ctrl+E), the card's right‑click menu or the bulk bar in select mode moves notes into the archive; the same control in the archive brings them back. Archived notes stay editable and searchable inside the archive, sync to the phone like any other change, and never expire. On the phone the archive sits next to *Recently deleted* at the bottom left; a note's "…" menu, a swipe in the archive and select mode do the same moves. Restoring a note from *Recently deleted* always puts it back in *All notes*.
 
 ## Checklists
 

@@ -184,5 +184,16 @@
   "ChecklistAdd": "Список дел (Ctrl+Shift+L)",
   "SaveAllAttachments": "Сохранить все вложения…",
   "AttachmentsSavedMany": "Файлов сохранено в «{1}»: {0}.",
-  "TextFilesLabel": "Текстовые файлы"
+  "TextFilesLabel": "Текстовые файлы",
+  "Archive": "Архив",
+  "ArchiveNote": "В архив (Ctrl+E)",
+  "UnarchiveNote": "Вернуть из архива",
+  "ArchiveMany": "В архив: {0} заметок",
+  "UnarchiveMany": "Вернуть из архива {0} заметок",
+  "ArchivedOne": "Заметка в архиве.",
+  "ArchivedMany": "В архив перемещено заметок: {0}.",
+  "UnarchivedOne": "Заметка возвращена из архива.",
+  "UnarchivedMany": "Возвращено из архива заметок: {0}.",
+  "EmptyArchiveHeading": "Архив пуст.",
+  "EmptyArchiveDescription": "Убирайте в архив заметки, которые не нужны под рукой, но и удалять жалко; вернуть их можно в любой момент."
 }

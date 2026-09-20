@@ -14,7 +14,7 @@ Windows için Apple Notlar tarzında bir not defteri ve onunla kendi Wi‑Fi'ın
 
 ## Ne yapar
 
-- **Notlar**: başlık, metin, yapılacaklar listesi, fotoğraf ve video. Arama, sabitleme, toplu seçim, 30 günlük *Son silinenler*, TXT, Markdown, HTML, RTF ve Word dosyalarını not olarak açma, notu TXT ya da Markdown olarak kaydetme; bilgisayarda da telefonda da 13 arayüz dili.
+- **Notlar**: başlık, metin, yapılacaklar listesi, fotoğraf ve video. Arama, sabitleme, toplu seçim, göz önünden kaldırmak istediğiniz notlar için *Arşiv*, 30 günlük *Son silinenler*, TXT, Markdown, HTML, RTF ve Word dosyalarını not olarak açma, notu TXT ya da Markdown olarak kaydetme; bilgisayarda da telefonda da 13 arayüz dili.
 - **Diskte şifreli.** Notlar AES‑256‑GCM ile mühürlenmiş bir kasada; her fotoğraf ve video kendi anahtarıyla şifrelenmiş ayrı bir dosyada. Bilgisayarda anahtarlar Windows oturumunuzla korunur; uygulama parola sormaz.
 - **Sunucusuz iPhone eşitlemesi.** Windows uygulamasının kendisi telefona küçük bir web uygulaması sunar; ana ekrana eklersiniz ve 6 haneli bir kodla eşleştirirsiniz. Sonra notlar ve dosyalar, iki cihaz aynı Wi‑Fi'dayken doğrudan aralarında eşitlenir. Telefon uygulaması Apple Notlar gibi görünür ve çevrimdışı çalışır.
 - **Arka planda çalışır.** Pencereyi kapatmak uygulamayı kapatmaz; Notlar bildirim alanında kalır ki telefon eşitlenebilsin. Kurulum sihirbazı Windows ile başlatmayı sunar.
@@ -49,6 +49,7 @@ Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışı
 | Ctrl+O | Metin dosyalarını (TXT, Markdown, HTML, RTF, DOCX, …) yeni not olarak aç |
 | Ctrl+Shift+A | Açık nota fotoğraf veya video ekle |
 | Ctrl+Shift+L | Bulunulan satırı (veya seçili satırları) yapılacaklar maddesi yap, ya da geri çevir |
+| Ctrl+E | Açık ya da seçili notları arşivle, arşivdeyse geri getir |
 | Ctrl+V | Panodaki resmi veya medya dosyalarını ek olarak yapıştır |
 | Ctrl+Shift+S | Açık notu şifresiz TXT ya da Markdown kopyası olarak kaydet |
 | Ctrl+K / Ctrl+F | Arama |
@@ -68,6 +69,10 @@ Ayrı bir uygulama parolası veya boşta kilidi yoktur: notları Windows oturumu
 **Cihazlar arasında.** Telefon ile bilgisayar 256 bitlik bir eşitleme anahtarını paylaşır; anahtar bir kez, TLS üzerinden, eşleştirme kodu karşılığında gider. İki taraf bundan bir kimlik doğrulama anahtarı (her bağlantıda karşılıklı HMAC sınaması) ve bir içerik anahtarı (AES‑256‑GCM) türetir. Her not bu içerik anahtarıyla şifreli olarak taşınır ve telefonda da öyle saklanır; ekler zaten şifreli dosyalar olarak, bayt bayt aktarılır. Sunucu TCP 47831 (HTTPS + WebSocket) ve 47832 (belgeyi veren düz kurulum sayfası) bağlantı noktalarını dinler, yalnızca yerel ağdaki adreslere yanıt verir ve yalnızca anahtarı kanıtlayan cihazla konuşur. Birleştirmede notun yüksek revizyonu kazanır; iki cihaz aynı revizyonu düzenlemişse yeni olan kalır, diğeri "çakışma kopyası" olarak saklanır. Kalıcı silmeler 180 gün hatırlanır; telefon silinmiş bir notu geri getiremez.
 
 Kaynaklar: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.dataprotectionscope), [AesGcm](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.aesgcm). Telemetri yok. Bağımsız denetimden geçmemiştir.
+
+## Arşiv
+
+Listenin üstündeki klasör satırında üç seçenek var: *Tüm notlar*, *Arşiv* ve *Son silinenler*. Not araç çubuğundaki klasör düğmesi (Ctrl+E), kartın sağ tık menüsü ya da seçim modundaki toplu çubuk notları arşive taşır; aynı düğme arşivde geri getirir. Arşivdeki notlar düzenlenebilir ve arşiv içinde aranabilir, her değişiklik gibi telefona eşitlenir ve hiçbir zaman silinmez. Telefonda arşiv, sol altta *Son silinenler*'in yanındadır; notun "…" menüsü, arşivde sola kaydırma ve seçim modu aynı işi yapar. *Son silinenler*'den geri yüklenen not her zaman *Tüm notlar*'a döner.
 
 ## Yapılacaklar listesi
 
