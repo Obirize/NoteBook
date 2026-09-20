@@ -15,6 +15,7 @@ public sealed class SyncSession : IDisposable
     private readonly ISyncHost host;
     private readonly WebSocket socket;
     private readonly SyncKeys keys;
+    private readonly System.Net.IPAddress remote;
     private readonly SemaphoreSlim sendLock = new(1, 1);
     private readonly CancellationTokenSource closed = new();
     private readonly List<Note> pendingNotes = []; private readonly List<PurgeStamp> pendingPurges = [];
@@ -27,8 +28,8 @@ public sealed class SyncSession : IDisposable
     private const int FileChunk = 256 * 1024, MaxText = 8 * 1024 * 1024;
     public ConnectedDevice? Device { get; private set; }
 
-    public SyncSession(SyncService service, ISyncHost host, WebSocket socket, byte[] syncKey)
-    { this.service = service; this.host = host; this.socket = socket; keys = new SyncKeys(syncKey); CryptographicOperations.ZeroMemory(syncKey); }
+    public SyncSession(SyncService service, ISyncHost host, WebSocket socket, byte[] syncKey, System.Net.IPAddress? remote = null)
+    { this.service = service; this.host = host; this.socket = socket; this.remote = remote ?? System.Net.IPAddress.None; keys = new SyncKeys(syncKey); CryptographicOperations.ZeroMemory(syncKey); }
     public void Close() => closed.Cancel();
 
     public async Task RunAsync(CancellationToken stop)
@@ -69,7 +70,8 @@ public sealed class SyncSession : IDisposable
         byte[] clientNonce, mac;
         try { clientNonce = Convert.FromBase64String(auth["nonce"]?.GetValue<string>() ?? ""); mac = Convert.FromBase64String(auth["mac"]?.GetValue<string>() ?? ""); }
         catch (FormatException) { await Reject("auth"); return false; }
-        if (clientNonce.Length != 32 || !CryptographicOperations.FixedTimeEquals(mac, keys.Mac("client", serverNonce, clientNonce))) { await Reject("key"); return false; }
+        if (clientNonce.Length != 32 || !CryptographicOperations.FixedTimeEquals(mac, keys.Mac("client", serverNonce, clientNonce))) { service.LogEvent(remote, L10n.T("SyncLogKeyMismatch")); await Reject("key"); return false; }
+        service.LogEvent(remote, L10n.T("SyncLogAuthOk", deviceName));
         var (manifest, notebookId) = await host.ManifestAsync();
         await Send(new JsonObject { ["t"] = "welcome", ["mac"] = Convert.ToBase64String(keys.Mac("server", clientNonce, serverNonce)), ["name"] = service.PcName, ["notebook"] = notebookId, ["time"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }, limit.Token);
         Device = new ConnectedDevice { Id = deviceId, Name = deviceName };

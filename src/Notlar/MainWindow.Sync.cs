@@ -14,6 +14,11 @@ public partial class MainWindow : ISyncHost
     {
         phoneSync = new SyncService(Path.GetDirectoryName(session.FilePath)!, this);
         RememberSyncVersions();
+        phoneSync.TrustProblem += () => Dispatcher.BeginInvoke(() =>
+        {
+            StatusText.Text = L10n.T("SyncTrustWarning");
+            if (!IsVisible && tray != null) tray.ShowBalloonTip(8000, L10n.T("PhoneSync"), L10n.T("SyncTrustWarning"), System.Windows.Forms.ToolTipIcon.Warning);
+        });
         // Not on Loaded: a window started into the tray is never shown, yet the phone link must run.
         if (phoneSync.Settings.Enabled) Dispatcher.BeginInvoke(() => phoneSync?.Start());
     }

@@ -203,5 +203,15 @@
   "AttachmentsRemoved": "{0} adjuntos quitados.",
   "PickAttachment": "Seleccionar",
   "UnpickAttachment": "Deseleccionar",
-  "PickAttachmentHint": "Clic para seleccionar (también Ctrl+clic)"
+  "PickAttachmentHint": "Clic para seleccionar (también Ctrl+clic)",
+  "SyncAltAddress": "Si esa dirección no abre en el teléfono, escribe esto en Safari: {0}",
+  "SyncLog": "Conexiones recientes",
+  "SyncLogEmpty": "Aún no hay conexión desde un teléfono. Aparecerá aquí cuando el teléfono llegue a este PC.",
+  "SyncLogTlsFailed": "se conectó pero no aceptó el certificado — repite el paso 1",
+  "SyncLogSocket": "conexión de sincronización abierta",
+  "SyncLogPaired": "código de emparejamiento aceptado",
+  "SyncLogPairRefused": "código de emparejamiento rechazado (incorrecto o caducado)",
+  "SyncLogKeyMismatch": "la clave del teléfono no coincide con este PC — empareja de nuevo",
+  "SyncLogAuthOk": "{0} verificado, sincronización iniciada",
+  "SyncTrustWarning": "Un teléfono se conecta pero no acepta el certificado. En el teléfono: Ajustes → General → Información → Ajustes de confianza de certificados → activa el certificado de NoteBook."
 }

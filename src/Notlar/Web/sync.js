@@ -136,7 +136,8 @@ export async function pair(link) { const u = new URL(link, location.href); if (u
 // The code shown on the PC fetches the sync key over TLS; wrong or stale codes are refused there.
 export async function pairWithCode(code) {
   code = code.replace(/\D/g, ''); if (code.length !== 6) throw Error(T('codeHint'));
-  const r = await fetch('/pair', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
+  let r; try { r = await fetch('/pair', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) }); }
+  catch { throw Error(T('pcUnreachable', location.host)); }
   if (!r.ok) throw Error(T('codeRefused'));
   const { k } = await r.json(); await applyKey(un64(k));
 }

@@ -43,6 +43,15 @@ Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is 
 
 The note screen follows the Notes app: back, share and *…* at the top; checklist, camera, pin and new note along the bottom, with the bar riding above the keyboard while you type.
 
+## When the phone will not connect
+
+The sync window on the PC has a **Recent connections** list: it shows whether the phone reaches the PC at all, whether it accepted the certificate, and why a pairing code was refused. Two quick checks on the phone, in Safari:
+
+- `http://<pc>.local:47832/` (the address under step 1; the window also shows an IP form such as `http://192.168.1.8:47832/`). If this does not open, the phone cannot reach the PC on the network: same Wi‑Fi name, and the router's "client isolation" / "AP isolation" must be off.
+- `https://<pc>.local:47831/start`. If the first address opens but this one does not, the phone no longer trusts the PC's certificate — the PC also warns about this after a few failed attempts. On the phone: Settings → General → About → Certificate Trust Settings → turn on the NoteBook certificate (if it is missing, repeat step 1). This can happen after an iOS update or when the profile is removed; it does not happen on a normal restart.
+
+If the app on the Home Screen shows a broken or empty screen after a PC update, it drops its offline copy and reloads itself once; if that still fails, remove the icon and add it again from `/start`.
+
 ## Shortcuts (Windows)
 
 | Shortcut | Action |

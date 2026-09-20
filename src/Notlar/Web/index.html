@@ -8,18 +8,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Notlar">
 <meta name="format-detection" content="telephone=no">
-<link rel="manifest" href="/v2/app.webmanifest">
-<link rel="icon" href="/v2/icon.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/v2/icon-180.png">
-<link rel="apple-touch-icon" href="/v2/icon.png">
-<link rel="stylesheet" href="/v2/style.css">
+<link rel="manifest" href="/v3/app.webmanifest">
+<link rel="icon" href="/v3/icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/v3/icon-180.png">
+<link rel="apple-touch-icon" href="/v3/icon.png">
+<link rel="stylesheet" href="/v3/style.css">
 <title>Notlar</title>
 </head>
 <body>
 
 <section id="install" class="screen" hidden>
   <div class="pair-card">
-    <img src="/v2/icon-180.png" alt="" class="pair-icon">
+    <img src="/v3/icon-180.png" alt="" class="pair-icon">
     <h1 data-i18n="installTitle"></h1>
     <p data-i18n="installIntro"></p>
     <ol class="steps">
@@ -34,7 +34,7 @@
 
 <section id="pair" class="screen" hidden>
   <div class="pair-card">
-    <img src="/v2/icon-180.png" alt="" class="pair-icon">
+    <img src="/v3/icon-180.png" alt="" class="pair-icon">
     <h1 data-i18n="pairTitle"></h1>
     <p data-i18n="pairIntro"></p>
     <input id="pairCode" inputmode="numeric" autocomplete="one-time-code" placeholder="000 000" maxlength="7" aria-label="Code">
@@ -116,6 +116,26 @@
 <div id="sheet" class="sheet" hidden><div class="sheet-body"></div><button class="sheet-cancel" data-i18n="cancel"></button></div>
 <div id="lightbox" class="lightbox" hidden></div>
 <div id="toast" class="toast" hidden></div>
-<script type="module" src="/v2/app.js"></script>
+<script>
+// If the app's code fails to load or start (a half-updated offline copy, for example), drop the offline copy and
+// reload once, so the phone never gets stuck on a broken screen.
+(function () {
+  var done = false, tried = false;
+  try { tried = sessionStorage.getItem('recovered') === '1'; } catch (e) { }
+  window.notlarReady = function () { done = true; try { sessionStorage.removeItem('recovered'); } catch (e) { } };
+  function recover(why) {
+    if (done || tried) return; tried = true;
+    try { sessionStorage.setItem('recovered', '1'); } catch (e) { }
+    var p = Promise.resolve();
+    if (navigator.serviceWorker) p = p.then(function () { return navigator.serviceWorker.getRegistrations(); }).then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); });
+    if (window.caches) p = p.then(function () { return caches.keys(); }).then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); });
+    p.catch(function () { }).then(function () { location.reload(); });
+  }
+  // Script errors only (they carry a message); a picture that fails to load is not a reason to drop the offline copy.
+  window.addEventListener('error', function (e) { if (!done && e instanceof ErrorEvent && e.message) recover(e.message); }, true);
+  setTimeout(function () { if (!done) recover('timeout'); }, 12000);
+})();
+</script>
+<script type="module" src="/v3/app.js"></script>
 </body>
 </html>

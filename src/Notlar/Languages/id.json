@@ -203,5 +203,15 @@
   "AttachmentsRemoved": "{0} lampiran dihapus.",
   "PickAttachment": "Pilih",
   "UnpickAttachment": "Batalkan pilihan",
-  "PickAttachmentHint": "Klik untuk memilih (Ctrl+klik juga bisa)"
+  "PickAttachmentHint": "Klik untuk memilih (Ctrl+klik juga bisa)",
+  "SyncAltAddress": "Jika alamat itu tidak terbuka di ponsel, ketik ini di Safari: {0}",
+  "SyncLog": "Koneksi terbaru",
+  "SyncLogEmpty": "Belum ada koneksi dari ponsel. Akan muncul di sini begitu ponsel mencapai PC ini.",
+  "SyncLogTlsFailed": "terhubung tetapi tidak menerima sertifikat — ulangi langkah 1",
+  "SyncLogSocket": "koneksi sinkronisasi dibuka",
+  "SyncLogPaired": "kode penyandingan diterima",
+  "SyncLogPairRefused": "kode penyandingan ditolak (salah atau kedaluwarsa)",
+  "SyncLogKeyMismatch": "kunci ponsel tidak cocok dengan PC ini — sandingkan lagi",
+  "SyncLogAuthOk": "{0} terverifikasi, sinkronisasi dimulai",
+  "SyncTrustWarning": "Sebuah ponsel terhubung tetapi tidak menerima sertifikat. Di ponsel: Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan sertifikat NoteBook."
 }

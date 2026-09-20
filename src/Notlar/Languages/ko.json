@@ -203,5 +203,15 @@
   "AttachmentsRemoved": "첨부 {0}개를 제거했습니다.",
   "PickAttachment": "선택",
   "UnpickAttachment": "선택 해제",
-  "PickAttachmentHint": "클릭하여 선택 (Ctrl+클릭도 가능)"
+  "PickAttachmentHint": "클릭하여 선택 (Ctrl+클릭도 가능)",
+  "SyncAltAddress": "휴대폰에서 그 주소가 열리지 않으면 Safari에 이렇게 입력하세요: {0}",
+  "SyncLog": "최근 연결",
+  "SyncLogEmpty": "아직 휴대폰에서 연결이 없습니다. 휴대폰이 이 PC에 닿으면 여기에 표시됩니다.",
+  "SyncLogTlsFailed": "연결됐지만 인증서를 받아들이지 않음 — 1단계를 다시 하세요",
+  "SyncLogSocket": "동기화 연결 열림",
+  "SyncLogPaired": "페어링 코드 수락됨",
+  "SyncLogPairRefused": "페어링 코드 거부됨 (잘못되었거나 만료됨)",
+  "SyncLogKeyMismatch": "휴대폰의 키가 이 PC와 맞지 않음 — 다시 페어링하세요",
+  "SyncLogAuthOk": "{0} 확인됨, 동기화 시작",
+  "SyncTrustWarning": "휴대폰이 연결되지만 인증서를 받아들이지 않습니다. 휴대폰에서 설정 → 일반 → 정보 → 인증서 신뢰 설정에서 NoteBook 인증서를 켜세요."
 }

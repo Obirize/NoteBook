@@ -43,6 +43,15 @@ Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışı
 
 Not ekranı Notlar uygulamasını izler: üstte geri, paylaş ve *…*; altta liste, kamera, sabitle ve yeni not; yazarken alt çubuk klavyenin üstünde durur.
 
+## Telefon bağlanmazsa
+
+Bilgisayardaki eşitleme penceresinde **Son bağlantılar** listesi var: telefonun bilgisayara ulaşıp ulaşmadığını, güven belgesini kabul edip etmediğini ve eşleştirme kodunun neden reddedildiğini gösterir. Telefonda Safari'de iki hızlı deneme:
+
+- `http://<pc>.local:47832/` (1. adımın altındaki adres; pencere `http://192.168.1.8:47832/` gibi IP'li halini de gösterir). Açılmıyorsa telefon bilgisayara ağ üzerinden ulaşamıyor: ikisi de aynı Wi‑Fi adında olmalı, modemin "istemci ayırma / AP isolation" ayarı kapalı olmalı.
+- `https://<pc>.local:47831/start`. İlki açılıp bu açılmıyorsa telefon bilgisayarın güven belgesine artık güvenmiyor — bilgisayar da birkaç başarısız denemeden sonra bunu söyler. Telefonda: Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar belgesinin anahtarını açın (satır yoksa 1. adımı yeniden yapın). Bu bir iOS güncellemesinden ya da profilin silinmesinden sonra olabilir; normal bir kapatıp açmada olmaz.
+
+Ana ekrandaki uygulama bilgisayar güncellemesinden sonra bozuk ya da boş bir ekran gösterirse çevrimdışı kopyasını atıp kendini bir kez yeniler; yine olmazsa simgeyi silip `/start` adresinden yeniden ekleyin.
+
 ## Kısayollar (Windows)
 
 | Kısayol | İşlem |

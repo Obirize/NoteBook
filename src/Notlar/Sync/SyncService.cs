@@ -33,6 +33,37 @@ public sealed class SyncService : IDisposable
     public bool Running => secure != null;
     public string? Error { get; private set; }
     public event Action? StatusChanged;
+    // The last few things phones did here, newest first, so a failed pairing can be understood from the PC.
+    private readonly List<string> log = [];
+    public IReadOnlyList<string> Log { get { lock (log) return log.ToList(); } }
+    public void LogEvent(System.Net.IPAddress remote, string what)
+    {
+        if (System.Net.IPAddress.IsLoopback(remote)) return;
+        lock (log) { log.Insert(0, DateTime.Now.ToString("HH:mm:ss") + "  " + remote + "  " + what); if (log.Count > 12) log.RemoveAt(log.Count - 1); }
+    }
+    // A phone that keeps failing the TLS handshake has lost trust in the certificate; the window and the tray say so.
+    public event Action? TrustProblem;
+    private readonly List<DateTime> tlsFailures = []; private DateTime trustWarned;
+    private void NoteTlsFailure()
+    {
+        var now = DateTime.UtcNow;
+        lock (tlsFailures) { tlsFailures.Add(now); tlsFailures.RemoveAll(t => now - t > TimeSpan.FromMinutes(5)); if (tlsFailures.Count < 3 || now - trustWarned < TimeSpan.FromMinutes(30)) return; trustWarned = now; }
+        TrustProblem?.Invoke();
+    }
+    private void Trace(System.Net.IPAddress remote, string what)
+    {
+        if (what == "tls-failed" && !System.Net.IPAddress.IsLoopback(remote)) NoteTlsFailure();
+        // Static files are noise; what matters is whether the phone gets through and how far it gets.
+        if (what.StartsWith("GET /v", StringComparison.Ordinal) && what.EndsWith(" 200", StringComparison.Ordinal)) return;
+        LogEvent(remote, what switch
+        {
+            "tls-failed" => L10n.T("SyncLogTlsFailed"),
+            "websocket" => L10n.T("SyncLogSocket"),
+            "POST /pair 200" => L10n.T("SyncLogPaired"),
+            "POST /pair 403" => L10n.T("SyncLogPairRefused"),
+            _ => what,
+        });
+    }
     public IReadOnlyList<ConnectedDevice> Connected { get { lock (sessions) return sessions.Where(s => s.Device != null).Select(s => s.Device!).ToList(); } }
     public string PcName => Environment.MachineName;
 
@@ -45,6 +76,8 @@ public sealed class SyncService : IDisposable
     public int Port => secure?.Port ?? Settings.Port;
     public string LocalName => Certs?.LocalName ?? (Environment.MachineName.ToLowerInvariant() + ".local");
     public string AppUrl => "https://" + LocalName + ":" + Port + "/";
+    // The same app by IP address, for a phone that cannot resolve the ".local" name; the certificate covers the address too.
+    public string? AddressUrl => Certificates.LanAddresses().FirstOrDefault() is { } ip ? "https://" + ip + ":" + Port + "/start" : null;
     // The address on the QR code: a document path no earlier phone copy ever cached, so the newest app always loads.
     public string StartUrl => AppUrl + "start";
     public string SetupUrl => "http://" + LocalName + ":" + (Port + 1) + "/";
@@ -100,8 +133,8 @@ public sealed class SyncService : IDisposable
         {
             Certs ??= new Certificates(SyncDirectory);
             if (!Settings.HasKey) { Settings.NewKey(); Settings.Save(dataDirectory); }
-            secure = new WebServer(Settings.Port, Certs.Server, HandleSecure, HandleSocket);
-            plain = new WebServer(Settings.Port + 1, null, HandlePlain);
+            secure = new WebServer(Settings.Port, Certs.Server, HandleSecure, HandleSocket) { Trace = Trace };
+            plain = new WebServer(Settings.Port + 1, null, HandlePlain) { Trace = Trace };
             secure.Failed += _ => { Error = L10n.T("SyncPortBusy"); Stop(); };
         }
         catch (Exception ex) when (ex is System.Net.Sockets.SocketException or IOException or CryptographicException or UnauthorizedAccessException)
@@ -163,7 +196,7 @@ public sealed class SyncService : IDisposable
             finally { CryptographicOperations.ZeroMemory(key); }
         }
         if (request.Method is not ("GET" or "HEAD")) return new HttpResponse { Status = 405, Body = "Method not allowed"u8.ToArray() };
-        string path = request.Path is "/" or "/start" ? "/index.html" : request.Path.StartsWith("/v2/", StringComparison.Ordinal) ? request.Path[3..] : request.Path;
+        string path = request.Path is "/" or "/start" ? "/index.html" : System.Text.RegularExpressions.Regex.Replace(request.Path, "^/v[0-9]+/", "/");
         switch (path)
         {
             case "/ca.mobileconfig": return Profile();
@@ -218,7 +251,7 @@ public sealed class SyncService : IDisposable
     private async Task HandleSocket(HttpRequest request, WebSocket socket, CancellationToken stop)
     {
         if (request.Path != "/sync") { await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, "unknown path", CancellationToken.None); return; }
-        var session = new SyncSession(this, host, socket, Settings.Key());
+        var session = new SyncSession(this, host, socket, Settings.Key(), request.Remote);
         lock (sessions) sessions.Add(session);
         try { await session.RunAsync(stop); }
         finally { SessionEnded(session); session.Dispose(); }

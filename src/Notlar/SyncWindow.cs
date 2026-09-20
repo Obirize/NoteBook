@@ -41,8 +41,11 @@ public sealed class SyncWindow : Window
     }
     private void Changed() => Dispatcher.BeginInvoke(Render);
     // Every half second: refresh the countdown, and swap in the next code when the minute is up.
+    private TextBlock? logBlock;
+    private string LogText() => service.Log.Count == 0 ? L10n.T("SyncLogEmpty") : string.Join("\n", service.Log);
     private void Tick()
     {
+        if (logBlock != null && logBlock.Text != LogText()) logBlock.Text = LogText();
         if (!service.Running || codeBlock == null || countdownBlock == null) return;
         string code = service.CurrentPairCode();
         codeBlock.Text = code[..3] + " " + code[3..];
@@ -90,6 +93,7 @@ public sealed class SyncWindow : Window
         codeBlock = countdownBlock = null;
         if (!service.Running) { Text(L10n.T("SyncStatusOff"), 13, "Muted"); return; }
         Text(L10n.T("SyncStatusOn", service.AppUrl), 13, "Muted");
+        if (service.AddressUrl != null) Text(L10n.T("SyncAltAddress", service.AddressUrl), 12, "Muted");
         Step(L10n.T("SyncSetup"), service.SetupUrl, L10n.T("SyncSetupHelp"));
         Text(L10n.T("SetupFingerprint") + "\n" + service.Certs!.RootFingerprint, 11, "Muted", new Thickness(0, 6, 0, 0));
         Step(L10n.T("SyncPair"), service.StartUrl, L10n.T("SyncPairHelp"));
@@ -110,6 +114,9 @@ public sealed class SyncWindow : Window
             string when = device.LastSeen?.LocalDateTime.ToString("g", L10n.Culture) ?? "";
             Text((connected.Contains(device.Id) ? "● " : "○ ") + device.Name + " · " + (connected.Contains(device.Id) ? L10n.T("SyncDeviceOnline") : L10n.T("SyncDeviceSeen", when)), 13, "Ink", new Thickness(0, 0, 0, 2));
         }
+        Heading(L10n.T("SyncLog"));
+        logBlock = Text(LogText(), 12, "Muted"); logBlock.FontFamily = new FontFamily("Consolas, Segoe UI");
+        System.Windows.Automation.AutomationProperties.SetAutomationId(logBlock, "SyncLog");
         Text(L10n.T("SyncNetworkHelp"), 12, "Muted", new Thickness(0, 14, 0, 8));
         Action(L10n.T("SyncReset"), () => { if (MessageDialog.Ask(this, L10n.T("SyncReset"), L10n.T("SyncResetConfirm"), L10n.T("SyncReset"), danger: true)) { service.ResetKey(); service.NewPairCode(); } }, danger: true);
     }

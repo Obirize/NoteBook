@@ -203,5 +203,15 @@
   "AttachmentsRemoved": "{0} attachments removed.",
   "PickAttachment": "Select",
   "UnpickAttachment": "Deselect",
-  "PickAttachmentHint": "Click to select (Ctrl+click works too)"
+  "PickAttachmentHint": "Click to select (Ctrl+click works too)",
+  "SyncAltAddress": "If that address does not open on the phone, type this into Safari: {0}",
+  "SyncLog": "Recent connections",
+  "SyncLogEmpty": "No connection from a phone yet. It shows up here once the phone reaches this PC.",
+  "SyncLogTlsFailed": "connected but did not accept the certificate — repeat step 1",
+  "SyncLogSocket": "sync connection opened",
+  "SyncLogPaired": "pairing code accepted",
+  "SyncLogPairRefused": "pairing code refused (wrong or expired)",
+  "SyncLogKeyMismatch": "the phone’s key does not match this PC — pair again",
+  "SyncLogAuthOk": "{0} verified, sync started",
+  "SyncTrustWarning": "A phone keeps connecting but does not accept the certificate. On the phone, open Settings → General → About → Certificate Trust Settings and turn on the NoteBook certificate."
 }

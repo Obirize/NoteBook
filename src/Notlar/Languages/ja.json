@@ -203,5 +203,15 @@
   "AttachmentsRemoved": "{0} 件の添付を削除しました。",
   "PickAttachment": "選択",
   "UnpickAttachment": "選択解除",
-  "PickAttachmentHint": "クリックで選択（Ctrl+クリックでも可）"
+  "PickAttachmentHint": "クリックで選択（Ctrl+クリックでも可）",
+  "SyncAltAddress": "iPhone でそのアドレスが開かない場合は Safari にこれを入力: {0}",
+  "SyncLog": "最近の接続",
+  "SyncLogEmpty": "まだ iPhone からの接続はありません。iPhone がこの PC に届くとここに表示されます。",
+  "SyncLogTlsFailed": "接続したが証明書を受け入れなかった — 手順 1 をやり直してください",
+  "SyncLogSocket": "同期接続が開きました",
+  "SyncLogPaired": "ペアリングコードを受け付けました",
+  "SyncLogPairRefused": "ペアリングコードを拒否しました（誤りまたは期限切れ）",
+  "SyncLogKeyMismatch": "iPhone のキーがこの PC と一致しません — 再ペアリングしてください",
+  "SyncLogAuthOk": "{0} を確認、同期を開始",
+  "SyncTrustWarning": "iPhone が接続していますが証明書を受け入れていません。iPhone の 設定 → 一般 → 情報 → 証明書信頼設定 で NoteBook の証明書をオンにしてください。"
 }

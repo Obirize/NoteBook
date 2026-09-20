@@ -51,6 +51,8 @@ public sealed class WebServer : IDisposable
     public int Port { get; }
     public Exception? Failure { get; private set; }
     public event Action<Exception>? Failed;
+    // One line per connection or request, for the "recent connections" list on the PC; null when nobody listens.
+    public Action<IPAddress, string>? Trace { get; set; }
 
     public WebServer(int port, X509Certificate2? certificate, Func<HttpRequest, HttpResponse?> handler, Func<HttpRequest, WebSocket, CancellationToken, Task>? socketHandler = null)
     {
@@ -84,11 +86,15 @@ public sealed class WebServer : IDisposable
                 if (certificate != null)
                 {
                     var tls = new SslStream(stream, false);
-                    await tls.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
+                    try
                     {
-                        ServerCertificate = certificate, ClientCertificateRequired = false,
-                        EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13, CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
-                    }, stop.Token);
+                        await tls.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
+                        {
+                            ServerCertificate = certificate, ClientCertificateRequired = false,
+                            EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13, CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
+                        }, stop.Token);
+                    }
+                    catch (Exception ex) when (ex is IOException or AuthenticationException) { Trace?.Invoke(remote, "tls-failed"); throw; }
                     stream = tls;
                 }
                 using (stream)
@@ -103,11 +109,13 @@ public sealed class WebServer : IDisposable
                         {
                             string accept = Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(request.Header("Sec-WebSocket-Key")!.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
                             await Write(stream, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + accept + "\r\n\r\n", stop.Token);
+                            Trace?.Invoke(remote, "websocket");
                             using var socket = WebSocket.CreateFromStream(stream, new WebSocketCreationOptions { IsServer = true, KeepAliveInterval = TimeSpan.FromSeconds(20) });
                             await socketHandler(request, socket, stop.Token);
                             return;
                         }
                         var response = handler(request) ?? HttpResponse.NotFound();
+                        Trace?.Invoke(remote, request.Method + " " + request.Path + " " + response.Status);
                         bool close = string.Equals(request.Header("Connection"), "close", StringComparison.OrdinalIgnoreCase);
                         var head = new StringBuilder();
                         head.Append("HTTP/1.1 ").Append(response.Status).Append(' ').Append(Reason(response.Status)).Append("\r\n");

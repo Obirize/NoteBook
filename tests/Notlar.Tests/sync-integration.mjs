@@ -9,8 +9,8 @@ assert.equal(Checklist.toggle(O+G+'a'),D+G+'a');assert.equal(Checklist.toggle('p
 assert.equal(Checklist.preview('Plan'+NL+O+G+'Süt'+NL+D+G+'Ekmek'),'Plan'+NL+'Süt'+NL+'✓ Ekmek');
 const port=process.argv[2],keys=await derive(un64(process.env.NOTEBOOK_TEST_KEY));
 const page=await fetch(`https://localhost:${port}/`);assert.equal(page.status,200);assert.match(await page.text(),/<title>Notlar</);
-for(const path of ['start','sw.js','v2/app.js','v2/crypto.js','v2/style.css','v2/app.webmanifest','v2/icon.png','v2/icon-180.png'])assert.equal((await fetch(`https://localhost:${port}/${path}`)).status,200);
-assert.match(await (await fetch(`https://localhost:${port}/start`)).text(),/\/v2\/app\.js/);
+for(const path of ['start','sw.js','v3/app.js','v3/editor.js','v3/crypto.js','v3/style.css','v3/app.webmanifest','v3/icon.png','v3/icon-180.png','v2/app.js'])assert.equal((await fetch(`https://localhost:${port}/${path}`)).status,200);
+assert.match(await (await fetch(`https://localhost:${port}/start`)).text(),/\/v3\/app\.js/);
 const pairWrong=await fetch(`https://localhost:${port}/pair`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:'000000'})});assert.equal(pairWrong.status,403);
 const pairOk=await fetch(`https://localhost:${port}/pair`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:process.env.NOTEBOOK_TEST_CODE})});assert.equal(pairOk.status,200);
 const paired=await pairOk.json();assert.deepEqual(un64(paired.k),un64(process.env.NOTEBOOK_TEST_KEY));assert.equal(typeof paired.name,'string');

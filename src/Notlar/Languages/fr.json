@@ -203,5 +203,15 @@
   "AttachmentsRemoved": "{0} pièces jointes retirées.",
   "PickAttachment": "Sélectionner",
   "UnpickAttachment": "Désélectionner",
-  "PickAttachmentHint": "Cliquez pour sélectionner (Ctrl+clic aussi)"
+  "PickAttachmentHint": "Cliquez pour sélectionner (Ctrl+clic aussi)",
+  "SyncAltAddress": "Si cette adresse ne s’ouvre pas sur le téléphone, tapez ceci dans Safari : {0}",
+  "SyncLog": "Connexions récentes",
+  "SyncLogEmpty": "Aucune connexion depuis un téléphone pour l’instant. Elle apparaîtra ici dès que le téléphone atteindra ce PC.",
+  "SyncLogTlsFailed": "connecté mais certificat refusé — refaites l’étape 1",
+  "SyncLogSocket": "connexion de synchronisation ouverte",
+  "SyncLogPaired": "code de jumelage accepté",
+  "SyncLogPairRefused": "code de jumelage refusé (erroné ou expiré)",
+  "SyncLogKeyMismatch": "la clé du téléphone ne correspond pas à ce PC — jumelez à nouveau",
+  "SyncLogAuthOk": "{0} vérifié, synchronisation lancée",
+  "SyncTrustWarning": "Un téléphone se connecte mais n’accepte pas le certificat. Sur le téléphone : Réglages → Général → Informations → Réglages de confiance des certificats → activez le certificat NoteBook."
 }

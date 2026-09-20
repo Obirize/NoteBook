@@ -31,4 +31,5 @@ run(async () => {
     await navigator.serviceWorker.register('/sw.js');
   } catch { /* offline copy is optional */ }
   if (location.pathname !== '/') history.replaceState(null, '', '/');
+  window.notlarReady?.();
 });

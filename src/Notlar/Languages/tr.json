@@ -203,5 +203,15 @@
   "AttachmentsRemoved": "{0} ek kaldırıldı.",
   "PickAttachment": "Seç",
   "UnpickAttachment": "Seçimi kaldır",
-  "PickAttachmentHint": "Seçmek için tıklayın (Ctrl+tık da olur)"
+  "PickAttachmentHint": "Seçmek için tıklayın (Ctrl+tık da olur)",
+  "SyncAltAddress": "Bu adres telefonda açılmazsa Safari’ye şunu yazın: {0}",
+  "SyncLog": "Son bağlantılar",
+  "SyncLogEmpty": "Henüz telefondan bağlantı gelmedi. Telefon bu bilgisayara ulaşınca burada görünür.",
+  "SyncLogTlsFailed": "bağlandı ama güven belgesini kabul etmedi — 1. adımı yeniden yapın",
+  "SyncLogSocket": "eşitleme bağlantısı açıldı",
+  "SyncLogPaired": "eşleştirme kodu kabul edildi",
+  "SyncLogPairRefused": "eşleştirme kodu reddedildi (yanlış ya da süresi dolmuş)",
+  "SyncLogKeyMismatch": "telefonun anahtarı bu bilgisayara uymuyor — yeniden eşleştirin",
+  "SyncLogAuthOk": "{0} doğrulandı, eşitleme başladı",
+  "SyncTrustWarning": "Bir telefon bağlanıyor ama güven belgesini kabul etmiyor. Telefonda Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları’nda Notlar belgesinin anahtarını açın."
 }
