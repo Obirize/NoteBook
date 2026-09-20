@@ -195,5 +195,13 @@
   "UnarchivedOne": "메모 보관을 해제했습니다.",
   "UnarchivedMany": "메모 {0}개의 보관을 해제했습니다.",
   "EmptyArchiveHeading": "보관함이 비어 있습니다.",
-  "EmptyArchiveDescription": "지우고 싶지는 않지만 눈앞에 두고 싶지 않은 메모를 보관하세요. 언제든 되돌릴 수 있습니다."
+  "EmptyArchiveDescription": "지우고 싶지는 않지만 눈앞에 두고 싶지 않은 메모를 보관하세요. 언제든 되돌릴 수 있습니다.",
+  "AttachmentsSelected": "첨부 {0}개 선택됨",
+  "SaveSelectedAttachments": "선택한 항목 저장…",
+  "RemoveSelectedAttachments": "선택한 항목 제거",
+  "ConfirmRemoveAttachments": "이 메모에서 첨부 {0}개를 제거할까요? 파일은 되돌릴 수 없습니다.",
+  "AttachmentsRemoved": "첨부 {0}개를 제거했습니다.",
+  "PickAttachment": "선택",
+  "UnpickAttachment": "선택 해제",
+  "PickAttachmentHint": "클릭하여 선택 (Ctrl+클릭도 가능)"
 }

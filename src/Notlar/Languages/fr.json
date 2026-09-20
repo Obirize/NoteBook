@@ -195,5 +195,13 @@
   "UnarchivedOne": "Note désarchivée.",
   "UnarchivedMany": "{0} notes désarchivées.",
   "EmptyArchiveHeading": "Les archives sont vides.",
-  "EmptyArchiveDescription": "Archivez les notes que vous voulez écarter sans les supprimer ; retrouvez-les quand vous voulez."
+  "EmptyArchiveDescription": "Archivez les notes que vous voulez écarter sans les supprimer ; retrouvez-les quand vous voulez.",
+  "AttachmentsSelected": "{0} pièces jointes sélectionnées",
+  "SaveSelectedAttachments": "Enregistrer la sélection…",
+  "RemoveSelectedAttachments": "Retirer la sélection",
+  "ConfirmRemoveAttachments": "Retirer {0} pièces jointes de cette note ? Les fichiers ne pourront pas être récupérés.",
+  "AttachmentsRemoved": "{0} pièces jointes retirées.",
+  "PickAttachment": "Sélectionner",
+  "UnpickAttachment": "Désélectionner",
+  "PickAttachmentHint": "Cliquez pour sélectionner (Ctrl+clic aussi)"
 }

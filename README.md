@@ -39,7 +39,9 @@ Open the phone window with the phone button at the bottom left of the sidebar. I
 2. **Home Screen app.** The second code opens the app in Safari, which explains the two taps: *Share → Add to Home Screen*. From then on, open NoteBook from the Home Screen (iOS gives Home Screen apps their own storage).
 3. **Pairing code.** In the Home Screen app tap *Pair* and type the six‑digit code shown on the PC. A new code appears every minute and codes only exist while that window is open.
 
-Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is running (even hidden in the tray). Away from home the phone keeps working offline and merges when it is back. Photos and videos are never re‑encoded; the app asks iOS for the originals. In a note they sit in a grid of tiles; tapping one opens a viewer with *save or share* (the share sheet's *Save Image / Save Video* puts it in Photos) and *remove*, and the note's *…* menu can save all attachments at once. On the PC, *Save all attachments…* (right-click a note card or an attachment) writes every file of a note, or of all checked notes, into a folder.
+Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is running (even hidden in the tray). Away from home the phone keeps working offline and merges when it is back. Photos and videos are never re‑encoded; the app asks iOS for the originals. In a note they sit in a grid of tiles; tapping one opens a viewer with *save or share* (the share sheet's *Save Image / Save Video* puts it in Photos) and *remove*. The note's *…* menu offers *Select Photos and Videos* — tick the ones you want, then *Save (n)* sends them to the share sheet together or *Remove (n)* takes them off the note — and *Save all*. The share button at the top shares the whole note (text plus its media). On the PC, hovering a tile shows a check circle (Ctrl+click or Space works too); with tiles checked, a bar offers *Save selected…* and *Remove selected*, and *Save all attachments…* (right-click a note card or an attachment) writes every file of a note, or of all checked notes, into a folder.
+
+The note screen follows the Notes app: back, share and *…* at the top; checklist, camera, pin and new note along the bottom, with the bar riding above the keyboard while you type.
 
 ## Shortcuts (Windows)
 
@@ -112,9 +114,9 @@ The Windows app follows the Windows display language and offers 13 languages fro
 
 Windows and the .NET 10 SDK; Node.js for the phone test. No third‑party packages: the HTTPS/WebSocket server, the certificate authority and the QR encoder are part of the source.
 
-- `src/Notlar/` — the WPF app. `Sync/` holds the server, protocol, certificates and QR code; `Web/` holds the phone app (vanilla JavaScript, WebCrypto, IndexedDB).
+- `src/Notlar/` — the WPF app. The main window is split by concern (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` holds the server, sessions, protocol, certificates and QR code; `Web/` holds the phone app as small ES modules (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; vanilla JavaScript, WebCrypto, IndexedDB). Files stay under about 300 lines on purpose.
 - `build.cmd` — publishes a self‑contained x64 build to `app/` and compiles the root launcher.
-- `test.cmd` — runs the checks with temporary data: encryption and tamper detection, attachments, backups, trash policy, bulk actions, tray behaviour, UI layout, and a Node script that plays the phone (pairing code, sync in both directions, conflicts, byte‑identical files).
+- `test.cmd` — runs the checks with temporary data (`NOTLAR_SHOT=<folder>` also saves window snapshots): encryption and tamper detection, attachments, backups, trash policy, bulk actions, tray behaviour, UI layout, and a Node script that plays the phone (pairing code, sync in both directions, conflicts, byte‑identical files).
 - `build-setup.cmd` — builds the installer with [Inno Setup 6](https://jrsoftware.org/isdl.php) into `dist/`.
 
 Releasing: push a version tag and `.github/workflows/release.yml` builds the installer, writes its `.sha256` and attaches both to a GitHub Release; running apps offer it within a few hours.

@@ -195,5 +195,13 @@
   "UnarchivedOne": "Notiz aus dem Archiv geholt.",
   "UnarchivedMany": "{0} Notizen aus dem Archiv geholt.",
   "EmptyArchiveHeading": "Das Archiv ist leer.",
-  "EmptyArchiveDescription": "Archiviere Notizen, die aus dem Weg sollen, aber nicht weg; hol sie jederzeit zurück."
+  "EmptyArchiveDescription": "Archiviere Notizen, die aus dem Weg sollen, aber nicht weg; hol sie jederzeit zurück.",
+  "AttachmentsSelected": "{0} Anhänge ausgewählt",
+  "SaveSelectedAttachments": "Ausgewählte sichern…",
+  "RemoveSelectedAttachments": "Ausgewählte entfernen",
+  "ConfirmRemoveAttachments": "{0} Anhänge aus dieser Notiz entfernen? Die Dateien lassen sich nicht zurückholen.",
+  "AttachmentsRemoved": "{0} Anhänge entfernt.",
+  "PickAttachment": "Auswählen",
+  "UnpickAttachment": "Auswahl aufheben",
+  "PickAttachmentHint": "Klicken zum Auswählen (auch Strg+Klick)"
 }

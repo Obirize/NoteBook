@@ -59,7 +59,15 @@ public static class Checklist
 public sealed class ChecklistAdorner : Adorner
 {
     private readonly TextBox box;
-    public ChecklistAdorner(TextBox box) : base(box) { this.box = box; IsHitTestVisible = false; box.TextChanged += (_, _) => InvalidateVisual(); box.LayoutUpdated += (_, _) => InvalidateVisual(); }
+    // Repaint only when the text, the scroll position or the size changes. (Repainting on every LayoutUpdated
+    // would itself schedule a layout pass and keep a CPU core busy for as long as a note is open.)
+    public ChecklistAdorner(TextBox box) : base(box)
+    {
+        this.box = box; IsHitTestVisible = false;
+        box.TextChanged += (_, _) => InvalidateVisual();
+        box.SizeChanged += (_, _) => InvalidateVisual();
+        box.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler((_, _) => InvalidateVisual()));
+    }
     public static void Attach(TextBox box)
     {
         box.Loaded += (_, _) => { var layer = AdornerLayer.GetAdornerLayer(box); if (layer != null && (layer.GetAdorners(box)?.OfType<ChecklistAdorner>().Any() != true)) layer.Add(new ChecklistAdorner(box)); };

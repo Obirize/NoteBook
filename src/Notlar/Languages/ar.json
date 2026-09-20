@@ -195,5 +195,13 @@
   "UnarchivedOne": "تم إخراج الملاحظة من الأرشيف.",
   "UnarchivedMany": "تم إخراج {0} ملاحظات من الأرشيف.",
   "EmptyArchiveHeading": "الأرشيف فارغ.",
-  "EmptyArchiveDescription": "أرشِف الملاحظات التي تريد إبعادها دون حذفها، واسترجعها متى شئت."
+  "EmptyArchiveDescription": "أرشِف الملاحظات التي تريد إبعادها دون حذفها، واسترجعها متى شئت.",
+  "AttachmentsSelected": "تم تحديد {0} مرفقات",
+  "SaveSelectedAttachments": "حفظ المحدد…",
+  "RemoveSelectedAttachments": "إزالة المحدد",
+  "ConfirmRemoveAttachments": "إزالة {0} مرفقات من هذه الملاحظة؟ لا يمكن استعادة الملفات.",
+  "AttachmentsRemoved": "تمت إزالة {0} مرفقات.",
+  "PickAttachment": "تحديد",
+  "UnpickAttachment": "إلغاء التحديد",
+  "PickAttachmentHint": "انقر للتحديد (أو Ctrl+نقر)"
 }

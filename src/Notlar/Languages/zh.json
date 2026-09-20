@@ -195,5 +195,13 @@
   "UnarchivedOne": "备忘录已取消归档。",
   "UnarchivedMany": "已取消归档 {0} 条备忘录。",
   "EmptyArchiveHeading": "归档为空。",
-  "EmptyArchiveDescription": "把暂时不想看到但又不想删除的备忘录归档，随时可以取回。"
+  "EmptyArchiveDescription": "把暂时不想看到但又不想删除的备忘录归档，随时可以取回。",
+  "AttachmentsSelected": "已选择 {0} 个附件",
+  "SaveSelectedAttachments": "保存所选…",
+  "RemoveSelectedAttachments": "移除所选",
+  "ConfirmRemoveAttachments": "从此备忘录移除 {0} 个附件？文件无法恢复。",
+  "AttachmentsRemoved": "已移除 {0} 个附件。",
+  "PickAttachment": "选择",
+  "UnpickAttachment": "取消选择",
+  "PickAttachmentHint": "点击选择（也可 Ctrl+点击）"
 }

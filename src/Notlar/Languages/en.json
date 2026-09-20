@@ -195,5 +195,13 @@
   "UnarchivedOne": "Note unarchived.",
   "UnarchivedMany": "{0} notes unarchived.",
   "EmptyArchiveHeading": "The archive is empty.",
-  "EmptyArchiveDescription": "Archive notes you want out of the way but not gone; bring them back whenever you like."
+  "EmptyArchiveDescription": "Archive notes you want out of the way but not gone; bring them back whenever you like.",
+  "AttachmentsSelected": "{0} attachments selected",
+  "SaveSelectedAttachments": "Save selected…",
+  "RemoveSelectedAttachments": "Remove selected",
+  "ConfirmRemoveAttachments": "Remove {0} attachments from this note? The files cannot be brought back.",
+  "AttachmentsRemoved": "{0} attachments removed.",
+  "PickAttachment": "Select",
+  "UnpickAttachment": "Deselect",
+  "PickAttachmentHint": "Click to select (Ctrl+click works too)"
 }

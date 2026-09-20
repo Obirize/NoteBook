@@ -195,5 +195,13 @@
   "UnarchivedOne": "Not arşivden çıkarıldı.",
   "UnarchivedMany": "{0} not arşivden çıkarıldı.",
   "EmptyArchiveHeading": "Arşiv boş.",
-  "EmptyArchiveDescription": "Elinizin altında durmasını istemediğiniz ama silmek de istemediğiniz notları arşivleyin; istediğiniz zaman geri alın."
+  "EmptyArchiveDescription": "Elinizin altında durmasını istemediğiniz ama silmek de istemediğiniz notları arşivleyin; istediğiniz zaman geri alın.",
+  "AttachmentsSelected": "{0} ek seçili",
+  "SaveSelectedAttachments": "Seçilenleri kaydet…",
+  "RemoveSelectedAttachments": "Seçilenleri kaldır",
+  "ConfirmRemoveAttachments": "{0} ek bu nottan kaldırılsın mı? Dosyalar geri alınamaz.",
+  "AttachmentsRemoved": "{0} ek kaldırıldı.",
+  "PickAttachment": "Seç",
+  "UnpickAttachment": "Seçimi kaldır",
+  "PickAttachmentHint": "Seçmek için tıklayın (Ctrl+tık da olur)"
 }

@@ -195,5 +195,13 @@
   "UnarchivedOne": "Catatan dikeluarkan dari arsip.",
   "UnarchivedMany": "{0} catatan dikeluarkan dari arsip.",
   "EmptyArchiveHeading": "Arsip kosong.",
-  "EmptyArchiveDescription": "Arsipkan catatan yang ingin disingkirkan tanpa dihapus; ambil kembali kapan saja."
+  "EmptyArchiveDescription": "Arsipkan catatan yang ingin disingkirkan tanpa dihapus; ambil kembali kapan saja.",
+  "AttachmentsSelected": "{0} lampiran dipilih",
+  "SaveSelectedAttachments": "Simpan yang dipilih…",
+  "RemoveSelectedAttachments": "Hapus yang dipilih",
+  "ConfirmRemoveAttachments": "Hapus {0} lampiran dari catatan ini? File tidak dapat dikembalikan.",
+  "AttachmentsRemoved": "{0} lampiran dihapus.",
+  "PickAttachment": "Pilih",
+  "UnpickAttachment": "Batalkan pilihan",
+  "PickAttachmentHint": "Klik untuk memilih (Ctrl+klik juga bisa)"
 }

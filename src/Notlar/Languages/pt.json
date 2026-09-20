@@ -195,5 +195,13 @@
   "UnarchivedOne": "Nota desarquivada.",
   "UnarchivedMany": "{0} notas desarquivadas.",
   "EmptyArchiveHeading": "O arquivo está vazio.",
-  "EmptyArchiveDescription": "Arquive as notas que quer tirar da frente sem apagar; traga de volta quando quiser."
+  "EmptyArchiveDescription": "Arquive as notas que quer tirar da frente sem apagar; traga de volta quando quiser.",
+  "AttachmentsSelected": "{0} anexos selecionados",
+  "SaveSelectedAttachments": "Salvar selecionados…",
+  "RemoveSelectedAttachments": "Remover selecionados",
+  "ConfirmRemoveAttachments": "Remover {0} anexos desta nota? Os arquivos não podem ser recuperados.",
+  "AttachmentsRemoved": "{0} anexos removidos.",
+  "PickAttachment": "Selecionar",
+  "UnpickAttachment": "Desmarcar",
+  "PickAttachmentHint": "Clique para selecionar (Ctrl+clique também)"
 }

@@ -195,5 +195,13 @@
   "UnarchivedOne": "Заметка возвращена из архива.",
   "UnarchivedMany": "Возвращено из архива заметок: {0}.",
   "EmptyArchiveHeading": "Архив пуст.",
-  "EmptyArchiveDescription": "Убирайте в архив заметки, которые не нужны под рукой, но и удалять жалко; вернуть их можно в любой момент."
+  "EmptyArchiveDescription": "Убирайте в архив заметки, которые не нужны под рукой, но и удалять жалко; вернуть их можно в любой момент.",
+  "AttachmentsSelected": "Выбрано вложений: {0}",
+  "SaveSelectedAttachments": "Сохранить выбранные…",
+  "RemoveSelectedAttachments": "Убрать выбранные",
+  "ConfirmRemoveAttachments": "Убрать из заметки вложений: {0}? Файлы нельзя будет вернуть.",
+  "AttachmentsRemoved": "Убрано вложений: {0}.",
+  "PickAttachment": "Выбрать",
+  "UnpickAttachment": "Снять выбор",
+  "PickAttachmentHint": "Щёлкните, чтобы выбрать (или Ctrl+щелчок)"
 }

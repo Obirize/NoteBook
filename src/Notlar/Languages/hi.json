@@ -195,5 +195,13 @@
   "UnarchivedOne": "नोट संग्रह से निकाला गया।",
   "UnarchivedMany": "{0} नोट संग्रह से निकाले गए।",
   "EmptyArchiveHeading": "संग्रह खाली है।",
-  "EmptyArchiveDescription": "जिन नोट्स को सामने नहीं रखना पर हटाना भी नहीं, उन्हें संग्रहित करें; जब चाहें वापस लाएँ।"
+  "EmptyArchiveDescription": "जिन नोट्स को सामने नहीं रखना पर हटाना भी नहीं, उन्हें संग्रहित करें; जब चाहें वापस लाएँ।",
+  "AttachmentsSelected": "{0} अटैचमेंट चुने गए",
+  "SaveSelectedAttachments": "चुने हुए सहेजें…",
+  "RemoveSelectedAttachments": "चुने हुए हटाएँ",
+  "ConfirmRemoveAttachments": "इस नोट से {0} अटैचमेंट हटाएँ? फ़ाइलें वापस नहीं आएँगी।",
+  "AttachmentsRemoved": "{0} अटैचमेंट हटाए गए।",
+  "PickAttachment": "चुनें",
+  "UnpickAttachment": "चयन हटाएँ",
+  "PickAttachmentHint": "चुनने के लिए क्लिक करें (Ctrl+क्लिक भी चलेगा)"
 }

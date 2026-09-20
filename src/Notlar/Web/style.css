@@ -64,6 +64,7 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 4px 0 2px;
 .count { flex: 1; text-align: center; font-size: 12px; color: var(--muted); }
 .toolbar-side { width: 88px; display: flex; }
 .toolbar-side.right { justify-content: flex-end; }
+.toolbar.tools { justify-content: space-between; padding-left: 20px; padding-right: 20px; }
 .text-button:disabled { color: var(--muted); opacity: .5; }
 .row-check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none; display: none; align-items: center; justify-content: center; margin-right: 2px; }
 .row-check svg { width: 14px; height: 14px; stroke: #1c1c1e; stroke-width: 3; }
@@ -91,6 +92,11 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 4px 0 2px;
 .tile img, .tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .tile-badge { position: absolute; left: 6px; bottom: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; display: flex; align-items: center; justify-content: center; }
 .tile-badge:empty { display: none; }
+.tile-check { position: absolute; right: 6px; top: 6px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #fff; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; }
+.tile-check svg { width: 14px; height: 14px; stroke: #1c1c1e; stroke-width: 3; }
+.attachments.selecting .tile-check { display: flex; }
+.attachments.selecting .tile.picked { outline: 2px solid var(--accent); outline-offset: -2px; }
+.attachments.selecting .tile.picked .tile-check { background: var(--accent); border-color: var(--accent); }
 .tile-badge svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
 .tile-pending, .tile-name { color: var(--muted); font-size: 12px; padding: 8px; text-align: center; line-height: 1.3; word-break: break-word; }
 .viewer-bar { display: flex; align-items: center; gap: 4px; padding: env(safe-area-inset-top) 8px 0; min-height: 44px; color: var(--text); flex: none; }

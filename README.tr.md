@@ -39,7 +39,9 @@ Kenar çubuğunun altındaki telefon düğmesi, her biri QR kodlu üç adımı g
 2. **Ana ekran uygulaması.** İkinci kod uygulamayı Safari'de açar; sayfa iki dokunuşu anlatır: *Paylaş → Ana Ekrana Ekle*. Bundan sonra Notlar'ı ana ekrandan açın (iOS ana ekran uygulamalarına ayrı bir depolama verir).
 3. **Eşleştirme kodu.** Ana ekrandaki uygulamada *Eşleştir*'e dokunup bilgisayarda görünen 6 haneli kodu yazın. Her dakika yeni kod gelir; kodlar yalnızca o pencere açıkken vardır.
 
-Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışırken (tepside gizli olsa da) eşitlenir. Evden uzakta çevrimdışı çalışmaya devam eder, dönünce birleşir. Fotoğraf ve videolar asla yeniden sıkıştırılmaz; uygulama iOS'tan orijinalleri ister. Notta kareler halinde dizilirler; birine dokununca görüntüleyici açılır: *kaydet veya paylaş* (paylaşım menüsündeki *Görüntüyü/Videoyu Kaydet* galeriye koyar) ve *kaldır*; notun *…* menüsü tüm ekleri bir seferde kaydeder. Bilgisayarda *Tüm ekleri kaydet…* (not kartına veya bir eke sağ tık) bir notun ya da işaretli tüm notların dosyalarını bir klasöre yazar.
+Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışırken (tepside gizli olsa da) eşitlenir. Evden uzakta çevrimdışı çalışmaya devam eder, dönünce birleşir. Fotoğraf ve videolar asla yeniden sıkıştırılmaz; uygulama iOS'tan orijinalleri ister. Notta kareler halinde dizilirler; birine dokununca görüntüleyici açılır: *kaydet veya paylaş* (paylaşım menüsündeki *Görüntüyü/Videoyu Kaydet* galeriye koyar) ve *kaldır*. Notun *…* menüsünde *Fotoğraf ve Videoları Seç* var: istediklerinizi işaretleyin, *Kaydet (n)* hepsini birden paylaşım menüsüne gönderir, *Kaldır (n)* nottan çıkarır; *Tümünü kaydet* de orada. Üstteki paylaş düğmesi notun tamamını (metin ve medya) paylaşır. Bilgisayarda bir karenin üstüne gelince onay yuvarlağı belirir (Ctrl+tık ya da Boşluk da olur); işaretli kare varken bir çubuk *Seçilenleri kaydet…* ve *Seçilenleri kaldır* sunar; *Tüm ekleri kaydet…* (not kartına veya bir eke sağ tık) bir notun ya da işaretli tüm notların dosyalarını bir klasöre yazar.
+
+Not ekranı Notlar uygulamasını izler: üstte geri, paylaş ve *…*; altta liste, kamera, sabitle ve yeni not; yazarken alt çubuk klavyenin üstünde durur.
 
 ## Kısayollar (Windows)
 
@@ -112,9 +114,9 @@ Windows uygulaması Windows görüntü dilini izler ve küre düğmesinden 13 di
 
 Windows ve .NET 10 SDK; telefon testi için Node.js. Üçüncü taraf paket yok: HTTPS/WebSocket sunucusu, sertifika otoritesi ve QR üretici kaynağın parçasıdır.
 
-- `src/Notlar/` — WPF uygulaması. `Sync/` sunucu, protokol, sertifika ve QR kodunu; `Web/` telefon uygulamasını (düz JavaScript, WebCrypto, IndexedDB) içerir.
+- `src/Notlar/` — WPF uygulaması. Ana pencere konuya göre bölünmüştür (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` sunucu, oturumlar, protokol, sertifika ve QR kodunu; `Web/` telefon uygulamasını küçük ES modülleri halinde (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; düz JavaScript, WebCrypto, IndexedDB) içerir. Dosyalar bilerek 300 satır civarında tutulur.
 - `build.cmd` — kendi kendine yeten x64 derlemeyi `app/` içine yayınlar ve kök başlatıcıyı derler.
-- `test.cmd` — geçici verilerle kontrolleri çalıştırır: şifreleme ve tahrif tespiti, ekler, yedekler, silme politikası, toplu işlemler, tepsi davranışı, arayüz yerleşimi ve telefonu canlandıran bir Node betiği (eşleştirme kodu, iki yönlü eşitleme, çakışmalar, bayt bayt aynı dosyalar).
+- `test.cmd` — geçici verilerle kontrolleri çalıştırır (`NOTLAR_SHOT=<klasör>` ile pencere görüntüleri de kaydedilir): şifreleme ve tahrif tespiti, ekler, yedekler, silme politikası, toplu işlemler, tepsi davranışı, arayüz yerleşimi ve telefonu canlandıran bir Node betiği (eşleştirme kodu, iki yönlü eşitleme, çakışmalar, bayt bayt aynı dosyalar).
 - `build-setup.cmd` — [Inno Setup 6](https://jrsoftware.org/isdl.php) ile kurulum dosyasını `dist/` içine üretir.
 
 Yayın: bir sürüm etiketi gönderin; `.github/workflows/release.yml` kurulum dosyasını derler, `.sha256` özetini yazar ve ikisini bir GitHub Release'e ekler. Çalışan uygulamalar birkaç saat içinde güncellemeyi sunar.

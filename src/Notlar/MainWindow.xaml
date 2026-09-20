@@ -128,9 +128,17 @@
             <TextBlock x:Name="TitleHint" Text="{local:T NewNote}" FontSize="30" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" IsHitTestVisible="False"/>
             <TextBox x:Name="TitleInput" Margin="0,0,36,0" FontSize="30" FontWeight="SemiBold" MaxLength="500" AutomationProperties.Name="{local:T NoteTitle}" TextChanged="EditorChanged" KeyDown="TitleKeyDown"/>
           </Grid>
-          <ScrollViewer x:Name="AttachmentScroll" Grid.Row="2" Margin="0,0,36,0" MaxHeight="292" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-            <WrapPanel x:Name="AttachmentPanel" Margin="0,0,0,18" AutomationProperties.Name="{local:T AttachDropHint}"/>
-          </ScrollViewer>
+          <StackPanel Grid.Row="2" Margin="0,0,36,0">
+            <DockPanel x:Name="AttachmentBar" Margin="0,0,0,10" Visibility="Collapsed">
+              <Button x:Name="AttachmentCancelButton" Content="{local:T Cancel}" FontSize="12" Padding="10,5" DockPanel.Dock="Right" Focusable="False" Click="AttachmentCancelClick"/>
+              <Button x:Name="AttachmentRemoveButton" Content="{local:T RemoveSelectedAttachments}" FontSize="12" Padding="10,5" Margin="0,0,6,0" DockPanel.Dock="Right" Foreground="{DynamicResource Danger}" Focusable="False" Click="AttachmentRemoveClick"/>
+              <Button x:Name="AttachmentSaveButton" Content="{local:T SaveSelectedAttachments}" FontSize="12" Padding="10,5" Margin="0,0,6,0" DockPanel.Dock="Right" Foreground="{DynamicResource Accent}" Focusable="False" Click="AttachmentSaveClick"/>
+              <TextBlock x:Name="AttachmentCount" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
+            </DockPanel>
+            <ScrollViewer x:Name="AttachmentScroll" MaxHeight="292" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
+              <WrapPanel x:Name="AttachmentPanel" Margin="0,0,0,18" AutomationProperties.Name="{local:T AttachDropHint}"/>
+            </ScrollViewer>
+          </StackPanel>
           <Grid Grid.Row="3">
             <TextBlock x:Name="BodyHint" Margin="0,0,36,0" Text="{local:T BodyHint}" FontSize="16" Foreground="{DynamicResource Muted}" IsHitTestVisible="False"/>
             <TextBox x:Name="BodyInput" Padding="0,0,36,0" FontSize="16" TextBlock.LineHeight="28" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" IsUndoEnabled="True" UndoLimit="100" SpellCheck.IsEnabled="False" AutomationProperties.Name="{local:T NoteBody}" TextChanged="EditorChanged"/>

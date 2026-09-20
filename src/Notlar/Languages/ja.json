@@ -195,5 +195,13 @@
   "UnarchivedOne": "メモのアーカイブを解除しました。",
   "UnarchivedMany": "{0} 件のメモのアーカイブを解除しました。",
   "EmptyArchiveHeading": "アーカイブは空です。",
-  "EmptyArchiveDescription": "手元に置きたくないけれど削除もしたくないメモをアーカイブへ。いつでも戻せます。"
+  "EmptyArchiveDescription": "手元に置きたくないけれど削除もしたくないメモをアーカイブへ。いつでも戻せます。",
+  "AttachmentsSelected": "{0} 件の添付を選択中",
+  "SaveSelectedAttachments": "選択した項目を保存…",
+  "RemoveSelectedAttachments": "選択した項目を削除",
+  "ConfirmRemoveAttachments": "このメモから {0} 件の添付を削除しますか？ファイルは元に戻せません。",
+  "AttachmentsRemoved": "{0} 件の添付を削除しました。",
+  "PickAttachment": "選択",
+  "UnpickAttachment": "選択解除",
+  "PickAttachmentHint": "クリックで選択（Ctrl+クリックでも可）"
 }
