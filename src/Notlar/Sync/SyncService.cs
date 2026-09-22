@@ -44,7 +44,8 @@ public sealed partial class SyncService : IDisposable
     internal void RecordConflictCopy(string device, string note, string baseline, string copy) { lock (applied) conflictCopies[(device, note)] = (baseline, copy); }
     // What phones did here, newest first, dated, and mirrored to sync-log.txt so a gap can be read the next day.
     private readonly List<string> log = [];
-    private const int LogLines = 60, LogFileLines = 400;
+    private const int LogLines = 60, LogFileLines = 300;
+    private int fileLines;
     public IReadOnlyList<string> Log { get { lock (log) return log.ToList(); } }
     // Tests talk from this machine; the app leaves its own loopback traffic out.
     public bool LogLoopback { get; set; }
@@ -60,7 +61,13 @@ public sealed partial class SyncService : IDisposable
         lock (log)
         {
             log.Insert(0, line); if (log.Count > LogLines) log.RemoveAt(log.Count - 1);
-            try { Directory.CreateDirectory(SyncDirectory); File.AppendAllText(LogPath, line + Environment.NewLine); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+            // The file never grows past twice its size: once it does, only the newest lines are kept.
+            try
+            {
+                Directory.CreateDirectory(SyncDirectory); File.AppendAllText(LogPath, line + Environment.NewLine);
+                if (++fileLines > LogFileLines * 2) { var kept = File.ReadAllLines(LogPath)[^LogFileLines..]; File.WriteAllLines(LogPath, kept); fileLines = kept.Length; }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         }
     }
     private void LoadLog()
@@ -70,6 +77,7 @@ public sealed partial class SyncService : IDisposable
             if (!File.Exists(LogPath)) return;
             var lines = File.ReadAllLines(LogPath);
             if (lines.Length > LogFileLines) { lines = lines[^LogFileLines..]; File.WriteAllLines(LogPath, lines); }
+            fileLines = lines.Length;
             lock (log) { log.Clear(); log.AddRange(lines.Reverse().Take(LogLines)); }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }

@@ -115,8 +115,13 @@ public sealed class SyncWindow : Window
         }
         Heading(L10n.T("SyncLog"));
         Action(L10n.T("SyncCopyLog"), () => { try { Clipboard.SetText(string.Join(Environment.NewLine, service.Log)); } catch (System.Runtime.InteropServices.COMException) { } });
-        logBlock = Text(LogText(), 12, "Muted"); logBlock.FontFamily = new FontFamily("Consolas, Segoe UI");
+        // The log lives in its own scrolling box so the window itself stays short.
+        logBlock = new TextBlock { Text = LogText(), FontSize = 12, TextWrapping = TextWrapping.Wrap, LineHeight = 18, FontFamily = new FontFamily("Consolas, Segoe UI"), Margin = new Thickness(10, 8, 10, 8) };
+        logBlock.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
         System.Windows.Automation.AutomationProperties.SetAutomationId(logBlock, "SyncLog");
+        var logBox = new Border { CornerRadius = new CornerRadius(8), MaxHeight = 190, Margin = new Thickness(0, 0, 0, 8), Child = new ScrollViewer { Content = logBlock, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
+        logBox.SetResourceReference(BackgroundProperty, "Surface");
+        panel.Children.Add(logBox);
         Text(L10n.T("SyncNetworkHelp"), 12, "Muted", new Thickness(0, 14, 0, 8));
         Action(L10n.T("SyncReset"), () => { if (MessageDialog.Ask(this, L10n.T("SyncReset"), L10n.T("SyncResetConfirm"), L10n.T("SyncReset"), danger: true)) { service.ResetKey(); service.NewPairCode(); } }, danger: true);
     }

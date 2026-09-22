@@ -98,6 +98,8 @@ static class LinkChecks
         // The log is dated and mirrored to a file that survives restarts.
         service.LogNote("marker line");
         check(service.Log[0].StartsWith(DateTime.Now.ToString("yyyy-MM-dd")) && File.ReadAllText(service.LogPath).Contains("marker line"), "Log lines carry the date and are written to sync-log.txt");
+        for (int i = 0; i < 700; i++) service.LogNote("filler " + i);
+        check(File.ReadAllLines(service.LogPath).Length <= 600 && File.ReadAllLines(service.LogPath).Last().EndsWith("filler 699") && service.Log.Count == 60, "The log file is trimmed to its newest lines and the window keeps sixty");
         // Pairing only answers the app's own pages.
         using var http = new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = (_, _, _, _) => true });
         var evil = new HttpRequestMessage(HttpMethod.Post, "https://localhost:" + service.Port + "/pair") { Content = new StringContent("{\"code\":\"000000\"}", Encoding.UTF8, "application/json") };
