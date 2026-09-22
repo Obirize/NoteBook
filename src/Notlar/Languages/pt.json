@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "cópia antiga no celular — feche o app completamente uma vez e reabra",
   "SyncCopyLog": "Copiar registro",
   "SetupNameOnly": "O PC responde pelo endereço, mas este celular não o encontra pelo nome agora. Espere um minuto e teste de novo; se persistir, desligue e ligue o Wi‑Fi do celular.",
-  "SetupTryAgain": "Testar de novo"
+  "SetupTryAgain": "Testar de novo",
+  "SyncPhoneConnected": "{0} conectado e sincronizado."
 }

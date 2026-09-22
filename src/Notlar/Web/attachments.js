@@ -6,6 +6,7 @@ import { T } from './lang.js';
 import { S, $, MAX_FILE } from './state.js';
 import { run, toast, sheet } from './ui.js';
 import { get, put, touch } from './store.js';
+import { b64, un64 } from './crypto.js';
 import { localSave, send, manifest, isReady } from './sync.js';
 import { commitDraft } from './editor.js';
 
@@ -34,11 +35,30 @@ export async function renderAttachments(n) {
       noteFiles.set(a.Id, { url, file: new File([plain], a.Name, { type: a.MediaType }) });
       pending.remove();
       if (a.MediaType.startsWith('image/')) { const img = document.createElement('img'); img.src = url; img.alt = ''; tile.prepend(img); }
-      else if (a.MediaType.startsWith('video/')) { const v = document.createElement('video'); v.src = url + '#t=0.1'; v.muted = true; v.playsInline = true; v.preload = 'metadata'; tile.prepend(v); }
+      else if (a.MediaType.startsWith('video/')) {
+        const img = document.createElement('img'); img.alt = ''; tile.prepend(img);
+        if (a.Thumb) img.src = thumbUrl(a.Thumb);
+        else videoFrame(url).then(async jpeg => { if (!jpeg || !n.Attachments.includes(a)) return; a.Thumb = jpeg; img.src = thumbUrl(jpeg); if (!n.draft) { n.Revision++; await localSave(n, true); } }).catch(() => {});
+      }
       else { const name = document.createElement('span'); name.className = 'tile-name'; name.textContent = a.Name; tile.prepend(name); }
     });
   });
   updateBar();
+}
+const thumbUrl = thumb => 'data:image/jpeg;base64,' + (typeof thumb === 'string' ? thumb : b64(thumb));
+// One frame of a video as a small JPEG (base64), drawn through a canvas; the PC shows the same picture.
+export async function videoFrame(url) {
+  const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+  await new Promise((ok, no) => { v.onloadedmetadata = ok; v.onerror = no; setTimeout(no, 8000); });
+  try { await v.play(); } catch { }
+  await new Promise(ok => { v.onseeked = ok; v.currentTime = Math.min(0.3, (v.duration || 1) / 2); setTimeout(ok, 3000); });
+  v.pause();
+  const scale = 320 / (v.videoWidth || 320), canvas = document.createElement('canvas');
+  canvas.width = 320; canvas.height = Math.max(1, Math.round((v.videoHeight || 180) * scale));
+  canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+  v.removeAttribute('src'); v.load();
+  const data = canvas.toDataURL('image/jpeg', 0.7);
+  return data.length > 2000 ? data.slice(data.indexOf(',') + 1) : null;
 }
 export function shareFiles(files) {
   if (files.length && navigator.canShare?.({ files })) navigator.share({ files }).catch(() => {});

@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "eski telefon kopyası — telefonda uygulamayı bir kez tamamen kapatıp açın",
   "SyncCopyLog": "Günlüğü kopyala",
   "SetupNameOnly": "Bilgisayar adresiyle cevap veriyor ama bu telefon onu adıyla bulamıyor. Bir dakika bekleyip yeniden sınayın; devam ederse telefonun Wi-Fi bağlantısını kapatıp açın.",
-  "SetupTryAgain": "Yeniden sına"
+  "SetupTryAgain": "Yeniden sına",
+  "SyncPhoneConnected": "{0} bağlandı, eşitleme yapıldı."
 }

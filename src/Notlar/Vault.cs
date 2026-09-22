@@ -183,7 +183,7 @@ public sealed class VaultSession : IDisposable
         return (added, updated);
     }
     private static Note Clone(Note n) => new() { Id = n.Id, Title = n.Title, Text = n.Text, Created = n.Created, Updated = n.Updated, Pinned = n.Pinned, Archived = n.Archived, Deleted = n.Deleted, DeletedAt = n.DeletedAt, Revision = n.Revision, Attachments = n.Attachments.Select(Clone).ToList() };
-    private static Attachment Clone(Attachment a) => new() { Id = a.Id, Name = a.Name, MediaType = a.MediaType, Size = a.Size, Key = (byte[])a.Key.Clone(), Sha256 = (byte[])a.Sha256.Clone(), Width = a.Width, Height = a.Height, Added = a.Added };
+    private static Attachment Clone(Attachment a) => new() { Id = a.Id, Name = a.Name, MediaType = a.MediaType, Size = a.Size, Key = (byte[])a.Key.Clone(), Sha256 = (byte[])a.Sha256.Clone(), Width = a.Width, Height = a.Height, Added = a.Added, Thumb = a.Thumb };
     public void Save() => Save(false);
     public void Save(bool redactBackup)
     {

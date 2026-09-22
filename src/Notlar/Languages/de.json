@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "alte Kopie auf dem Telefon — die App einmal ganz schließen und neu öffnen",
   "SyncCopyLog": "Protokoll kopieren",
   "SetupNameOnly": "Der PC antwortet über die Adresse, aber dieses Telefon findet ihn gerade nicht über den Namen. Eine Minute warten und erneut testen; hilft das nicht, WLAN am Telefon aus- und einschalten.",
-  "SetupTryAgain": "Erneut testen"
+  "SetupTryAgain": "Erneut testen",
+  "SyncPhoneConnected": "{0} verbunden und synchronisiert."
 }

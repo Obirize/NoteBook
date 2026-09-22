@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "iPhone 側が古いコピーです — アプリを一度完全に閉じて開き直してください",
   "SyncCopyLog": "ログをコピー",
   "SetupNameOnly": "PC はアドレスでは応答しますが、この iPhone は今は名前で見つけられません。1 分待って再テストし、続くなら Wi‑Fi をオフ／オンしてください。",
-  "SetupTryAgain": "再テスト"
+  "SetupTryAgain": "再テスト",
+  "SyncPhoneConnected": "{0} が接続し、同期しました。"
 }

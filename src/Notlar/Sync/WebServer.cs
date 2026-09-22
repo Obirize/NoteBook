@@ -96,7 +96,10 @@ public sealed class WebServer : IDisposable
                             EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13, CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
                         }, stop.Token);
                     }
-                    catch (Exception ex) when (ex is IOException or AuthenticationException) { Trace?.Invoke(remote, "tls-failed"); throw; }
+                    // A client that rejects the certificate sends a TLS alert (AuthenticationException); one that simply hangs
+                    // up mid-handshake (the phone abandoning its slower attempt) is an IOException and means nothing.
+                    catch (AuthenticationException) { Trace?.Invoke(remote, "tls-failed"); throw; }
+                    catch (IOException) { Trace?.Invoke(remote, "tls-aborted"); throw; }
                     // (the exception type is not logged: the phone side decides trust, and every failure looks the same from here)
                     stream = tls;
                 }

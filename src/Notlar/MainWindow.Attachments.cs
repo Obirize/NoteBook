@@ -237,7 +237,35 @@ public partial class MainWindow
         }
         tile.ContextMenu = menu;
         if (present && attachment.IsImage) LoadThumbnail(attachment, picture, icon);
+        else if (attachment.IsVideo && attachment.Thumb != null) ShowThumb(attachment.Thumb, picture, icon);
+        else if (present && attachment.IsVideo) _ = MakeVideoThumb(attachment, picture, icon);
         return tile;
+    }
+    private static void ShowThumb(byte[] jpeg, Image target, TextBlock placeholder)
+    {
+        try
+        {
+            var image = new BitmapImage(); image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad; image.StreamSource = new MemoryStream(jpeg); image.EndInit(); image.Freeze();
+            target.Source = image; placeholder.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception ex) when (ex is NotSupportedException or FileFormatException or ArgumentException) { }
+    }
+    // The first frame of a video the PC can decode, stored with the attachment so the phone gets it too. Formats
+    // Windows cannot play (some iPhone HEVC clips) are left to the phone, which makes the picture on its side.
+    private async Task MakeVideoThumb(Attachment attachment, Image target, TextBlock placeholder)
+    {
+        string? temp = null;
+        try
+        {
+            temp = await Task.Run(() => session.Attachments.WriteTemporary(attachment));
+            var jpeg = await VideoThumbnail.FirstFrameAsync(temp);
+            if (jpeg == null || current == null || !current.Attachments.Contains(attachment)) return;
+            attachment.Thumb = jpeg; ShowThumb(jpeg, target, placeholder);
+            // A new revision so the phone takes the picture; the note's date is not the user's business here.
+            current.Revision++; dirty = true; saveTimer.Stop(); saveTimer.Start();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException) { }
+        finally { if (temp != null) AttachmentStore.DeleteTemporary(temp); }
     }
     private void LoadThumbnail(Attachment attachment, Image target, TextBlock placeholder)
     {

@@ -93,11 +93,18 @@ static class SyncChecks
         var lan=Certificates.LanAddresses().FirstOrDefault();
         if(lan!=null){
             bool warned=false;service.TrustProblem+=()=>warned=true;
+            // A phone abandoning its slower attempt hangs up mid-handshake: that is not a refused certificate.
+            for(int i=0;i<4;i++){using var quiet=new System.Net.Sockets.TcpClient();quiet.Connect(lan,service.Port);}
+            Thread.Sleep(1500);
+            check(!warned && !service.Log.Any(l=>l.Contains(L10n.T("SyncLogTlsFailed"))),"A connection dropped before the handshake ends is neither counted nor logged as a certificate failure");
             for(int i=0;i<3;i++){using var raw=new System.Net.Sockets.TcpClient();raw.Connect(lan,service.Port);raw.GetStream().Write(Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\nHost: x\r\n\r\n"));try{raw.GetStream().Read(new byte[16]);}catch(IOException){}}
             var until=DateTime.UtcNow.AddSeconds(10);while(!warned&&DateTime.UtcNow<until)Thread.Sleep(50);
             check(warned && service.Log.Any(l=>l.Contains(L10n.T("SyncLogTlsFailed"))),"Three failed TLS handshakes from the network raise the certificate-trust warning and show in the log");
         }
         LinkChecks.Run(root,service,check);
+        // A video's preview picture travels with the note and survives every copy the app makes of an attachment.
+        var clip=new Attachment { Name="clip.mp4",MediaType="video/mp4",Key=new byte[32],Sha256=new byte[32],Thumb=[1,2,3] };
+        check(SyncMerge.Clone(new Note { Attachments=[clip] }).Attachments[0].Thumb!.SequenceEqual(clip.Thumb!) && clip.IsVideo,"The thumbnail of a video is kept when a note is cloned for sync");
         check(host.Book.Notes.Count(n=>n.Text.StartsWith("typing"))==1 && host.Book.Notes.Single(n=>n.Text.StartsWith("typing")).Text=="typing ab","Fast typing from one phone lands as one note, not as conflict copies");
     }
 }

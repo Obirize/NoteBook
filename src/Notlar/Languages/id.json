@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "salinan lama di ponsel — tutup aplikasi sepenuhnya sekali lalu buka lagi",
   "SyncCopyLog": "Salin log",
   "SetupNameOnly": "PC menjawab lewat alamat tetapi ponsel ini belum bisa menemukannya lewat nama. Tunggu semenit lalu uji lagi; jika berlanjut, matikan dan nyalakan Wi‑Fi ponsel.",
-  "SetupTryAgain": "Uji lagi"
+  "SetupTryAgain": "Uji lagi",
+  "SyncPhoneConnected": "{0} terhubung dan tersinkron."
 }

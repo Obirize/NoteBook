@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "휴대폰의 예전 복사본 — 휴대폰에서 앱을 한 번 완전히 닫고 다시 여세요",
   "SyncCopyLog": "로그 복사",
   "SetupNameOnly": "PC가 주소로는 응답하지만 이 휴대폰이 지금 이름으로 찾지 못합니다. 1분 기다렸다가 다시 테스트하고, 계속되면 휴대폰 Wi‑Fi를 껐다 켜세요.",
-  "SetupTryAgain": "다시 테스트"
+  "SetupTryAgain": "다시 테스트",
+  "SyncPhoneConnected": "{0} 연결되어 동기화되었습니다."
 }

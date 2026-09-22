@@ -51,8 +51,9 @@ function row(n) {
   sub.append(when, document.createTextNode(Checklist.preview(n.Text).replace(/\s+/g, ' ').trim() || (n.Attachments.length ? T('attachmentsCount', n.Attachments.length) : T('noText'))));
   text.append(title, sub); inner.append(text);
   if (n.Pinned && inTrash()) inner.append(pinIcon());
-  const image = n.Attachments.find(a => a.MediaType.startsWith('image/'));
+  const image = n.Attachments.find(a => a.MediaType.startsWith('image/')), clip = n.Attachments.find(a => a.Thumb);
   if (image) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; inner.append(img); thumbnail(image).then(url => { if (url) img.src = url; else img.remove(); }); }
+  else if (clip) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; img.src = 'data:image/jpeg;base64,' + clip.Thumb; inner.append(img); }
   el.append(action, inner);
   if (!S.selecting) swipe(el, inner, () => run(() => inTrash() ? restoreNote(n) : inArchive() ? archiveNote(n, false) : deleteNote(n)));
   inner.addEventListener('click', () => {

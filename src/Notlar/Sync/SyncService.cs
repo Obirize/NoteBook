@@ -94,6 +94,7 @@ public sealed partial class SyncService : IDisposable
     private void Trace(System.Net.IPAddress remote, string what)
     {
         if (what == "tls-failed" && !System.Net.IPAddress.IsLoopback(remote)) NoteTlsFailure();
+        if (what == "tls-aborted") return;
         // Static files and status probes are noise; what matters is whether the phone gets through and how far it gets.
         if ((what.StartsWith("GET /v", StringComparison.Ordinal) || what.StartsWith("GET /status", StringComparison.Ordinal)) && what.EndsWith(" 200", StringComparison.Ordinal)) return;
         LogEvent(remote, what switch
@@ -247,6 +248,7 @@ public sealed partial class SyncService : IDisposable
     }
     internal void DeviceSeen(SyncSession session, string id, string name)
     {
+        lock (tlsFailures) tlsFailures.Clear();
         List<SyncSession> stale; lock (sessions) stale = sessions.Where(s => s != session && s.Device?.Id == id).ToList();
         foreach (var other in stale) other.Close("replaced");
         var device = Settings.Devices.FirstOrDefault(d => d.Id == id);

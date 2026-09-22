@@ -45,6 +45,8 @@ public sealed class Attachment
     public int Width { get; set; }
     public int Height { get; set; }
     public DateTimeOffset Added { get; set; } = DateTimeOffset.UtcNow;
+    // A small JPEG of the first frame of a video, so both sides can show a preview without decoding the file.
+    public byte[]? Thumb { get; set; }
     [JsonIgnore] public bool IsImage => MediaType.StartsWith("image/", StringComparison.Ordinal);
     [JsonIgnore] public bool IsVideo => MediaType.StartsWith("video/", StringComparison.Ordinal);
     [JsonIgnore] public string SizeLabel => Size < 1024 * 1024 ? Math.Max(1, Size / 1024) + " KB" : Size < 1024L * 1024 * 1024 ? (Size / (1024.0 * 1024)).ToString("0.#", L10n.Culture) + " MB" : (Size / (1024.0 * 1024 * 1024)).ToString("0.##", L10n.Culture) + " GB";

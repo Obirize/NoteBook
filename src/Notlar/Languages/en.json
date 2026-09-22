@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "old phone copy — close the app on the phone completely once and reopen it",
   "SyncCopyLog": "Copy log",
   "SetupNameOnly": "The PC answers by address but this phone cannot find it by name right now. Wait a minute and test again; if it persists, turn the phone's Wi-Fi off and on.",
-  "SetupTryAgain": "Test again"
+  "SetupTryAgain": "Test again",
+  "SyncPhoneConnected": "{0} connected and synced."
 }

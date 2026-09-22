@@ -43,7 +43,7 @@ public partial class MainWindow : ISyncHost
     }).Task;
     public Task<List<Note>> NotesAsync(IReadOnlyList<string> ids) => Dispatcher.InvokeAsync(() => session.Book.Notes.Where(n => ids.Contains(n.Id)).Select(SyncMerge.Clone).ToList()).Task;
     public Task<Attachment?> AttachmentAsync(string id) => Dispatcher.InvokeAsync(() => session.Book.Notes.SelectMany(n => n.Attachments).FirstOrDefault(a => a.Id == id)).Task;
-    public Task DeviceSeenAsync(string id, string name) => Dispatcher.InvokeAsync(() => { if (current != null && !dirty) OpenNote(current); }).Task;
+    public Task DeviceSeenAsync(string id, string name) => Dispatcher.InvokeAsync(() => { StatusText.Text = L10n.T("SyncPhoneConnected", name); if (current != null && !dirty) OpenNote(current); }).Task;
     public Task<SyncMerge.Result> ApplyAsync(List<Note> notes, List<PurgeStamp> purges, string deviceName) => Dispatcher.InvokeAsync(() =>
     {
         if (!SaveNow()) throw new IOException("Save failed.");

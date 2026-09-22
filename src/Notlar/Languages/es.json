@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "copia antigua en el teléfono — cierra la app del todo una vez y vuelve a abrirla",
   "SyncCopyLog": "Copiar registro",
   "SetupNameOnly": "El PC responde por dirección pero este teléfono no lo encuentra por nombre ahora mismo. Espera un minuto y prueba de nuevo; si sigue, apaga y enciende el Wi-Fi del teléfono.",
-  "SetupTryAgain": "Probar de nuevo"
+  "SetupTryAgain": "Probar de nuevo",
+  "SyncPhoneConnected": "{0} conectado y sincronizado."
 }

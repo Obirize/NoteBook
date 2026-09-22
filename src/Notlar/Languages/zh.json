@@ -220,5 +220,6 @@
   "SyncLogOldCopy": "手机上是旧版本 — 请在手机上完全关闭应用一次再打开",
   "SyncCopyLog": "复制日志",
   "SetupNameOnly": "电脑能按地址响应，但此手机暂时无法按名称找到它。请等一分钟再测试；若仍不行，关闭再打开手机的 Wi‑Fi。",
-  "SetupTryAgain": "再次测试"
+  "SetupTryAgain": "再次测试",
+  "SyncPhoneConnected": "{0} 已连接并同步。"
 }
