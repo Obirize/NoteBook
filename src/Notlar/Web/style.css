@@ -75,7 +75,8 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .folder-row .chev { width: 18px; height: 18px; color: var(--muted); stroke-width: 2.2; flex: none; }
 .empty { color: var(--muted); text-align: center; margin-top: 40vh; font-size: 20px; }
 
-.toolbar { display: flex; align-items: center; padding: 2px 12px calc(2px + env(safe-area-inset-bottom)); background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--separator); }
+/* The bar sits lower than the Notes app's: its row ends 22 pt above the screen edge, just clear of the home indicator. */
+.toolbar { display: flex; align-items: center; padding: 2px 12px max(2px, calc(env(safe-area-inset-bottom) - 12px)); background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--separator); }
 .count { flex: 1; text-align: center; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toolbar-side { width: 88px; display: flex; }
 .toolbar-side.right { justify-content: flex-end; }
@@ -143,7 +144,7 @@ summary { cursor: pointer; padding: 6px 0; }
 #pairLink { width: 100%; background: var(--card); border-radius: 10px; padding: 12px; margin: 10px 0; }
 #pairLinkButton { width: 100%; padding: 12px; }
 
-.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 10; }
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 25; }
 .sheet-body { background: var(--card); border-radius: 14px; overflow: hidden; }
 .sheet-body button { display: block; width: 100%; padding: 17px; font-size: 20px; text-align: center; border-top: 1px solid var(--separator); }
 .sheet-body button:first-child { border-top: 0; }
