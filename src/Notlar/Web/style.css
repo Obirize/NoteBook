@@ -41,7 +41,8 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .search { display: flex; align-items: center; gap: 6px; background: var(--card); border-radius: 10px; height: 36px; padding: 0 8px; margin-bottom: 20px; color: var(--muted); }
 .search svg { width: 18px; height: 18px; stroke-width: 2; flex: none; }
 .info { margin: -6px 12px 14px; }
-.search input { flex: 1; font-size: 17px; }
+.search input { flex: 1; font-size: 17px; -webkit-appearance: none; appearance: none; }
+.search input::-webkit-search-decoration, .search input::-webkit-search-cancel-button { -webkit-appearance: none; }
 .search input::placeholder { color: var(--muted); }
 
 .section-title { font-size: 20px; font-weight: 700; margin: 22px 0 10px; }
@@ -74,11 +75,11 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .folder-row .chev { width: 18px; height: 18px; color: var(--muted); stroke-width: 2.2; flex: none; }
 .empty { color: var(--muted); text-align: center; margin-top: 40vh; font-size: 20px; }
 
-.toolbar { display: flex; align-items: center; padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--separator); }
+.toolbar { display: flex; align-items: center; padding: 2px 12px calc(2px + env(safe-area-inset-bottom)); background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--separator); }
 .count { flex: 1; text-align: center; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toolbar-side { width: 88px; display: flex; }
 .toolbar-side.right { justify-content: flex-end; }
-#editor.keyboard .toolbar { padding-bottom: 6px; }
+#editor.keyboard .toolbar { padding-bottom: 2px; }
 .toolbar.tools { justify-content: space-between; padding-left: 20px; padding-right: 20px; }
 .text-button:disabled { color: var(--muted); opacity: .5; }
 .row-check { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none; display: none; align-items: center; justify-content: center; margin-right: 2px; }
