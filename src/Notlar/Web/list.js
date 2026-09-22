@@ -1,7 +1,6 @@
-// The note list, laid out like the Notes app: one card of rows (sections only for pinned notes), search, the note
-// count in the bottom bar, select mode with bulk actions, and swipe actions on a row (share, move, delete; a long
-// swipe fires the last one). There is no Folders screen: Recently Deleted is reached from the top left, the
-// archive from the "…" menu, and both lead back to Notes.
+// The Folders screen and the note list, laid out like the Notes app: one card of rows (sections only for pinned
+// notes), search, the note count in the bottom bar, select mode with bulk actions, and swipe actions on a row
+// (share, move, delete; a long swipe fires the last one).
 import { T, locale } from './lang.js';
 import * as Checklist from './checklist.js';
 import { decryptFile } from './crypto.js';
@@ -18,14 +17,17 @@ const ICON = {
   trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
 };
 
+export function renderFolders() {
+  const counts = { all: 0, archive: 0, trash: 0 };
+  for (const n of S.notes) counts[n.Deleted ? 'trash' : n.Archived ? 'archive' : 'all']++;
+  for (const el of document.querySelectorAll('.folder-count')) el.textContent = counts[el.dataset.count];
+}
 export function renderList() {
   const q = $('search').value.trim().toLocaleLowerCase(locale), selecting = S.selecting, selected = S.selected;
   const shown = S.notes.filter(n => inFolder(n) && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
     .sort((a, b) => Number(b.Pinned) - Number(a.Pinned) || Date.parse(b.Updated) - Date.parse(a.Updated));
   $('listTitle').textContent = folderTitle();
-  const inSub = inTrash() || inArchive();
-  $('folderBack').hidden = !inSub || selecting; $('trashLink').hidden = inSub || selecting;
-  $('edit').hidden = !inTrash() || selecting || shown.length === 0; $('more').hidden = selecting || inTrash();
+  $('folderBack').hidden = selecting; $('edit').hidden = !inTrash() || selecting || shown.length === 0; $('more').hidden = selecting || inTrash();
   $('selectDone').hidden = !selecting; $('trashInfo').hidden = !inTrash();
   $('list').classList.toggle('selecting', selecting);
   $('selectBar').hidden = !selecting; $('list').querySelector('.toolbar:not(#selectBar)').hidden = selecting;
@@ -45,6 +47,7 @@ export function renderList() {
     if (!group || section !== lastSection) { if (section) { const h = document.createElement('div'); h.className = 'section-title'; h.textContent = section; sections.append(h); } group = document.createElement('div'); group.className = 'group'; sections.append(group); lastSection = section; }
     group.append(row(n));
   }
+  renderFolders();
 }
 // The bottom bar shows the count, or what the link is doing until the notes are up to date.
 function renderCount() {
@@ -119,11 +122,13 @@ async function thumbnail(a) {
 }
 
 // ---------- wiring ----------
-function goto(folder) { S.folder = folder; S.selected.clear(); S.selecting = false; renderList(); $('list').querySelector('.page').scrollTop = 0; }
-$('folderBack').addEventListener('click', () => goto('all'));
-$('trashLink').addEventListener('click', () => goto('trash'));
+function goto(folder) { S.folder = folder; S.selected.clear(); S.selecting = false; show('list'); renderList(); $('list').querySelector('.page').scrollTop = 0; }
+export function showFolders() { renderFolders(); show('folders'); }
+for (const b of document.querySelectorAll('.folder-row')) b.addEventListener('click', () => goto(b.dataset.folder));
+$('folderBack').addEventListener('click', showFolders);
 $('search').addEventListener('input', renderList);
 $('compose').addEventListener('click', () => run(newNote));
+$('composeFolders').addEventListener('click', () => run(newNote));
 $('edit').addEventListener('click', () => { S.selecting = true; S.selected.clear(); renderList(); });
 $('selectDone').addEventListener('click', () => { S.selecting = false; S.selected.clear(); renderList(); });
 $('selectAll').addEventListener('click', () => { const ids = S.notes.filter(inFolder).map(n => n.Id); if (S.selected.size === ids.length && ids.length > 0) S.selected.clear(); else for (const id of ids) S.selected.add(id); renderList(); });
@@ -132,7 +137,6 @@ $('selectRestore').addEventListener('click', () => run(() => bulk('restore')));
 $('selectArchive').addEventListener('click', () => run(() => bulk(inArchive() ? 'unarchive' : 'archive')));
 $('more').addEventListener('click', () => sheet(null, [
   ...(S.shown ? [{ label: T('selectNotes'), run: () => { S.selecting = true; S.selected.clear(); renderList(); } }] : []),
-  ...(inArchive() ? [] : [{ label: T('archive'), run: () => goto('archive') }]),
   { label: T('syncNow'), run: () => run(syncNow) },
   { label: T('repair'), run: () => { show('pair'); $('pairCode').focus(); } },
 ]));
