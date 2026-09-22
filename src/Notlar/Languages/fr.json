@@ -200,11 +200,9 @@
   "PickAttachment": "Sélectionner",
   "UnpickAttachment": "Désélectionner",
   "PickAttachmentHint": "Cliquez pour sélectionner (Ctrl+clic aussi)",
-  "SyncAltAddress": "Si cette adresse ne s’ouvre pas sur le téléphone, tapez ceci dans Safari : {0}",
   "SyncLog": "Connexions récentes",
   "SyncLogEmpty": "Aucune connexion depuis un téléphone pour l’instant. Elle apparaîtra ici dès que le téléphone atteindra ce PC.",
   "SyncLogTlsFailed": "connecté mais certificat refusé — refaites l’étape 1",
-  "SyncLogSocket": "connexion de synchronisation ouverte",
   "SyncLogPaired": "code de jumelage accepté",
   "SyncLogPairRefused": "code de jumelage refusé (erroné ou expiré)",
   "SyncLogKeyMismatch": "la clé du téléphone ne correspond pas à ce PC — jumelez à nouveau",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "Réinstaller le certificat",
   "SetupReinstallHelp": "Après le téléchargement : Réglages → Profil téléchargé → Installer ; puis Réglages → Général → Informations → Réglages de confiance des certificats → activez NoteBook, revenez ici et testez à nouveau.",
   "SetupOpenApp": "Ouvrir l’app",
-  "VaultTooOld": "Ce carnet est au format protégé par mot de passe des premières versions. Installez la version 1.8.2 et ouvrez-le une fois ; cette version le convertit."
+  "VaultTooOld": "Ce carnet est au format protégé par mot de passe des premières versions. Installez la version 1.8.2 et ouvrez-le une fois ; cette version le convertit.",
+  "SyncLogSocketVia": "connexion de synchronisation ouverte (via {0})",
+  "SyncLogSessionEnded": "{0} déconnecté : {1} ({2} s)",
+  "SyncLogPcResumed": "PC sorti de veille",
+  "SyncLogAddresses": "adresses du PC : {0}",
+  "SyncLogCertRenewed": "certificat du serveur renouvelé (rien à faire sur le téléphone)",
+  "SyncLogOldCopy": "ancienne copie sur le téléphone — fermez complètement l'app une fois puis rouvrez-la",
+  "SyncCopyLog": "Copier le journal",
+  "SetupNameOnly": "Le PC répond par adresse mais ce téléphone ne le trouve pas par son nom pour l'instant. Attendez une minute et testez à nouveau ; si cela persiste, désactivez puis réactivez le Wi‑Fi du téléphone.",
+  "SetupTryAgain": "Tester à nouveau"
 }

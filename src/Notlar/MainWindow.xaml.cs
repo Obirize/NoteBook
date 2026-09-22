@@ -115,7 +115,12 @@ public partial class MainWindow
     }
     // Locking the PC or putting it to sleep is a moment to make sure everything is on disk.
     private void SessionSwitch(object sender, SessionSwitchEventArgs e) { if (e.Reason == SessionSwitchReason.SessionLock) Dispatcher.BeginInvoke(SaveNow); }
-    private void PowerChanged(object sender, PowerModeChangedEventArgs e) { if (e.Mode == PowerModes.Suspend) Dispatcher.BeginInvoke(SaveNow); }
+    private void PowerChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Suspend) Dispatcher.BeginInvoke(SaveNow);
+        // A mark in the phone log: a gap that starts here was the PC sleeping, not the phone failing.
+        else if (e.Mode == PowerModes.Resume) phoneSync?.LogNote(L10n.T("SyncLogPcResumed"));
+    }
     private void Shortcut(object sender, KeyEventArgs e)
     {
         // Delete acts on the list unless a text box (search, title, body) owns the keyboard.

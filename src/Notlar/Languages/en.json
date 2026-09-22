@@ -200,11 +200,9 @@
   "PickAttachment": "Select",
   "UnpickAttachment": "Deselect",
   "PickAttachmentHint": "Click to select (Ctrl+click works too)",
-  "SyncAltAddress": "If that address does not open on the phone, type this into Safari: {0}",
   "SyncLog": "Recent connections",
   "SyncLogEmpty": "No connection from a phone yet. It shows up here once the phone reaches this PC.",
   "SyncLogTlsFailed": "connected but did not accept the certificate — repeat step 1",
-  "SyncLogSocket": "sync connection opened",
   "SyncLogPaired": "pairing code accepted",
   "SyncLogPairRefused": "pairing code refused (wrong or expired)",
   "SyncLogKeyMismatch": "the phone’s key does not match this PC — pair again",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "Reinstall the certificate",
   "SetupReinstallHelp": "After the download: Settings → Profile Downloaded → Install; then Settings → General → About → Certificate Trust Settings → turn the NoteBook switch ON, come back here and test again.",
   "SetupOpenApp": "Open the app",
-  "VaultTooOld": "This notebook is in the password-protected format of the first releases. Install version 1.8.2 and open it once; that version converts it."
+  "VaultTooOld": "This notebook is in the password-protected format of the first releases. Install version 1.8.2 and open it once; that version converts it.",
+  "SyncLogSocketVia": "sync connection opened (via {0})",
+  "SyncLogSessionEnded": "{0} disconnected: {1} ({2} s)",
+  "SyncLogPcResumed": "PC resumed from sleep",
+  "SyncLogAddresses": "PC addresses: {0}",
+  "SyncLogCertRenewed": "server certificate renewed (nothing to do on the phone)",
+  "SyncLogOldCopy": "old phone copy — close the app on the phone completely once and reopen it",
+  "SyncCopyLog": "Copy log",
+  "SetupNameOnly": "The PC answers by address but this phone cannot find it by name right now. Wait a minute and test again; if it persists, turn the phone's Wi-Fi off and on.",
+  "SetupTryAgain": "Test again"
 }

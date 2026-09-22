@@ -9,13 +9,34 @@ import { request, get, put, del, same, persist, savePurges, forget } from './sto
 import { renderList } from './list.js';
 import { openNote, closeEditor } from './editor.js';
 import { renderAttachments } from './attachments.js';
+import { createLink } from './link.js';
 
-const SEND_DELAY = 400, RETRY_MIN = 3000, RETRY_MAX = 20000;
-let socket = null, ready = false, receiving = null, serverNonce, clientNonce, retry, retryDelay = RETRY_MIN, lastSynced = null;
+const SEND_DELAY = 400, STALL_WAIT = 30000;
+let receiving = null, uploading = false, serverNonce, clientNonce, lastSynced = null, link = null;
 const sendTimers = new Map();
 
-export const isReady = () => ready;
-export const send = m => { if (ready && socket?.readyState === 1) socket.send(JSON.stringify(m)); };
+export const isReady = () => !!link?.isReady();
+export const send = m => { link?.send(JSON.stringify(m)); };
+const offlineText = () => lastSynced ? T('offlineLast', fmt.time.format(lastSynced)) : T('offlineLocal');
+// The socket's life (timeouts, probes, retries, which host to try) lives in link.js; this file speaks the protocol.
+async function ensureLink() {
+  if (link) return link;
+  const meta = await get('meta', 'link') || {};
+  link = createLink({
+    now: () => Date.now(), setTimeout: (f, ms) => setTimeout(f, ms), clearTimeout: id => clearTimeout(id), setInterval: (f, ms) => setInterval(f, ms), clearInterval: id => clearInterval(id),
+    makeSocket: url => { const ws = new WebSocket(url); ws.binaryType = 'arraybuffer'; return ws; },
+    name: location.host, port: location.port || 443, meta,
+    saveMeta: m => put('meta', 'link', m).catch(() => {}),
+    visible: () => !document.hidden, online: () => navigator.onLine !== false, busy: () => receiving != null || uploading,
+    onOpen: ws => ws.send(JSON.stringify({ t: 'hello', protocol: 1, device: S.device, name: T('device'), hb: true, diag: link.diag() })),
+    onFrame: (ws, data) => run(async () => { if (!link.owns(ws)) return; try { await handle(ws, data); } catch (error) { link.drop('error'); link.retry(); throw error; } }),
+    onStatus: (kind, host) => { if (kind === 'connecting') setStatus(T('connecting'), true); else if (kind === 'ready') setStatus(T('syncing'), true); else setStatus(offlineText()); },
+    onDrop: () => { receiving = null; },
+    onHidden: () => run(flushAll),
+    catchUp: () => run(async () => { await flushAll(); send(await manifest()); }),
+  });
+  return link;
+}
 
 // ---------- local edits ----------
 // Saved at once; sent to the PC after a short pause so a burst of keystrokes travels as one revision.
@@ -24,11 +45,11 @@ export async function localSave(n, immediate = false) {
   clearTimeout(sendTimers.get(n.Id));
   if (immediate) await flushNote(n); else sendTimers.set(n.Id, setTimeout(() => run(() => flushNote(n)), SEND_DELAY));
 }
-async function flushNote(n) { sendTimers.delete(n.Id); if (!ready) return; send({ t: 'note', id: n.Id, rev: n.Revision, blob: b64(await seal(S.keys, n)), base: await get('base', n.Id) }); send({ t: 'flush' }); }
+async function flushNote(n) { sendTimers.delete(n.Id); if (!isReady()) return; send({ t: 'note', id: n.Id, rev: n.Revision, blob: b64(await seal(S.keys, n)), base: await get('base', n.Id) }); send({ t: 'flush' }); }
 export async function flushAll() { for (const n of S.notes) if (await get('pending', n.Id)) await flushNote(n); }
 export function cancelPendingSends() { for (const t of sendTimers.values()) clearTimeout(t); }
 export async function announcePurge(n) { S.purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); }
-export async function syncNow() { if (ready) { setStatus(T('syncing'), true); await flushAll(); send(await manifest()); } else connect(); }
+export async function syncNow() { setStatus(T('syncing'), true); (await ensureLink()).decide('manual'); }
 
 // ---------- messages ----------
 export async function manifest() { const files = await request('files', 'readonly', s => s.getAllKeys()); return { t: 'manifest', notes: S.notes.map(n => ({ id: n.Id, rev: n.Revision, updated: Date.parse(n.Updated) })), purged: S.purges, files }; }
@@ -51,18 +72,27 @@ async function receiveNote(m) {
   if (!$('list').hidden) renderList();
 }
 async function transfer(ids) {
-  for (const aid of ids) {
-    const b = await get('files', aid); if (!b) continue;
-    send({ t: 'file', id: aid, size: b.size });
-    for (let at = 0; at < b.size; at += 262144) {
-      while (socket?.readyState === 1 && socket.bufferedAmount > 1048576) await new Promise(r => setTimeout(r, 30));
-      if (!ready || socket?.readyState !== 1) return;
-      socket.send(await b.slice(at, at + 262144).arrayBuffer());
+  uploading = true;
+  try {
+    for (const aid of ids) {
+      const b = await get('files', aid); if (!b) continue;
+      send({ t: 'file', id: aid, size: b.size });
+      let lastDrain = Date.now(), lastBuffered = Infinity;
+      for (let at = 0; at < b.size; at += 262144) {
+        // A buffer that stops draining for 30 s means nobody is reading any more.
+        while (isReady() && link.buffered() > 1048576) {
+          if (link.buffered() < lastBuffered) lastDrain = Date.now();
+          lastBuffered = link.buffered();
+          if (Date.now() - lastDrain > STALL_WAIT) { link.drop('stall'); link.retry(); return; }
+          await new Promise(r => setTimeout(r, 30));
+        }
+        if (!link.sendBinary(await b.slice(at, at + 262144).arrayBuffer())) return;
+      }
+      send({ t: 'file-end', id: aid });
     }
-    send({ t: 'file-end', id: aid });
-  }
+  } finally { uploading = false; }
 }
-async function handle(data) {
+async function handle(ws, data) {
   if (typeof data !== 'string') {
     if (!receiving) throw Error(T('unexpectedFile'));
     receiving.parts.push(data); receiving.have += data.byteLength;
@@ -71,10 +101,11 @@ async function handle(data) {
   }
   const m = JSON.parse(data);
   switch (m.t) {
-    case 'challenge': serverNonce = un64(m.nonce); clientNonce = random(32); socket.send(JSON.stringify({ t: 'auth', nonce: b64(clientNonce), mac: b64(new Uint8Array(await mac(S.keys, 'client', serverNonce, clientNonce))) })); break;
+    case 'pong': break;
+    case 'challenge': serverNonce = un64(m.nonce); clientNonce = random(32); ws.send(JSON.stringify({ t: 'auth', nonce: b64(clientNonce), mac: b64(new Uint8Array(await mac(S.keys, 'client', serverNonce, clientNonce))) })); break;
     case 'welcome':
-      if (!await verifyMac(S.keys, un64(m.mac), 'server', clientNonce, serverNonce)) { socket.close(); throw Error(T('pcNotVerified')); }
-      ready = true; retryDelay = RETRY_MIN; setStatus(T('syncing'), true); send(await manifest()); break;
+      if (!await verifyMac(S.keys, un64(m.mac), 'server', clientNonce, serverNonce)) { link.drop('bad-mac'); link.retry(); throw Error(T('pcNotVerified')); }
+      link.welcomed(ws, m); send(await manifest()); break;
     case 'manifest': {
       for (const n of S.notes) {
         const peer = m.notes.find(x => x.id === n.Id);
@@ -102,25 +133,11 @@ async function handle(data) {
       if (S.current?.Attachments.some(x => x.Id === a.Id)) await renderAttachments(S.current); else if (!$('list').hidden) renderList();
       break;
     }
-    case 'rejected': socket.close(); throw Error(T('rejected'));
+    case 'rejected': link.drop('rejected'); link.retry(); throw Error(T('rejected'));
   }
 }
-export function connect() {
-  clearTimeout(retry);
-  if (!S.keys || (socket && socket.readyState < 2)) return;
-  ready = false; setStatus(T('connecting'), true);
-  const ws = new WebSocket('wss://' + location.host + '/sync'); socket = ws; ws.binaryType = 'arraybuffer';
-  ws.onopen = () => ws.send(JSON.stringify({ t: 'hello', protocol: 1, device: S.device, name: T('device') }));
-  ws.onmessage = e => run(async () => { if (socket !== ws) return; try { await handle(e.data); } catch (error) { ws.close(); throw error; } });
-  ws.onclose = () => {
-    if (socket !== ws) return;
-    ready = false; receiving = null;
-    setStatus(lastSynced ? T('offlineLast', fmt.time.format(lastSynced)) : T('offlineLocal'));
-    retry = setTimeout(connect, retryDelay); retryDelay = Math.min(RETRY_MAX, retryDelay * 2);
-  };
-  ws.onerror = () => {};
-}
-export function reconnectSoon() { retryDelay = RETRY_MIN; connect(); }
+export async function connect() { if (!S.keys) return; (await ensureLink()).connect(); }
+export function reconnectSoon() { link?.decide('online'); }
 
 // ---------- pairing ----------
 async function applyKey(raw) {
@@ -129,7 +146,7 @@ async function applyKey(raw) {
   S.keys = await derive(raw); raw.fill(0);
   await put('meta', 'keys', S.keys); for (const n of S.notes) await persist(n);
   history.replaceState(null, '', '/'); $('pairLink').value = ''; $('pairCode').value = '';
-  show('list'); renderList(); socket?.close(); socket = null; connect();
+  show('list'); renderList(); if (link) { link.drop('rekey'); link.forget(); } await connect();
   if (!navigator.standalone) toast(T('pairedNext'));
 }
 export async function pair(link) { const u = new URL(link, location.href); if (u.origin !== location.origin) throw Error(T('otherPc')); await applyKey(un64(new URLSearchParams(u.hash.slice(1)).get('k') || '')); }
@@ -142,7 +159,8 @@ export async function pairWithCode(code) {
   const { k } = await r.json(); await applyKey(un64(k));
 }
 
-// Coming back to the app, or back online, is the moment to catch up.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) run(async () => { if (ready) { await flushAll(); send(await manifest()); } else reconnectSoon(); }); });
-window.addEventListener('online', reconnectSoon);
+// Coming back to the app, or back online, is the moment to ask whether the link is still alive.
+document.addEventListener('visibilitychange', () => { if (!link) return; if (document.hidden) link.pause(); else link.decide('visible'); });
+for (const ev of ['pageshow', 'focus', 'online']) window.addEventListener(ev, () => link?.decide(ev));
+window.addEventListener('offline', () => { if (link?.isReady()) { link.drop('offline'); link.retry(); } });
 window.addEventListener('pagehide', cancelPendingSends);

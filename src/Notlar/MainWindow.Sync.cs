@@ -14,6 +14,7 @@ public partial class MainWindow : ISyncHost
     {
         phoneSync = new SyncService(Path.GetDirectoryName(session.FilePath)!, this);
         RememberSyncVersions();
+        phoneSync.RestartNeeded += () => Dispatcher.BeginInvoke(() => phoneSync?.Restart());
         phoneSync.TrustProblem += () => Dispatcher.BeginInvoke(() =>
         {
             StatusText.Text = L10n.T("SyncTrustWarning");

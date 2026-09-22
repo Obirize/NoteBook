@@ -127,6 +127,8 @@ public static class SyncMerge
         }
         return result;
     }
+    // Everything a phone can change, as one string; two notes with the same fingerprint are the same version.
+    public static string Fingerprint(Note n) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(string.Join("\u001f", n.Title, n.Text, n.Pinned, n.Archived, n.Deleted, string.Join(",", n.Attachments.Select(a => a.Id))))));
     public static bool SameContent(Note a, Note b) => a.Title == b.Title && a.Text == b.Text && a.Pinned == b.Pinned && a.Archived == b.Archived && a.Deleted == b.Deleted
         && a.Attachments.Select(x => x.Id).SequenceEqual(b.Attachments.Select(x => x.Id));
     private static void Copy(Note from, Note to)

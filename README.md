@@ -43,9 +43,13 @@ Afterwards the phone syncs whenever it is on the home Wi‑Fi and the PC app is 
 
 The note screen follows the Notes app: back, share and *…* at the top; checklist, camera, pin and new note along the bottom, with the bar riding above the keyboard while you type.
 
+## How the link stays up
+
+The phone never trusts a connection it cannot hear. Every attempt is bounded (10 s to open, 25 s to be welcomed); while the app is on screen it sends a small "are you there?" every 20 s, and when you come back to the app after a pause it asks once more and, if nothing answers within 4 s, opens a new connection by itself (after 45 s away it does not even ask). A 5‑second tick notices a suspended page even when iOS delivers no event. The PC is tried by name and, three seconds later, by address; whichever answered last is tried first next time. On the PC a phone that has been silent for a minute is dropped, the same phone coming back replaces its old session, and every session's end is written to a dated log (`data/sync/sync-log.txt`, also shown in the sync window with a *Copy log* button) together with what the phone reports about its previous link ("hidden 28800 s, prev no-pong"). The PC's certificate follows its addresses and renews itself while the app runs; the phone's profile never changes.
+
 ## When the phone will not connect
 
-The sync window on the PC has a **Recent connections** list: it shows whether the phone reaches the PC at all, whether it accepted the certificate, and why a pairing code was refused. Two quick checks on the phone, in Safari:
+The sync window on the PC has a dated **Recent connections** list: whether the phone reaches the PC at all, which name or address it used, whether it accepted the certificate, why a session ended, and why a pairing code was refused. Two quick checks on the phone, in Safari:
 
 - `http://<pc>.local:47832/` (the address under step 1; the window also shows an IP form such as `http://192.168.1.8:47832/`). If this does not open, the phone cannot reach the PC on the network: same Wi‑Fi name, and the router's "client isolation" / "AP isolation" must be off.
 - `https://<pc>.local:47831/start`. If the first address opens but this one does not, the phone no longer trusts the PC's certificate — the PC also warns about this after a few failed attempts. On the phone: Settings → General → About → Certificate Trust Settings → turn on the NoteBook certificate (if it is missing, repeat step 1). This can happen after an iOS update or when the profile is removed; it does not happen on a normal restart.
@@ -123,7 +127,7 @@ The Windows app follows the Windows display language and offers 13 languages fro
 
 Windows and the .NET 10 SDK; Node.js for the phone test. No third‑party packages: the HTTPS/WebSocket server, the certificate authority and the QR encoder are part of the source.
 
-- `src/Notlar/` — the WPF app. The main window is split by concern (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` holds the server, sessions, protocol, certificates and QR code; `Web/` holds the phone app as small ES modules (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; vanilla JavaScript, WebCrypto, IndexedDB). Files stay under about 300 lines on purpose.
+- `src/Notlar/` — the WPF app. `Web/link.js` is the phone's connection state machine (pure, tested under node with a fake clock). The main window is split by concern (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` holds the server, sessions, protocol, certificates and QR code; `Web/` holds the phone app as small ES modules (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; vanilla JavaScript, WebCrypto, IndexedDB). Files stay under about 300 lines on purpose.
 - `build.cmd` — publishes a self‑contained x64 build to `app/` and compiles the root launcher.
 - `test.cmd` — runs the checks with temporary data (`NOTLAR_SHOT=docs` also regenerates the screenshots in this README from sample notes): encryption and tamper detection, attachments, backups, trash policy, bulk actions, tray behaviour, UI layout, and a Node script that plays the phone (pairing code, sync in both directions, conflicts, byte‑identical files).
 - `build-setup.cmd` — builds the installer with [Inno Setup 6](https://jrsoftware.org/isdl.php) into `dist/`.

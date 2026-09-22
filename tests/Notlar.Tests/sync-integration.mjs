@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {derive,random,b64,un64,mac,verifyMac,open,seal,encryptFile,decryptFile,id} from '../../src/Notlar/Web/crypto.js';
 import * as Checklist from '../../src/Notlar/Web/checklist.js';
+await import('./link-tests.mjs');
 // The phone reads and writes the same checklist markers as the PC (Checklist.cs): "○"/"●" + em space.
 const O='○', D='●', G=' ', NL=String.fromCharCode(10);
 assert(Checklist.isItem(O+G+'Süt')&&Checklist.isDone(D+G+'Süt')&&!Checklist.isItem('Süt'));
@@ -9,7 +10,7 @@ assert.equal(Checklist.toggle(O+G+'a'),D+G+'a');assert.equal(Checklist.toggle('p
 assert.equal(Checklist.preview('Plan'+NL+O+G+'Süt'+NL+D+G+'Ekmek'),'Plan'+NL+'Süt'+NL+'✓ Ekmek');
 const port=process.argv[2],keys=await derive(un64(process.env.NOTEBOOK_TEST_KEY));
 const page=await fetch(`https://localhost:${port}/`);assert.equal(page.status,200);assert.match(await page.text(),/<title>Notlar</);
-for(const path of ['start','sw.js','v3/app.js','v3/editor.js','v3/crypto.js','v3/style.css','v3/app.webmanifest','v3/icon.png','v3/icon-180.png','v2/app.js'])assert.equal((await fetch(`https://localhost:${port}/${path}`)).status,200);
+for(const path of ['start','sw.js','v3/app.js','v3/link.js','v3/editor.js','v3/crypto.js','v3/style.css','v3/app.webmanifest','v3/icon.png','v3/icon-180.png','v2/app.js'])assert.equal((await fetch(`https://localhost:${port}/${path}`)).status,200);
 assert.match(await (await fetch(`https://localhost:${port}/start`)).text(),/\/v3\/app\.js/);
 const pairWrong=await fetch(`https://localhost:${port}/pair`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:'000000'})});assert.equal(pairWrong.status,403);
 const pairOk=await fetch(`https://localhost:${port}/pair`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:process.env.NOTEBOOK_TEST_CODE})});assert.equal(pairOk.status,200);
@@ -19,6 +20,8 @@ const wrong=await derive(new Uint8Array(32));
 async function client(k){const ws=new WebSocket(`wss://localhost:${port}/sync`);ws.binaryType='arraybuffer';const messages=[],waiters=[];ws.onmessage=e=>{const data=typeof e.data==='string'?JSON.parse(e.data):e.data;const waiter=waiters.shift();if(waiter)waiter(data);else messages.push(data);};const next=()=>messages.length?Promise.resolve(messages.shift()):new Promise(r=>waiters.push(r));await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});const send=m=>ws.send(JSON.stringify(m));send({t:'hello',protocol:1,device:id(),name:'Integration test'});const challenge=await next(),cn=random(32),sn=un64(challenge.nonce);send({t:'auth',nonce:b64(cn),mac:b64(new Uint8Array(await mac(k,'client',sn,cn)))});const welcome=await next();return {ws,next,send,welcome,cn,sn};}
 const bad=await client(wrong);assert.equal(bad.welcome.t,'rejected');bad.ws.close();
 const c=await client(keys);assert.equal(c.welcome.t,'welcome');assert(await verifyMac(keys,un64(c.welcome.mac),'server',c.cn,c.sn));
+assert(Array.isArray(c.welcome.addresses)&&c.welcome.host.endsWith('.local')&&c.welcome.idle>0&&c.welcome.port===Number(port));
+c.send({t:'ping',id:7});const pong=await c.next();assert.equal(pong.t,'pong');assert.equal(pong.id,7);
 c.send({t:'manifest',notes:[],purged:[],files:[]});let desktop,baseline,attachment;
 while(true){const m=await c.next();if(m.t==='note'){desktop=await open(keys,m.id,m.rev,un64(m.blob));baseline={rev:m.rev,blob:m.blob};attachment=desktop.Attachments[0];}if(m.t==='done')break;}
 assert.equal(desktop.Text,'from PC');c.send({t:'want-files',ids:[attachment.Id]});let chunks=[];
@@ -39,10 +42,15 @@ c.send({t:'file',id:clip.meta.Id,size:clip.blob.size});for(let at=0;at<clip.blob
 const other=await client(keys);assert.equal(other.welcome.t,'welcome');
 const changed={...desktop,Revision:2,Text:'PC-side edit'};
 other.send({t:'note',id:changed.Id,rev:2,blob:b64(await seal(keys,changed))});other.send({t:'flush'});while((await other.next()).t!=='flush'){}other.ws.close();
-const conflict={...desktop,Revision:7,Text:'offline phone edit'};
-c.send({t:'note',id:conflict.Id,rev:7,blob:b64(await seal(keys,conflict)),base:baseline});c.send({t:'flush'});let found=false;
-for(let i=0;i<30&&!found;i++){const m=await c.next();if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id===desktop.Id)baseline={rev:m.rev,blob:m.blob};if(n.Id!==desktop.Id&&n.Text==='offline phone edit')found=true;}}
+const conflict={...desktop,Revision:7,Text:'offline phone edit'},stale=baseline;
+c.send({t:'note',id:conflict.Id,rev:7,blob:b64(await seal(keys,conflict)),base:baseline});c.send({t:'flush'});let found=false,copyId=null;
+for(let i=0;i<30&&!found;i++){const m=await c.next();if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id===desktop.Id)baseline={rev:m.rev,blob:m.blob};if(n.Id!==desktop.Id&&n.Text==='offline phone edit'){found=true;copyId=n.Id;}}}
 while((await c.next()).t!=='flush'){}
+// The phone keeps editing on that same stale baseline (its reply never landed): the edits go into the one copy, not into new copies.
+const again={...desktop,Revision:8,Text:'offline phone edit, continued'};
+c.send({t:'note',id:again.Id,rev:8,blob:b64(await seal(keys,again)),base:stale});c.send({t:'flush'});let continued=null;
+for(let i=0;i<30&&!continued;i++){const m=await c.next();if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id===desktop.Id)baseline={rev:m.rev,blob:m.blob};if(n.Text==='offline phone edit, continued')continued=n;}}
+assert.equal(continued.Id,copyId);while((await c.next()).t!=='flush'){}
 // A phone that types faster than the PC answers is not in conflict with itself.
 const fast1={...desktop,Revision:8,Text:'typing a'},fast2={...desktop,Revision:9,Text:'typing ab'};
 c.send({t:'note',id:fast1.Id,rev:8,blob:b64(await seal(keys,fast1)),base:baseline});c.send({t:'flush'});

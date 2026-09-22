@@ -86,7 +86,7 @@ static class SyncChecks
         using var clipOut=new MemoryStream();host.Attachments.Decrypt(clipMeta,clipOut);var clipBytes=clipOut.ToArray();
         bool exact=clipBytes.Length==2621440+123;for(int i=0;exact&&i<clipBytes.Length;i++)exact=clipBytes[i]==(byte)((i*7+3)&255);
         check(exact,"A multi-chunk video from the phone arrives on the desktop byte for byte (no re-encoding anywhere)");
-        check(host.Book.Notes.Any(n=>n.Title.Contains("conflict copy")),"Divergent base creates a conflict copy across unequal revisions");
+        check(host.Book.Notes.Count(n=>n.Title.Contains("conflict copy"))==1 && host.Book.Notes.Single(n=>n.Title.Contains("conflict copy")).Text=="offline phone edit, continued","Divergent base creates one conflict copy, and further edits on the same stale base go into it");
         // The PC keeps a short log of what phones did, and warns when one keeps failing the TLS handshake (lost trust).
         service.LogEvent(System.Net.IPAddress.Parse("192.168.9.9"),"probe");service.LogEvent(System.Net.IPAddress.Loopback,"local");
         check(service.Log.Count==1 && service.Log[0].Contains("192.168.9.9") && service.Log[0].EndsWith("probe"),"Recent connections are logged with the phone's address; local traffic is left out");
@@ -97,6 +97,7 @@ static class SyncChecks
             var until=DateTime.UtcNow.AddSeconds(10);while(!warned&&DateTime.UtcNow<until)Thread.Sleep(50);
             check(warned && service.Log.Any(l=>l.Contains(L10n.T("SyncLogTlsFailed"))),"Three failed TLS handshakes from the network raise the certificate-trust warning and show in the log");
         }
+        LinkChecks.Run(root,service,check);
         check(host.Book.Notes.Count(n=>n.Text.StartsWith("typing"))==1 && host.Book.Notes.Single(n=>n.Text.StartsWith("typing")).Text=="typing ab","Fast typing from one phone lands as one note, not as conflict copies");
     }
 }

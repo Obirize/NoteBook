@@ -42,7 +42,7 @@ function blockText(node) {
     else if (child.tagName === 'BR') out += '\n';
     else if (child.nodeType === Node.ELEMENT_NODE) out += (/^(DIV|P)$/.test(child.tagName) && out && !out.endsWith('\n') ? '\n' : '') + blockText(child);
   }
-  return out.replace(/\n$/, '');
+  return out.replace(/\n+$/, '');
 }
 // The block that holds the caret (a direct child of the editor), or null.
 export function currentBlock(el) {
@@ -63,18 +63,32 @@ export function placeCaret(node, atEnd = false) {
   const r = document.createRange(); r.selectNodeContents(node); r.collapse(!atEnd);
   const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
 }
-// Enter inside an item: a new item after it (with whatever text followed the caret); on an empty item the list ends.
+// Enter: a new block after the current one with whatever followed the caret. Inside an item the new block is an
+// item too, and Enter on an empty item ends the list. Doing this ourselves keeps one block per line; left to
+// itself, WebKit sometimes adds a second line break at the end of the text, which came back as blank lines.
 export function enter(el) {
-  const b = currentBlock(el); if (!b || !b.classList.contains('item')) return false;
-  if (!blockText(b).trim()) { b.className = ''; return true; }
+  let b = currentBlock(el) || wrapBareText(el);
+  if (!b) { if (el.childNodes.length) return false; b = document.createElement('div'); b.append(document.createElement('br')); el.append(b); placeCaret(b); }
+  const item = b.classList.contains('item');
+  if (item && !blockText(b).trim()) { b.className = ''; return true; }
   const sel = window.getSelection(); const r = sel.getRangeAt(0);
+  if (!r.collapsed) r.deleteContents();
   const tail = r.cloneRange(); tail.selectNodeContents(b); tail.setStart(r.endContainer, r.endOffset);
   const rest = tail.toString(); tail.deleteContents();
-  if (!blockText(b)) { b.replaceChildren(document.createElement('br')); }
-  const next = document.createElement('div'); next.className = 'item';
+  if (!blockText(b)) b.replaceChildren(document.createElement('br'));
+  const next = document.createElement('div'); if (item) next.className = 'item';
   if (rest) next.textContent = rest; else next.append(document.createElement('br'));
   b.after(next); placeCaret(next);
   return true;
+}
+// Text typed straight into an emptied editor has no block around it yet; give it one so it behaves like a line.
+function wrapBareText(el) {
+  const sel = window.getSelection(); if (!sel || sel.rangeCount === 0) return null;
+  const r = sel.getRangeAt(0); const node = r.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE || node.parentNode !== el) return null;
+  const offset = r.startOffset, div = document.createElement('div'); el.replaceChild(div, node); div.append(node);
+  const range = document.createRange(); range.setStart(node, offset); range.collapse(true); sel.removeAllRanges(); sel.addRange(range);
+  return div;
 }
 // Backspace at the start of an item turns it back into plain text.
 export function backspace(el) {

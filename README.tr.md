@@ -43,9 +43,13 @@ Sonrasında telefon, evdeki Wi‑Fi'dayken ve bilgisayardaki uygulama çalışı
 
 Not ekranı Notlar uygulamasını izler: üstte geri, paylaş ve *…*; altta liste, kamera, sabitle ve yeni not; yazarken alt çubuk klavyenin üstünde durur.
 
+## Bağlantı nasıl ayakta kalıyor
+
+Telefon, sesini duymadığı bir bağlantıya güvenmez. Her deneme süreyle sınırlıdır (açılmak için 10 sn, "hoş geldin" için 25 sn); uygulama ekrandayken 20 sn'de bir küçük bir "orada mısın?" gönderir; bir aradan sonra uygulamaya döndüğünüzde bir kez daha sorar ve 4 sn içinde cevap gelmezse kendisi yeni bağlantı kurar (45 sn'den uzun ayrı kaldıysa sormaz bile). 5 saniyelik bir sayaç, iOS hiç haber vermese de uyutulmuş sayfayı fark eder. Bilgisayar önce adıyla, üç saniye sonra adresiyle denenir; en son hangisi cevap verdiyse bir dahaki sefer önce o denenir. Bilgisayar tarafında bir dakikadır ses çıkarmayan telefon düşürülür, aynı telefon yeniden gelince eski oturumunun yerini alır ve her oturumun bitişi tarihli bir günlüğe yazılır (`data/sync/sync-log.txt`; eşitleme penceresinde de *Günlüğü kopyala* düğmesiyle görünür) — telefonun önceki bağlantısı hakkında bildirdikleriyle birlikte ("hidden 28800 s, prev no-pong"). Bilgisayarın belgesi adreslerini izler ve program açıkken kendini yeniler; telefondaki profil hiç değişmez.
+
 ## Telefon bağlanmazsa
 
-Bilgisayardaki eşitleme penceresinde **Son bağlantılar** listesi var: telefonun bilgisayara ulaşıp ulaşmadığını, güven belgesini kabul edip etmediğini ve eşleştirme kodunun neden reddedildiğini gösterir. Telefonda Safari'de iki hızlı deneme:
+Bilgisayardaki eşitleme penceresinde tarihli **Son bağlantılar** listesi var: telefonun bilgisayara ulaşıp ulaşmadığı, hangi ad ya da adresi kullandığı, güven belgesini kabul edip etmediği, bir oturumun neden bittiği ve eşleştirme kodunun neden reddedildiği. Telefonda Safari'de iki hızlı deneme:
 
 - `http://<pc>.local:47832/` (1. adımın altındaki adres; pencere `http://192.168.1.8:47832/` gibi IP'li halini de gösterir). Açılmıyorsa telefon bilgisayara ağ üzerinden ulaşamıyor: ikisi de aynı Wi‑Fi adında olmalı, modemin "istemci ayırma / AP isolation" ayarı kapalı olmalı.
 - `https://<pc>.local:47831/start`. İlki açılıp bu açılmıyorsa telefon bilgisayarın güven belgesine artık güvenmiyor — bilgisayar da birkaç başarısız denemeden sonra bunu söyler. Telefonda: Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar belgesinin anahtarını açın (satır yoksa 1. adımı yeniden yapın). Bu bir iOS güncellemesinden ya da profilin silinmesinden sonra olabilir; normal bir kapatıp açmada olmaz.
@@ -123,7 +127,7 @@ Windows uygulaması Windows görüntü dilini izler ve küre düğmesinden 13 di
 
 Windows ve .NET 10 SDK; telefon testi için Node.js. Üçüncü taraf paket yok: HTTPS/WebSocket sunucusu, sertifika otoritesi ve QR üretici kaynağın parçasıdır.
 
-- `src/Notlar/` — WPF uygulaması. Ana pencere konuya göre bölünmüştür (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` sunucu, oturumlar, protokol, sertifika ve QR kodunu; `Web/` telefon uygulamasını küçük ES modülleri halinde (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; düz JavaScript, WebCrypto, IndexedDB) içerir. Dosyalar bilerek 300 satır civarında tutulur.
+- `src/Notlar/` — WPF uygulaması. `Web/link.js` telefonun bağlantı durum makinesidir (saf; node altında sahte saatle test edilir). Ana pencere konuya göre bölünmüştür (`MainWindow.List.cs`, `.Editor.cs`, `.Attachments.cs`, `.Files.cs`, `.Sync.cs`, `.Tray.cs`); `Sync/` sunucu, oturumlar, protokol, sertifika ve QR kodunu; `Web/` telefon uygulamasını küçük ES modülleri halinde (`state`, `ui`, `store`, `sync`, `list`, `editor`, `attachments`; düz JavaScript, WebCrypto, IndexedDB) içerir. Dosyalar bilerek 300 satır civarında tutulur.
 - `build.cmd` — kendi kendine yeten x64 derlemeyi `app/` içine yayınlar ve kök başlatıcıyı derler.
 - `test.cmd` — geçici verilerle kontrolleri çalıştırır (`NOTLAR_SHOT=docs` ile bu README'deki ekran görüntüleri örnek notlardan yeniden üretilir): şifreleme ve tahrif tespiti, ekler, yedekler, silme politikası, toplu işlemler, tepsi davranışı, arayüz yerleşimi ve telefonu canlandıran bir Node betiği (eşleştirme kodu, iki yönlü eşitleme, çakışmalar, bayt bayt aynı dosyalar).
 - `build-setup.cmd` — [Inno Setup 6](https://jrsoftware.org/isdl.php) ile kurulum dosyasını `dist/` içine üretir.

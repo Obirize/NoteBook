@@ -18,6 +18,7 @@ public sealed class HttpRequest
     public Dictionary<string, string> Headers { get; } = new(StringComparer.OrdinalIgnoreCase);
     public byte[] Body { get; init; } = [];
     public IPAddress Remote { get; init; } = IPAddress.None;
+    public IPAddress Local { get; init; } = IPAddress.None;
     public bool IsWebSocketUpgrade => Headers.TryGetValue("Upgrade", out var u) && u.Equals("websocket", StringComparison.OrdinalIgnoreCase) && Headers.ContainsKey("Sec-WebSocket-Key");
     public string? Header(string name) => Headers.TryGetValue(name, out var v) ? v : null;
 }
@@ -78,6 +79,7 @@ public sealed class WebServer : IDisposable
         using (client)
         {
             var remote = (client.Client.RemoteEndPoint as IPEndPoint)?.Address ?? IPAddress.None;
+            var local = (client.Client.LocalEndPoint as IPEndPoint)?.Address ?? IPAddress.None;
             if (!Certificates.IsPrivate(remote)) return;
             client.NoDelay = true;
             Stream stream = client.GetStream();
@@ -95,6 +97,7 @@ public sealed class WebServer : IDisposable
                         }, stop.Token);
                     }
                     catch (Exception ex) when (ex is IOException or AuthenticationException) { Trace?.Invoke(remote, "tls-failed"); throw; }
+                    // (the exception type is not logged: the phone side decides trust, and every failure looks the same from here)
                     stream = tls;
                 }
                 using (stream)
@@ -103,13 +106,13 @@ public sealed class WebServer : IDisposable
                     {
                         using var idle = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
                         idle.CancelAfter(TimeSpan.FromSeconds(60));
-                        var request = await ReadRequest(stream, remote, idle.Token);
+                        var request = await ReadRequest(stream, remote, local, idle.Token);
                         if (request == null) return;
                         if (request.IsWebSocketUpgrade && socketHandler != null)
                         {
                             string accept = Convert.ToBase64String(SHA1.HashData(Encoding.ASCII.GetBytes(request.Header("Sec-WebSocket-Key")!.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
                             await Write(stream, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: " + accept + "\r\n\r\n", stop.Token);
-                            Trace?.Invoke(remote, "websocket");
+                            Trace?.Invoke(remote, "websocket " + (request.Header("Host") ?? "?"));
                             using var socket = WebSocket.CreateFromStream(stream, new WebSocketCreationOptions { IsServer = true, KeepAliveInterval = TimeSpan.FromSeconds(20) });
                             await socketHandler(request, socket, stop.Token);
                             return;
@@ -136,7 +139,7 @@ public sealed class WebServer : IDisposable
     }
     private static string Reason(int status) => status switch { 200 => "OK", 204 => "No Content", 400 => "Bad Request", 403 => "Forbidden", 404 => "Not Found", 405 => "Method Not Allowed", _ => "Error" };
     private static async Task Write(Stream stream, string text, CancellationToken token) => await stream.WriteAsync(Encoding.ASCII.GetBytes(text), token);
-    private static async Task<HttpRequest?> ReadRequest(Stream stream, IPAddress remote, CancellationToken token)
+    private static async Task<HttpRequest?> ReadRequest(Stream stream, IPAddress remote, IPAddress local, CancellationToken token)
     {
         var buffer = new byte[MaxHead]; int length = 0, headEnd = -1;
         while (headEnd < 0)
@@ -162,7 +165,7 @@ public sealed class WebServer : IDisposable
             Array.Copy(buffer, bodyStart, body, 0, Math.Min(have, bodyLength));
             if (have < bodyLength) await stream.ReadExactlyAsync(body.AsMemory(have, bodyLength - have), token);
         }
-        var request = new HttpRequest { Method = parts[0], Path = Uri.UnescapeDataString(q < 0 ? target : target[..q]), Query = q < 0 ? "" : target[(q + 1)..], Remote = remote, Body = body };
+        var request = new HttpRequest { Method = parts[0], Path = Uri.UnescapeDataString(q < 0 ? target : target[..q]), Query = q < 0 ? "" : target[(q + 1)..], Remote = remote, Local = local, Body = body };
         foreach (var pair in headers) request.Headers[pair.Key] = pair.Value;
         return request;
     }

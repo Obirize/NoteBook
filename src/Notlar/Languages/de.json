@@ -200,11 +200,9 @@
   "PickAttachment": "Auswählen",
   "UnpickAttachment": "Auswahl aufheben",
   "PickAttachmentHint": "Klicken zum Auswählen (auch Strg+Klick)",
-  "SyncAltAddress": "Öffnet sich diese Adresse auf dem Telefon nicht, tippe das in Safari ein: {0}",
   "SyncLog": "Letzte Verbindungen",
   "SyncLogEmpty": "Noch keine Verbindung von einem Telefon. Sie erscheint hier, sobald das Telefon diesen PC erreicht.",
   "SyncLogTlsFailed": "verbunden, aber Zertifikat nicht akzeptiert — Schritt 1 wiederholen",
-  "SyncLogSocket": "Sync-Verbindung geöffnet",
   "SyncLogPaired": "Kopplungscode angenommen",
   "SyncLogPairRefused": "Kopplungscode abgelehnt (falsch oder abgelaufen)",
   "SyncLogKeyMismatch": "der Schlüssel des Telefons passt nicht zu diesem PC — neu koppeln",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "Zertifikat neu installieren",
   "SetupReinstallHelp": "Nach dem Download: Einstellungen → Profil geladen → Installieren; dann Einstellungen → Allgemein → Info → Zertifikatsvertrauenseinstellungen → NoteBook einschalten, hierher zurückkommen und erneut testen.",
   "SetupOpenApp": "App öffnen",
-  "VaultTooOld": "Dieses Notizbuch liegt im passwortgeschützten Format der ersten Versionen vor. Installiere Version 1.8.2 und öffne es einmal; diese Version wandelt es um."
+  "VaultTooOld": "Dieses Notizbuch liegt im passwortgeschützten Format der ersten Versionen vor. Installiere Version 1.8.2 und öffne es einmal; diese Version wandelt es um.",
+  "SyncLogSocketVia": "Sync-Verbindung geöffnet (über {0})",
+  "SyncLogSessionEnded": "{0} getrennt: {1} ({2} s)",
+  "SyncLogPcResumed": "PC aus dem Ruhezustand aufgewacht",
+  "SyncLogAddresses": "PC-Adressen: {0}",
+  "SyncLogCertRenewed": "Serverzertifikat erneuert (am Telefon nichts zu tun)",
+  "SyncLogOldCopy": "alte Kopie auf dem Telefon — die App einmal ganz schließen und neu öffnen",
+  "SyncCopyLog": "Protokoll kopieren",
+  "SetupNameOnly": "Der PC antwortet über die Adresse, aber dieses Telefon findet ihn gerade nicht über den Namen. Eine Minute warten und erneut testen; hilft das nicht, WLAN am Telefon aus- und einschalten.",
+  "SetupTryAgain": "Erneut testen"
 }

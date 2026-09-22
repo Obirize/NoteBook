@@ -24,21 +24,55 @@ public sealed class Certificates
     public static string FormatFingerprint(byte[] hash) => string.Join(" ", Enumerable.Range(0, hash.Length / 2).Select(i => Convert.ToHexString(hash, i * 2, 2)));
     public byte[] RootDer => Root.Export(X509ContentType.Cert);
 
-    public static List<IPAddress> LanAddresses()
+    // Tests swap the address source; the app enumerates the adapters that are up.
+    public static Func<List<IPAddress>> AddressSource { get; set; } = Enumerate;
+    // The addresses the phone can reach the PC at: private IPv4 on an adapter that is up, with adapters that have a
+    // gateway (the real home network) first. Self-assigned 169.254.x addresses never belong here: they come and go
+    // with unplugged cables and would churn the certificate for nothing.
+    public static List<IPAddress> LanAddresses() => AddressSource().Where(a => !IsLinkLocal(a)).ToList();
+    private static List<IPAddress> Enumerate()
     {
-        var result = new List<IPAddress>();
+        var found = new List<(IPAddress Address, int Rank)>();
         try
         {
             foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (nic.OperationalStatus != OperationalStatus.Up || nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
-                foreach (var unicast in nic.GetIPProperties().UnicastAddresses)
-                    if (unicast.Address.AddressFamily == AddressFamily.InterNetwork && IsPrivate(unicast.Address)) result.Add(unicast.Address);
+                var props = nic.GetIPProperties();
+                int rank = (props.GatewayAddresses.Count > 0 ? 0 : 2) + (nic.NetworkInterfaceType is NetworkInterfaceType.Wireless80211 or NetworkInterfaceType.Ethernet ? 0 : 1);
+                foreach (var unicast in props.UnicastAddresses)
+                    if (unicast.Address.AddressFamily == AddressFamily.InterNetwork && IsPrivate(unicast.Address) && !IsLinkLocal(unicast.Address)) found.Add((unicast.Address, rank));
             }
         }
         catch (NetworkInformationException) { }
-        return result;
+        return found.OrderBy(f => f.Rank).Select(f => f.Address).Distinct().ToList();
     }
+    private static bool IsLinkLocal(IPAddress address) { var b = address.GetAddressBytes(); return b[0] == 169 && b[1] == 254; }
+    // Does the server certificate name every address the PC has right now? A stale extra name is harmless.
+    public bool Covers() => Covers(Server);
+    public bool Covers(X509Certificate2 certificate)
+    {
+        var san = certificate.Extensions.OfType<X509SubjectAlternativeNameExtension>().FirstOrDefault();
+        if (san == null) return false;
+        var names = san.EnumerateDnsNames().Select(n => n.ToLowerInvariant()).ToHashSet();
+        var addresses = san.EnumerateIPAddresses().ToHashSet();
+        return names.Contains(LocalName) && LanAddresses().All(addresses.Contains);
+    }
+    // The addresses to hand to the phone: only those the certificate actually covers.
+    public List<IPAddress> Advertised()
+    {
+        var san = Server.Extensions.OfType<X509SubjectAlternativeNameExtension>().FirstOrDefault();
+        var covered = san?.EnumerateIPAddresses().ToHashSet() ?? [];
+        return LanAddresses().Where(covered.Contains).ToList();
+    }
+    // Writes a fresh server certificate when the current one is stale (addresses changed, or expiry within 30 days)
+    // without touching the one a running listener still serves; ReloadServer swaps it in between Stop and Start.
+    public bool RenewServerIfNeeded()
+    {
+        if (Server.NotAfter > DateTime.UtcNow.AddDays(30) && Covers(Server) && Server.Issuer == Root.Subject) return false;
+        CreateServer(); return true;
+    }
+    public void ReloadServer() { var fresh = Load(ServerPath, "server"); if (fresh == null) return; var old = Server; Server = fresh; old.Dispose(); }
     // Only devices on the local network may talk to the server at all.
     public static bool IsPrivate(IPAddress address)
     {
@@ -71,6 +105,12 @@ public sealed class Certificates
     {
         var existing = Load(ServerPath, "server");
         if (existing != null && existing.NotAfter > DateTime.UtcNow.AddDays(30) && Covers(existing) && existing.Issuer == Root.Subject) return existing;
+        existing?.Dispose();
+        CreateServer();
+        return Load(ServerPath, "server")!;
+    }
+    private void CreateServer()
+    {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var request = new CertificateRequest("CN=" + LocalName, key, HashAlgorithmName.SHA256);
         request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
@@ -87,12 +127,6 @@ public sealed class Certificates
         using var signed = request.Create(Root, now.AddDays(-1), now.AddDays(365), serial);
         using var withKey = signed.CopyWithPrivateKey(key);
         Save(ServerPath, withKey, "server");
-        return Load(ServerPath, "server")!;
-    }
-    private bool Covers(X509Certificate2 certificate)
-    {
-        string text = certificate.Extensions.OfType<X509SubjectAlternativeNameExtension>().FirstOrDefault()?.Format(false) ?? "";
-        return text.Contains(LocalName, StringComparison.OrdinalIgnoreCase) && LanAddresses().All(a => text.Contains(a.ToString()));
     }
     private void Save(string path, X509Certificate2 certificate, string purpose)
     {

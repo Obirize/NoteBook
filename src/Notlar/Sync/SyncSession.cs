@@ -15,22 +15,26 @@ public sealed class SyncSession : IDisposable
     private readonly ISyncHost host;
     private readonly WebSocket socket;
     private readonly SyncKeys keys;
-    private readonly System.Net.IPAddress remote;
+    private readonly System.Net.IPAddress remote, local;
     private readonly SemaphoreSlim sendLock = new(1, 1);
     private readonly CancellationTokenSource closed = new();
     private readonly List<Note> pendingNotes = []; private readonly List<PurgeStamp> pendingPurges = [];
     private readonly Dictionary<string, Note> bases = [];
-    // The last version of each note this phone sent us. A note the PC holds that equals it was written by this very
-    // phone (it typed faster than our replies came back), so it is not someone else's edit and not a conflict.
-    private readonly Dictionary<string, Note> lastSubmitted = [];
     private Manifest? theirs;
     private (string Id, long Size, FileStream Stream)? receiving;
     private const int FileChunk = 256 * 1024, MaxText = 8 * 1024 * 1024;
+    private static readonly TimeSpan SendDeadline = TimeSpan.FromSeconds(30), CloseGrace = TimeSpan.FromSeconds(2);
     public ConnectedDevice? Device { get; private set; }
+    // A phone that sends "hb" in its hello pings while it is on screen; only such sessions are dropped for silence.
+    public bool Heartbeat { get; private set; }
+    public string EndReason { get; private set; } = "closed by phone";
+    private readonly DateTime started = DateTime.UtcNow;
+    public TimeSpan Duration => DateTime.UtcNow - started;
+    private string closeReason = "stopped";
 
-    public SyncSession(SyncService service, ISyncHost host, WebSocket socket, byte[] syncKey, System.Net.IPAddress? remote = null)
-    { this.service = service; this.host = host; this.socket = socket; this.remote = remote ?? System.Net.IPAddress.None; keys = new SyncKeys(syncKey); CryptographicOperations.ZeroMemory(syncKey); }
-    public void Close() => closed.Cancel();
+    public SyncSession(SyncService service, ISyncHost host, WebSocket socket, byte[] syncKey, System.Net.IPAddress? remote = null, System.Net.IPAddress? local = null)
+    { this.service = service; this.host = host; this.socket = socket; this.remote = remote ?? System.Net.IPAddress.None; this.local = local ?? System.Net.IPAddress.None; keys = new SyncKeys(syncKey); CryptographicOperations.ZeroMemory(syncKey); }
+    public void Close(string reason = "stopped") { closeReason = reason; closed.Cancel(); }
 
     public async Task RunAsync(CancellationToken stop)
     {
@@ -41,7 +45,15 @@ public sealed class SyncSession : IDisposable
             if (!await Handshake(token)) return;
             while (socket.State == WebSocketState.Open && !token.IsCancellationRequested)
             {
-                var (text, binary) = await Receive(token);
+                string? text; byte[]? binary;
+                if (Heartbeat)
+                {
+                    // The silence clock runs only while we wait for the phone, never while we work for it.
+                    using var idle = CancellationTokenSource.CreateLinkedTokenSource(token); idle.CancelAfter(service.IdleTimeout);
+                    try { (text, binary) = await Receive(idle.Token); }
+                    catch (OperationCanceledException) when (!token.IsCancellationRequested) { EndReason = "idle"; break; }
+                }
+                else (text, binary) = await Receive(token);
                 if (text == null && binary == null) break;
                 if (binary != null) { await ReceiveChunk(binary); continue; }
                 var message = JsonNode.Parse(text!) as JsonObject;
@@ -49,12 +61,30 @@ public sealed class SyncSession : IDisposable
                 await Handle(message, token);
             }
         }
-        catch (Exception ex) when (ex is WebSocketException or IOException or OperationCanceledException or ObjectDisposedException or System.Text.Json.JsonException or CryptographicException or InvalidOperationException or ArgumentException or FormatException or OverflowException) { }
+        catch (OperationCanceledException) { EndReason = closed.IsCancellationRequested ? closeReason : "stopped"; }
+        catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException or System.Text.Json.JsonException or CryptographicException or InvalidOperationException or ArgumentException or FormatException or OverflowException)
+        { EndReason = EndReason == "closed by phone" ? "error " + ex.GetType().Name : EndReason; }
         finally
         {
             if (receiving != null) { receiving.Value.Stream.Dispose(); TryDelete(receiving.Value.Stream.Name); receiving = null; }
-            try { if (socket.State == WebSocketState.Open) await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None); } catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException or OperationCanceledException) { }
+            await CloseBounded(WebSocketCloseStatus.NormalClosure, "bye");
         }
+    }
+    // A close that always returns: say goodbye, give the phone two seconds to answer, then cut the socket.
+    private async Task CloseBounded(WebSocketCloseStatus status, string reason)
+    {
+        using var grace = new CancellationTokenSource(CloseGrace);
+        try
+        {
+            if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+            {
+                await socket.CloseOutputAsync(status, reason, grace.Token);
+                var drain = new byte[4096];
+                while (socket.State == WebSocketState.CloseSent) { var r = await socket.ReceiveAsync(drain, grace.Token); if (r.MessageType == WebSocketMessageType.Close) break; }
+            }
+        }
+        catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException or OperationCanceledException or InvalidOperationException) { }
+        finally { try { socket.Abort(); } catch (ObjectDisposedException) { } }
     }
     private async Task<bool> Handshake(CancellationToken token)
     {
@@ -71,9 +101,19 @@ public sealed class SyncSession : IDisposable
         try { clientNonce = Convert.FromBase64String(auth["nonce"]?.GetValue<string>() ?? ""); mac = Convert.FromBase64String(auth["mac"]?.GetValue<string>() ?? ""); }
         catch (FormatException) { await Reject("auth"); return false; }
         if (clientNonce.Length != 32 || !CryptographicOperations.FixedTimeEquals(mac, keys.Mac("client", serverNonce, clientNonce))) { service.LogEvent(remote, L10n.T("SyncLogKeyMismatch")); await Reject("key"); return false; }
-        service.LogEvent(remote, L10n.T("SyncLogAuthOk", deviceName));
+        Heartbeat = hello["hb"]?.GetValue<bool>() == true;
+        // The phone tells us why its previous link ended and how long it was away: the one line that explains a gap.
+        var diag = hello["diag"] as JsonObject; var summary = new List<string>();
+        if (diag?["prev"]?.GetValue<string>() is { Length: > 0 } prev) summary.Add("prev " + prev);
+        if (diag?["hidden"]?.GetValue<double>() is double hidden and > 0) summary.Add("hidden " + Math.Round(hidden / 1000) + " s");
+        if (diag?["tries"]?.GetValue<int>() is int tries and > 0) summary.Add("tries " + tries);
+        if (diag?["boot"]?.GetValue<bool>() == true) summary.Add("boot");
+        if (!Heartbeat) summary.Add(L10n.T("SyncLogOldCopy"));
+        service.LogEvent(remote, L10n.T("SyncLogAuthOk", deviceName) + (summary.Count > 0 ? " (" + string.Join(", ", summary) + ")" : ""));
         var (manifest, notebookId) = await host.ManifestAsync();
-        await Send(new JsonObject { ["t"] = "welcome", ["mac"] = Convert.ToBase64String(keys.Mac("server", clientNonce, serverNonce)), ["name"] = service.PcName, ["notebook"] = notebookId, ["time"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() }, limit.Token);
+        var addresses = new JsonArray(service.AdvertisedAddresses(local).Select(a => (JsonNode)a).ToArray());
+        await Send(new JsonObject { ["t"] = "welcome", ["mac"] = Convert.ToBase64String(keys.Mac("server", clientNonce, serverNonce)), ["name"] = service.PcName, ["notebook"] = notebookId, ["time"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            ["host"] = service.LocalName, ["port"] = service.Port, ["addresses"] = addresses, ["idle"] = (long)service.IdleTimeout.TotalMilliseconds }, limit.Token);
         Device = new ConnectedDevice { Id = deviceId, Name = deviceName };
         service.DeviceSeen(this, deviceId, deviceName);
         await host.DeviceSeenAsync(deviceId, deviceName);
@@ -81,19 +121,22 @@ public sealed class SyncSession : IDisposable
     }
     private async Task Reject(string reason)
     {
-        try { await Send(new JsonObject { ["t"] = "rejected", ["reason"] = reason }, CancellationToken.None); await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, reason, CancellationToken.None); }
-        catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException or OperationCanceledException) { }
+        EndReason = "rejected " + reason;
+        try { await Send(new JsonObject { ["t"] = "rejected", ["reason"] = reason }, CancellationToken.None); } catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException or OperationCanceledException) { }
+        await CloseBounded(WebSocketCloseStatus.PolicyViolation, reason);
     }
     private async Task Handle(JsonObject message, CancellationToken token)
     {
         switch (message["t"]?.GetValue<string>())
         {
+            case "ping":
+                await Send(new JsonObject { ["t"] = "pong", ["id"] = message["id"]?.DeepClone() }, token);
+                break;
             case "manifest":
                 theirs = Manifest.Parse(message);
                 var (mine, _) = await host.ManifestAsync();
                 await Send(mine.ToJson(), token);
-                var (book, _) = await host.ManifestAsync();
-                await SendNotes(await NotesToSend(theirs), token);
+                await SendNotes(await NotesToSend(theirs, mine), token);
                 foreach (var purge in mine.Purged) await Send(new JsonObject { ["t"] = "purge", ["id"] = purge.Id, ["rev"] = purge.Revision }, token);
                 await Send(new JsonObject { ["t"] = "flush" }, token);
                 await Send(new JsonObject { ["t"] = "done" }, token);
@@ -145,28 +188,38 @@ public sealed class SyncSession : IDisposable
         var originals = notes.Select(n => n.Id).ToList();
         var submitted = notes.GroupBy(n => n.Id).ToDictionary(g => g.Key, g => g.Max(n => n.Revision));
         var current = await host.NotesAsync(originals);
+        string device = Device?.Id ?? "?";
         foreach (var note in notes)
         {
             var existing = current.FirstOrDefault(n => n.Id == note.Id);
-            bool ownEarlierVersion = existing != null && lastSubmitted.TryGetValue(note.Id, out var mine) && SyncMerge.SameContent(existing, mine);
-            lastSubmitted[note.Id] = note;
-            if (existing != null && !ownEarlierVersion && bases.TryGetValue(note.Id, out var baseline) && !SyncMerge.SameContent(existing, baseline) && !SyncMerge.SameContent(existing, note))
-            {
-                note.Id = Guid.NewGuid().ToString("N"); note.Revision = 1;
-                note.Title = L10n.T("ConflictCopyTitle", note.DisplayTitle, Device?.Name ?? "phone");
-                note.Deleted = false; note.DeletedAt = null; note.Archived = false;
-            }
+            if (existing == null || SyncMerge.SameContent(existing, note)) continue;
+            // The PC's version is what this very phone gave us earlier: the phone is simply continuing its own work.
+            string existingPrint = SyncMerge.Fingerprint(existing);
+            if (existingPrint == service.Applied(device, note.Id)) continue;
+            // No baseline, or the PC still holds the version the phone started from: a plain update.
+            if (!bases.TryGetValue(note.Id, out var baseline) || SyncMerge.SameContent(existing, baseline)) continue;
+            // Someone else changed the note meanwhile. The phone's version becomes a copy; while the phone keeps
+            // sending edits built on that same stale baseline, they all go into that one copy.
+            string baselinePrint = SyncMerge.Fingerprint(baseline);
+            var prior = service.ConflictCopy(device, note.Id);
+            var copy = prior?.Baseline == baselinePrint ? (await host.NotesAsync([prior.Value.Copy])).FirstOrDefault() : null;
+            string original = note.Id;
+            note.Title = L10n.T("ConflictCopyTitle", note.DisplayTitle, Device?.Name ?? "phone");
+            if (copy != null) { note.Id = copy.Id; note.Revision = copy.Revision + 1; }
+            else { note.Id = Guid.NewGuid().ToString("N"); note.Revision = 1; service.RecordConflictCopy(device, original, baselinePrint, note.Id); }
+            note.Deleted = false; note.DeletedAt = null; note.Archived = false;
+            current = current.Where(n => n.Id != note.Id).Append(SyncMerge.Clone(note)).ToList();
         }
         bases.Clear();
         var result = await host.ApplyAsync(notes, purges, Device?.Name ?? "?");
+        foreach (var note in notes) service.RecordApplied(device, note.Id, SyncMerge.Fingerprint(note));
         // Other phones (not this one) learn about the change; conflict copies go back to this phone too.
         if (result.Changed.Count > 0) service.NotifyChanged(result.Changed, purges, this);
         await SendNotes(result.Changed.Concat(originals).Distinct().ToList(), token, submitted);
         await Send(new JsonObject { ["t"] = "flush" }, token);
     }
-    private async Task<List<string>> NotesToSend(Manifest theirs)
+    private async Task<List<string>> NotesToSend(Manifest theirs, Manifest mine)
     {
-        var (mine, _) = await host.ManifestAsync();
         var known = theirs.Notes.ToDictionary(n => n.Id); var purged = theirs.Purged.ToDictionary(p => p.Id, p => p.Revision);
         return mine.Notes.Where(n => !(purged.TryGetValue(n.Id, out long pr) && n.Revision <= pr) && (!known.TryGetValue(n.Id, out var s) || s.Revision < n.Revision || (s.Revision == n.Revision && s.Updated < n.Updated))).Select(n => n.Id).ToList();
     }
@@ -194,12 +247,7 @@ public sealed class SyncSession : IDisposable
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 16, FileOptions.SequentialScan);
         await Send(new JsonObject { ["t"] = "file", ["id"] = id, ["size"] = stream.Length }, token);
         var buffer = new byte[FileChunk]; int read;
-        while ((read = await stream.ReadAsync(buffer, token)) > 0)
-        {
-            await sendLock.WaitAsync(token);
-            try { await socket.SendAsync(buffer.AsMemory(0, read), WebSocketMessageType.Binary, true, token); }
-            finally { sendLock.Release(); }
-        }
+        while ((read = await stream.ReadAsync(buffer, token)) > 0) await SendFrame(buffer.AsMemory(0, read), WebSocketMessageType.Binary, token);
         await Send(new JsonObject { ["t"] = "file-end", ["id"] = id }, token);
     }
     private async Task ReceiveChunk(byte[] chunk)
@@ -230,11 +278,17 @@ public sealed class SyncSession : IDisposable
     }
     private static void TryDelete(string path) { try { if (File.Exists(path)) File.Delete(path); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { } }
 
-    private async Task Send(JsonObject message, CancellationToken token)
+    private Task Send(JsonObject message, CancellationToken token) => SendFrame(Encoding.UTF8.GetBytes(message.ToJsonString()), WebSocketMessageType.Text, token);
+    // No single frame may wait forever on a phone that stopped reading: 30 s and the session ends.
+    private async Task SendFrame(ReadOnlyMemory<byte> bytes, WebSocketMessageType type, CancellationToken token)
     {
-        var bytes = Encoding.UTF8.GetBytes(message.ToJsonString());
         await sendLock.WaitAsync(token);
-        try { await socket.SendAsync(bytes, WebSocketMessageType.Text, true, token); }
+        try
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(SendDeadline);
+            try { await socket.SendAsync(bytes, type, true, deadline.Token); }
+            catch (OperationCanceledException) when (!token.IsCancellationRequested) { EndReason = "send stalled"; socket.Abort(); throw new WebSocketException("Send stalled."); }
+        }
         finally { sendLock.Release(); }
     }
     private async Task<JsonObject?> ReceiveObject(CancellationToken token)

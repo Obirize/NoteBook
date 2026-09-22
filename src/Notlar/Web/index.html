@@ -126,6 +126,8 @@
   function recover(why) {
     if (done || tried) return; tried = true;
     try { sessionStorage.setItem('recovered', '1'); } catch (e) { }
+    // Without the PC in reach a fresh copy cannot be fetched, so the offline copy stays; a reload is all we can do.
+    if (navigator.onLine === false) { location.reload(); return; }
     var p = Promise.resolve();
     if (navigator.serviceWorker) p = p.then(function () { return navigator.serviceWorker.getRegistrations(); }).then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); });
     if (window.caches) p = p.then(function () { return caches.keys(); }).then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); });

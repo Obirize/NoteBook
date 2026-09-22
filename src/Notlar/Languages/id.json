@@ -200,11 +200,9 @@
   "PickAttachment": "Pilih",
   "UnpickAttachment": "Batalkan pilihan",
   "PickAttachmentHint": "Klik untuk memilih (Ctrl+klik juga bisa)",
-  "SyncAltAddress": "Jika alamat itu tidak terbuka di ponsel, ketik ini di Safari: {0}",
   "SyncLog": "Koneksi terbaru",
   "SyncLogEmpty": "Belum ada koneksi dari ponsel. Akan muncul di sini begitu ponsel mencapai PC ini.",
   "SyncLogTlsFailed": "terhubung tetapi tidak menerima sertifikat — ulangi langkah 1",
-  "SyncLogSocket": "koneksi sinkronisasi dibuka",
   "SyncLogPaired": "kode penyandingan diterima",
   "SyncLogPairRefused": "kode penyandingan ditolak (salah atau kedaluwarsa)",
   "SyncLogKeyMismatch": "kunci ponsel tidak cocok dengan PC ini — sandingkan lagi",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "Pasang ulang sertifikat",
   "SetupReinstallHelp": "Setelah diunduh: Pengaturan → Profil Terunduh → Pasang; lalu Pengaturan → Umum → Mengenai → Pengaturan Kepercayaan Sertifikat → aktifkan NoteBook, kembali ke sini dan uji lagi.",
   "SetupOpenApp": "Buka aplikasi",
-  "VaultTooOld": "Buku catatan ini dalam format berkata sandi dari rilis pertama. Pasang versi 1.8.2 dan buka sekali; versi itu mengonversinya."
+  "VaultTooOld": "Buku catatan ini dalam format berkata sandi dari rilis pertama. Pasang versi 1.8.2 dan buka sekali; versi itu mengonversinya.",
+  "SyncLogSocketVia": "koneksi sinkronisasi dibuka (lewat {0})",
+  "SyncLogSessionEnded": "{0} terputus: {1} ({2} dtk)",
+  "SyncLogPcResumed": "PC bangun dari tidur",
+  "SyncLogAddresses": "alamat PC: {0}",
+  "SyncLogCertRenewed": "sertifikat server diperbarui (tidak ada yang perlu dilakukan di ponsel)",
+  "SyncLogOldCopy": "salinan lama di ponsel — tutup aplikasi sepenuhnya sekali lalu buka lagi",
+  "SyncCopyLog": "Salin log",
+  "SetupNameOnly": "PC menjawab lewat alamat tetapi ponsel ini belum bisa menemukannya lewat nama. Tunggu semenit lalu uji lagi; jika berlanjut, matikan dan nyalakan Wi‑Fi ponsel.",
+  "SetupTryAgain": "Uji lagi"
 }

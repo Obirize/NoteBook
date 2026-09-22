@@ -96,6 +96,8 @@ bodyEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey && Checklist.enter(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); }
   else if (e.key === 'Backspace' && Checklist.backspace(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); }
 });
+// The on-screen keyboard reports a new line through beforeinput rather than a key; handle it the same way.
+bodyEl.addEventListener('beforeinput', e => { if (S.current?.Deleted) return; if ((e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') && Checklist.enter(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); } });
 // A tap on an item's circle flips it without opening the keyboard.
 bodyEl.addEventListener('pointerdown', e => { if (!S.current?.Deleted && Checklist.tapToggle(bodyEl, e)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); } });
 $('checklist').addEventListener('click', () => { if (!S.current || S.current.Deleted) return; bodyEl.focus(); Checklist.toggleSelection(bodyEl); edited('Text', Checklist.getBody(bodyEl)); });
@@ -108,7 +110,8 @@ for (const el of [$('title'), bodyEl]) {
 $('done').addEventListener('click', () => document.activeElement?.blur());
 // The bottom bar follows the keyboard: the editor shrinks to the visible part of the screen while a field has focus.
 if (window.visualViewport) {
-  const fit = () => { const v = window.visualViewport, e = $('editor'); if (typing() && !e.hidden) { e.style.top = v.offsetTop + 'px'; e.style.height = v.height + 'px'; } else { e.style.top = ''; e.style.height = ''; } };
+  // With the keyboard up the home-indicator area is under the keyboard, so the bar drops its safe-area padding too.
+  const fit = () => { const v = window.visualViewport, e = $('editor'); const up = typing() && !e.hidden && v.height < window.innerHeight - 80; e.classList.toggle('keyboard', up); if (up) { e.style.top = v.offsetTop + 'px'; e.style.height = v.height + 'px'; } else { e.style.top = ''; e.style.height = ''; } };
   window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit);
   for (const el of [$('title'), bodyEl]) { el.addEventListener('focus', () => setTimeout(fit, 50)); el.addEventListener('blur', () => setTimeout(fit, 80)); }
 }

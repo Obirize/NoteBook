@@ -200,11 +200,9 @@
   "PickAttachment": "Selecionar",
   "UnpickAttachment": "Desmarcar",
   "PickAttachmentHint": "Clique para selecionar (Ctrl+clique também)",
-  "SyncAltAddress": "Se esse endereço não abrir no celular, digite isto no Safari: {0}",
   "SyncLog": "Conexões recentes",
   "SyncLogEmpty": "Nenhuma conexão de um celular ainda. Aparece aqui quando o celular alcançar este PC.",
   "SyncLogTlsFailed": "conectou mas não aceitou o certificado — repita o passo 1",
-  "SyncLogSocket": "conexão de sincronização aberta",
   "SyncLogPaired": "código de pareamento aceito",
   "SyncLogPairRefused": "código de pareamento recusado (errado ou expirado)",
   "SyncLogKeyMismatch": "a chave do celular não corresponde a este PC — pareie de novo",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "Reinstalar o certificado",
   "SetupReinstallHelp": "Após o download: Ajustes → Perfil Baixado → Instalar; depois Ajustes → Geral → Sobre → Ajustes de Confiança de Certificado → ative NoteBook, volte aqui e teste de novo.",
   "SetupOpenApp": "Abrir o app",
-  "VaultTooOld": "Este caderno está no formato protegido por senha das primeiras versões. Instale a versão 1.8.2 e abra-o uma vez; essa versão o converte."
+  "VaultTooOld": "Este caderno está no formato protegido por senha das primeiras versões. Instale a versão 1.8.2 e abra-o uma vez; essa versão o converte.",
+  "SyncLogSocketVia": "conexão de sincronização aberta (via {0})",
+  "SyncLogSessionEnded": "{0} desconectado: {1} ({2} s)",
+  "SyncLogPcResumed": "PC acordou",
+  "SyncLogAddresses": "endereços do PC: {0}",
+  "SyncLogCertRenewed": "certificado do servidor renovado (nada a fazer no celular)",
+  "SyncLogOldCopy": "cópia antiga no celular — feche o app completamente uma vez e reabra",
+  "SyncCopyLog": "Copiar registro",
+  "SetupNameOnly": "O PC responde pelo endereço, mas este celular não o encontra pelo nome agora. Espere um minuto e teste de novo; se persistir, desligue e ligue o Wi‑Fi do celular.",
+  "SetupTryAgain": "Testar de novo"
 }

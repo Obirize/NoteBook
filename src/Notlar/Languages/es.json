@@ -200,11 +200,9 @@
   "PickAttachment": "Seleccionar",
   "UnpickAttachment": "Deseleccionar",
   "PickAttachmentHint": "Clic para seleccionar (también Ctrl+clic)",
-  "SyncAltAddress": "Si esa dirección no abre en el teléfono, escribe esto en Safari: {0}",
   "SyncLog": "Conexiones recientes",
   "SyncLogEmpty": "Aún no hay conexión desde un teléfono. Aparecerá aquí cuando el teléfono llegue a este PC.",
   "SyncLogTlsFailed": "se conectó pero no aceptó el certificado — repite el paso 1",
-  "SyncLogSocket": "conexión de sincronización abierta",
   "SyncLogPaired": "código de emparejamiento aceptado",
   "SyncLogPairRefused": "código de emparejamiento rechazado (incorrecto o caducado)",
   "SyncLogKeyMismatch": "la clave del teléfono no coincide con este PC — empareja de nuevo",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "Reinstalar el certificado",
   "SetupReinstallHelp": "Tras la descarga: Ajustes → Perfil descargado → Instalar; luego Ajustes → General → Información → Ajustes de confianza de certificados → activa NoteBook, vuelve aquí y prueba de nuevo.",
   "SetupOpenApp": "Abrir la app",
-  "VaultTooOld": "Este cuaderno está en el formato protegido por contraseña de las primeras versiones. Instala la versión 1.8.2 y ábrelo una vez; esa versión lo convierte."
+  "VaultTooOld": "Este cuaderno está en el formato protegido por contraseña de las primeras versiones. Instala la versión 1.8.2 y ábrelo una vez; esa versión lo convierte.",
+  "SyncLogSocketVia": "conexión de sincronización abierta (vía {0})",
+  "SyncLogSessionEnded": "{0} desconectado: {1} ({2} s)",
+  "SyncLogPcResumed": "el PC despertó",
+  "SyncLogAddresses": "direcciones del PC: {0}",
+  "SyncLogCertRenewed": "certificado del servidor renovado (nada que hacer en el teléfono)",
+  "SyncLogOldCopy": "copia antigua en el teléfono — cierra la app del todo una vez y vuelve a abrirla",
+  "SyncCopyLog": "Copiar registro",
+  "SetupNameOnly": "El PC responde por dirección pero este teléfono no lo encuentra por nombre ahora mismo. Espera un minuto y prueba de nuevo; si sigue, apaga y enciende el Wi-Fi del teléfono.",
+  "SetupTryAgain": "Probar de nuevo"
 }

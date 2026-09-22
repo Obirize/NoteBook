@@ -200,11 +200,9 @@
   "PickAttachment": "Seç",
   "UnpickAttachment": "Seçimi kaldır",
   "PickAttachmentHint": "Seçmek için tıklayın (Ctrl+tık da olur)",
-  "SyncAltAddress": "Bu adres telefonda açılmazsa Safari’ye şunu yazın: {0}",
   "SyncLog": "Son bağlantılar",
   "SyncLogEmpty": "Henüz telefondan bağlantı gelmedi. Telefon bu bilgisayara ulaşınca burada görünür.",
   "SyncLogTlsFailed": "bağlandı ama güven belgesini kabul etmedi — 1. adımı yeniden yapın",
-  "SyncLogSocket": "eşitleme bağlantısı açıldı",
   "SyncLogPaired": "eşleştirme kodu kabul edildi",
   "SyncLogPairRefused": "eşleştirme kodu reddedildi (yanlış ya da süresi dolmuş)",
   "SyncLogKeyMismatch": "telefonun anahtarı bu bilgisayara uymuyor — yeniden eşleştirin",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "Belgeyi yeniden kur",
   "SetupReinstallHelp": "İndirdikten sonra: Ayarlar → Profil İndirildi → Yükle; sonra Ayarlar → Genel → Hakkında → Sertifika Güven Ayarları → Notlar anahtarını AÇIN ve bu sayfaya dönüp yeniden sınayın.",
   "SetupOpenApp": "Uygulamayı aç",
-  "VaultTooOld": "Bu not defteri ilk sürümlerin parola korumalı biçiminde. Önce 1.8.2 sürümünü kurup bir kez açın; o sürüm dönüştürür."
+  "VaultTooOld": "Bu not defteri ilk sürümlerin parola korumalı biçiminde. Önce 1.8.2 sürümünü kurup bir kez açın; o sürüm dönüştürür.",
+  "SyncLogSocketVia": "eşitleme bağlantısı açıldı ({0} üzerinden)",
+  "SyncLogSessionEnded": "{0} bağlantısı bitti: {1} ({2} sn)",
+  "SyncLogPcResumed": "bilgisayar uykudan uyandı",
+  "SyncLogAddresses": "bilgisayarın adresleri: {0}",
+  "SyncLogCertRenewed": "sunucu belgesi yenilendi (telefonda bir şey yapmak gerekmez)",
+  "SyncLogOldCopy": "eski telefon kopyası — telefonda uygulamayı bir kez tamamen kapatıp açın",
+  "SyncCopyLog": "Günlüğü kopyala",
+  "SetupNameOnly": "Bilgisayar adresiyle cevap veriyor ama bu telefon onu adıyla bulamıyor. Bir dakika bekleyip yeniden sınayın; devam ederse telefonun Wi-Fi bağlantısını kapatıp açın.",
+  "SetupTryAgain": "Yeniden sına"
 }

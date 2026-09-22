@@ -200,11 +200,9 @@
   "PickAttachment": "선택",
   "UnpickAttachment": "선택 해제",
   "PickAttachmentHint": "클릭하여 선택 (Ctrl+클릭도 가능)",
-  "SyncAltAddress": "휴대폰에서 그 주소가 열리지 않으면 Safari에 이렇게 입력하세요: {0}",
   "SyncLog": "최근 연결",
   "SyncLogEmpty": "아직 휴대폰에서 연결이 없습니다. 휴대폰이 이 PC에 닿으면 여기에 표시됩니다.",
   "SyncLogTlsFailed": "연결됐지만 인증서를 받아들이지 않음 — 1단계를 다시 하세요",
-  "SyncLogSocket": "동기화 연결 열림",
   "SyncLogPaired": "페어링 코드 수락됨",
   "SyncLogPairRefused": "페어링 코드 거부됨 (잘못되었거나 만료됨)",
   "SyncLogKeyMismatch": "휴대폰의 키가 이 PC와 맞지 않음 — 다시 페어링하세요",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "인증서 다시 설치",
   "SetupReinstallHelp": "다운로드 후: 설정 → 프로파일 다운로드됨 → 설치; 그다음 설정 → 일반 → 정보 → 인증서 신뢰 설정에서 NoteBook을 켜고 이 페이지로 돌아와 다시 테스트하세요.",
   "SetupOpenApp": "앱 열기",
-  "VaultTooOld": "이 노트북은 초기 버전의 비밀번호 보호 형식입니다. 1.8.2 버전을 설치하고 한 번 여세요. 그 버전이 변환합니다."
+  "VaultTooOld": "이 노트북은 초기 버전의 비밀번호 보호 형식입니다. 1.8.2 버전을 설치하고 한 번 여세요. 그 버전이 변환합니다.",
+  "SyncLogSocketVia": "동기화 연결 열림 ({0} 경유)",
+  "SyncLogSessionEnded": "{0} 연결 끊김: {1} ({2}초)",
+  "SyncLogPcResumed": "PC가 절전에서 깨어남",
+  "SyncLogAddresses": "PC 주소: {0}",
+  "SyncLogCertRenewed": "서버 인증서 갱신됨 (휴대폰에서 할 일 없음)",
+  "SyncLogOldCopy": "휴대폰의 예전 복사본 — 휴대폰에서 앱을 한 번 완전히 닫고 다시 여세요",
+  "SyncCopyLog": "로그 복사",
+  "SetupNameOnly": "PC가 주소로는 응답하지만 이 휴대폰이 지금 이름으로 찾지 못합니다. 1분 기다렸다가 다시 테스트하고, 계속되면 휴대폰 Wi‑Fi를 껐다 켜세요.",
+  "SetupTryAgain": "다시 테스트"
 }

@@ -200,11 +200,9 @@
   "PickAttachment": "選択",
   "UnpickAttachment": "選択解除",
   "PickAttachmentHint": "クリックで選択（Ctrl+クリックでも可）",
-  "SyncAltAddress": "iPhone でそのアドレスが開かない場合は Safari にこれを入力: {0}",
   "SyncLog": "最近の接続",
   "SyncLogEmpty": "まだ iPhone からの接続はありません。iPhone がこの PC に届くとここに表示されます。",
   "SyncLogTlsFailed": "接続したが証明書を受け入れなかった — 手順 1 をやり直してください",
-  "SyncLogSocket": "同期接続が開きました",
   "SyncLogPaired": "ペアリングコードを受け付けました",
   "SyncLogPairRefused": "ペアリングコードを拒否しました（誤りまたは期限切れ）",
   "SyncLogKeyMismatch": "iPhone のキーがこの PC と一致しません — 再ペアリングしてください",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "証明書を再インストール",
   "SetupReinstallHelp": "ダウンロード後：設定 → プロファイルがダウンロードされました → インストール。次に 設定 → 一般 → 情報 → 証明書信頼設定 で NoteBook をオンにし、このページに戻って再テストしてください。",
   "SetupOpenApp": "アプリを開く",
-  "VaultTooOld": "このノートは初期リリースのパスワード保護形式です。バージョン 1.8.2 をインストールして一度開いてください。そのバージョンが変換します。"
+  "VaultTooOld": "このノートは初期リリースのパスワード保護形式です。バージョン 1.8.2 をインストールして一度開いてください。そのバージョンが変換します。",
+  "SyncLogSocketVia": "同期接続が開きました（{0} 経由）",
+  "SyncLogSessionEnded": "{0} が切断: {1}（{2} 秒）",
+  "SyncLogPcResumed": "PC がスリープから復帰",
+  "SyncLogAddresses": "PC のアドレス: {0}",
+  "SyncLogCertRenewed": "サーバー証明書を更新しました（iPhone 側の操作は不要）",
+  "SyncLogOldCopy": "iPhone 側が古いコピーです — アプリを一度完全に閉じて開き直してください",
+  "SyncCopyLog": "ログをコピー",
+  "SetupNameOnly": "PC はアドレスでは応答しますが、この iPhone は今は名前で見つけられません。1 分待って再テストし、続くなら Wi‑Fi をオフ／オンしてください。",
+  "SetupTryAgain": "再テスト"
 }

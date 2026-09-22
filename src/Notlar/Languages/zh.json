@@ -200,11 +200,9 @@
   "PickAttachment": "选择",
   "UnpickAttachment": "取消选择",
   "PickAttachmentHint": "点击选择（也可 Ctrl+点击）",
-  "SyncAltAddress": "如果手机打不开该地址，请在 Safari 输入：{0}",
   "SyncLog": "最近连接",
   "SyncLogEmpty": "尚无来自手机的连接。手机连到这台电脑后会显示在这里。",
   "SyncLogTlsFailed": "已连接但未接受证书 — 请重做第 1 步",
-  "SyncLogSocket": "同步连接已打开",
   "SyncLogPaired": "配对码已接受",
   "SyncLogPairRefused": "配对码被拒绝（错误或已过期）",
   "SyncLogKeyMismatch": "手机的密钥与这台电脑不匹配 — 请重新配对",
@@ -213,5 +211,14 @@
   "SetupReinstallButton": "重新安装证书",
   "SetupReinstallHelp": "下载后：设置 → 已下载描述文件 → 安装；然后 设置 → 通用 → 关于本机 → 证书信任设置 → 打开 NoteBook 开关，回到此页再次测试。",
   "SetupOpenApp": "打开应用",
-  "VaultTooOld": "此笔记本是早期版本的密码保护格式。请先安装 1.8.2 版本并打开一次，该版本会完成转换。"
+  "VaultTooOld": "此笔记本是早期版本的密码保护格式。请先安装 1.8.2 版本并打开一次，该版本会完成转换。",
+  "SyncLogSocketVia": "同步连接已打开（经 {0}）",
+  "SyncLogSessionEnded": "{0} 已断开：{1}（{2} 秒）",
+  "SyncLogPcResumed": "电脑已从睡眠唤醒",
+  "SyncLogAddresses": "电脑地址：{0}",
+  "SyncLogCertRenewed": "服务器证书已续期（手机无需操作）",
+  "SyncLogOldCopy": "手机上是旧版本 — 请在手机上完全关闭应用一次再打开",
+  "SyncCopyLog": "复制日志",
+  "SetupNameOnly": "电脑能按地址响应，但此手机暂时无法按名称找到它。请等一分钟再测试；若仍不行，关闭再打开手机的 Wi‑Fi。",
+  "SetupTryAgain": "再次测试"
 }

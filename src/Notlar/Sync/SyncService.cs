@@ -22,7 +22,7 @@ public sealed class ConnectedDevice { public string Id = ""; public string Name 
 
 // The phone link: an HTTPS + WebSocket server on the LAN, a plain HTTP page that hands out the root certificate,
 // and one session per connected phone. Notes travel sealed with the content key; files travel as they are stored.
-public sealed class SyncService : IDisposable
+public sealed partial class SyncService : IDisposable
 {
     private readonly string dataDirectory;
     private readonly ISyncHost host;
@@ -33,13 +33,46 @@ public sealed class SyncService : IDisposable
     public bool Running => secure != null;
     public string? Error { get; private set; }
     public event Action? StatusChanged;
-    // The last few things phones did here, newest first, so a failed pairing can be understood from the PC.
+    // Per phone and note: the fingerprint of the version we last applied from it, and the conflict copy (with the
+    // baseline it diverged from) its later submissions go to. A phone typing faster than our replies, or one that
+    // never saw a reply before it went to sleep, then edits its own work rather than spawning copy after copy.
+    private readonly Dictionary<(string Device, string Note), string> applied = [];
+    private readonly Dictionary<(string Device, string Note), (string Baseline, string Copy)> conflictCopies = [];
+    internal string? Applied(string device, string note) { lock (applied) return applied.TryGetValue((device, note), out var f) ? f : null; }
+    internal void RecordApplied(string device, string note, string fingerprint) { lock (applied) applied[(device, note)] = fingerprint; }
+    internal (string Baseline, string Copy)? ConflictCopy(string device, string note) { lock (applied) return conflictCopies.TryGetValue((device, note), out var c) ? c : null; }
+    internal void RecordConflictCopy(string device, string note, string baseline, string copy) { lock (applied) conflictCopies[(device, note)] = (baseline, copy); }
+    // What phones did here, newest first, dated, and mirrored to sync-log.txt so a gap can be read the next day.
     private readonly List<string> log = [];
+    private const int LogLines = 60, LogFileLines = 400;
     public IReadOnlyList<string> Log { get { lock (log) return log.ToList(); } }
+    // Tests talk from this machine; the app leaves its own loopback traffic out.
+    public bool LogLoopback { get; set; }
+    public string LogPath => Path.Combine(SyncDirectory, "sync-log.txt");
     public void LogEvent(System.Net.IPAddress remote, string what)
     {
-        if (System.Net.IPAddress.IsLoopback(remote)) return;
-        lock (log) { log.Insert(0, DateTime.Now.ToString("HH:mm:ss") + "  " + remote + "  " + what); if (log.Count > 12) log.RemoveAt(log.Count - 1); }
+        if (System.Net.IPAddress.IsLoopback(remote) && !LogLoopback) return;
+        LogNote(remote + "  " + what);
+    }
+    public void LogNote(string what)
+    {
+        string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + what;
+        lock (log)
+        {
+            log.Insert(0, line); if (log.Count > LogLines) log.RemoveAt(log.Count - 1);
+            try { Directory.CreateDirectory(SyncDirectory); File.AppendAllText(LogPath, line + Environment.NewLine); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
+    }
+    private void LoadLog()
+    {
+        try
+        {
+            if (!File.Exists(LogPath)) return;
+            var lines = File.ReadAllLines(LogPath);
+            if (lines.Length > LogFileLines) { lines = lines[^LogFileLines..]; File.WriteAllLines(LogPath, lines); }
+            lock (log) { log.Clear(); log.AddRange(lines.Reverse().Take(LogLines)); }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
     // A phone that keeps failing the TLS handshake has lost trust in the certificate; the window and the tray say so.
     public event Action? TrustProblem;
@@ -53,16 +86,48 @@ public sealed class SyncService : IDisposable
     private void Trace(System.Net.IPAddress remote, string what)
     {
         if (what == "tls-failed" && !System.Net.IPAddress.IsLoopback(remote)) NoteTlsFailure();
-        // Static files are noise; what matters is whether the phone gets through and how far it gets.
-        if (what.StartsWith("GET /v", StringComparison.Ordinal) && what.EndsWith(" 200", StringComparison.Ordinal)) return;
+        // Static files and status probes are noise; what matters is whether the phone gets through and how far it gets.
+        if ((what.StartsWith("GET /v", StringComparison.Ordinal) || what.StartsWith("GET /status", StringComparison.Ordinal)) && what.EndsWith(" 200", StringComparison.Ordinal)) return;
         LogEvent(remote, what switch
         {
             "tls-failed" => L10n.T("SyncLogTlsFailed"),
-            "websocket" => L10n.T("SyncLogSocket"),
+            _ when what.StartsWith("websocket ", StringComparison.Ordinal) => L10n.T("SyncLogSocketVia", what[10..]),
             "POST /pair 200" => L10n.T("SyncLogPaired"),
             "POST /pair 403" => L10n.T("SyncLogPairRefused"),
             _ => what,
         });
+    }
+    // A phone that stays silent this long is gone (or asleep); only phones that send heartbeats are held to it.
+    public TimeSpan IdleTimeout { get; set; } = TimeSpan.FromSeconds(60);
+    // The listener is torn down and rebuilt when the PC's addresses leave the certificate or it nears expiry; the
+    // window owner runs Restart on the UI thread when this fires.
+    public event Action? RestartNeeded;
+    private System.Threading.Timer? addressTimer, renewalTimer;
+    private string lastAddresses = "";
+    private void AddressesChanged(object? sender, EventArgs e) { addressTimer?.Change(TimeSpan.FromSeconds(15), Timeout.InfiniteTimeSpan); }
+    private void CheckAddresses()
+    {
+        try
+        {
+            string now = string.Join(",", Certificates.LanAddresses());
+            if (now != lastAddresses) { lastAddresses = now; LogNote(L10n.T("SyncLogAddresses", now.Length == 0 ? "-" : now)); }
+            if (Certs != null && Running && !Certs.Covers()) RestartNeeded?.Invoke();
+        }
+        catch (Exception ex) when (ex is System.Net.NetworkInformation.NetworkInformationException or CryptographicException) { }
+    }
+    private void CheckCertificate()
+    {
+        try { if (Certs != null && Running && Certs.RenewServerIfNeeded()) { LogNote(L10n.T("SyncLogCertRenewed")); RestartNeeded?.Invoke(); } }
+        catch (Exception ex) when (ex is IOException or CryptographicException or UnauthorizedAccessException) { }
+    }
+    public void Restart() { bool was = Running; Stop(); if (was || Settings.Enabled) Start(); }
+    // The addresses a phone may use for this PC besides the name: the one it came in on first, then the rest, all
+    // of them covered by the certificate.
+    public List<string> AdvertisedAddresses(System.Net.IPAddress? servedOn)
+    {
+        var list = Certs?.Advertised().Select(a => a.ToString()).ToList() ?? [];
+        if (servedOn != null && list.Remove(servedOn.ToString())) list.Insert(0, servedOn.ToString());
+        return list;
     }
     public IReadOnlyList<ConnectedDevice> Connected { get { lock (sessions) return sessions.Where(s => s.Device != null).Select(s => s.Device!).ToList(); } }
     public string PcName => Environment.MachineName;
@@ -76,11 +141,10 @@ public sealed class SyncService : IDisposable
     public int Port => secure?.Port ?? Settings.Port;
     public string LocalName => Certs?.LocalName ?? (Environment.MachineName.ToLowerInvariant() + ".local");
     public string AppUrl => "https://" + LocalName + ":" + Port + "/";
-    // The same app by IP address, for a phone that cannot resolve the ".local" name; the certificate covers the address too.
-    public string? AddressUrl => Certificates.LanAddresses().FirstOrDefault() is { } ip ? "https://" + ip + ":" + Port + "/start" : null;
+    public string? FirstAddress => Certs?.Advertised().FirstOrDefault()?.ToString();
     // The address on the QR code: a document path no earlier phone copy ever cached, so the newest app always loads.
     public string StartUrl => AppUrl + "start";
-    public string SetupUrl => "http://" + LocalName + ":" + (Port + 1) + "/";
+    public string SetupUrl => "http://" + (FirstAddress ?? LocalName) + ":" + (Port + 1) + "/";
     // The home-screen app has its own storage and no camera access, so pairing happens with a short code typed by
     // hand. The code is shown on the PC and changes every minute (the previous one is still accepted briefly, for
     // someone who is mid-typing); five wrong tries rotate it early; it only exists while the sync window is open.
@@ -131,11 +195,17 @@ public sealed class SyncService : IDisposable
         Error = null;
         try
         {
-            Certs ??= new Certificates(SyncDirectory);
+            if (Certs == null) { Certs = new Certificates(SyncDirectory); LoadLog(); }
+            else if (Certs.RenewServerIfNeeded()) LogNote(L10n.T("SyncLogCertRenewed"));
+            Certs.ReloadServer();
             if (!Settings.HasKey) { Settings.NewKey(); Settings.Save(dataDirectory); }
             secure = new WebServer(Settings.Port, Certs.Server, HandleSecure, HandleSocket) { Trace = Trace };
             plain = new WebServer(Settings.Port + 1, null, HandlePlain) { Trace = Trace };
             secure.Failed += _ => { Error = L10n.T("SyncPortBusy"); Stop(); };
+            lastAddresses = string.Join(",", Certificates.LanAddresses());
+            addressTimer ??= new System.Threading.Timer(_ => CheckAddresses(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            renewalTimer ??= new System.Threading.Timer(_ => CheckCertificate(), null, TimeSpan.FromHours(24), TimeSpan.FromHours(24));
+            System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += AddressesChanged;
         }
         catch (Exception ex) when (ex is System.Net.Sockets.SocketException or IOException or CryptographicException or UnauthorizedAccessException)
         {
@@ -146,8 +216,10 @@ public sealed class SyncService : IDisposable
     }
     public void Stop()
     {
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= AddressesChanged;
+        addressTimer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         List<SyncSession> open; lock (sessions) { open = sessions.ToList(); sessions.Clear(); }
-        foreach (var session in open) session.Close();
+        foreach (var session in open) session.Close("stopped");
         secure?.Dispose(); plain?.Dispose(); secure = plain = null;
         StatusChanged?.Invoke();
     }
@@ -167,102 +239,30 @@ public sealed class SyncService : IDisposable
     }
     internal void DeviceSeen(SyncSession session, string id, string name)
     {
+        List<SyncSession> stale; lock (sessions) stale = sessions.Where(s => s != session && s.Device?.Id == id).ToList();
+        foreach (var other in stale) other.Close("replaced");
         var device = Settings.Devices.FirstOrDefault(d => d.Id == id);
         if (device == null) { device = new PairedDevice { Id = id, Name = name }; Settings.Devices.Add(device); }
         device.Name = name; device.LastSeen = DateTimeOffset.UtcNow;
         try { Settings.Save(dataDirectory); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         StatusChanged?.Invoke();
     }
-    internal void SessionEnded(SyncSession session) { lock (sessions) sessions.Remove(session); StatusChanged?.Invoke(); }
-
-    // ---- HTTP ----
-    private static readonly Dictionary<string, string> Types = new(StringComparer.OrdinalIgnoreCase)
-    { [".html"] = "text/html; charset=utf-8", [".js"] = "text/javascript; charset=utf-8", [".css"] = "text/css; charset=utf-8", [".webmanifest"] = "application/manifest+json", [".png"] = "image/png", [".svg"] = "image/svg+xml", [".json"] = "application/json" };
-    private static byte[]? WebFile(string name)
+    internal void SessionEnded(SyncSession session, System.Net.IPAddress remote)
     {
-        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Notlar.Web." + name);
-        if (stream == null) return null;
-        var buffer = new MemoryStream(); stream.CopyTo(buffer); return buffer.ToArray();
-    }
-    private HttpResponse? HandleSecure(HttpRequest request)
-    {
-        if (request.Method == "POST" && request.Path == "/pair")
-        {
-            string code = "";
-            try { code = (JsonNode.Parse(request.Body) as JsonObject)?["code"]?.GetValue<string>() ?? ""; } catch (System.Text.Json.JsonException) { }
-            var key = TryPair(code);
-            if (key == null) return new HttpResponse { Status = 403, ContentType = "application/json", Body = "{\"error\":\"code\"}"u8.ToArray() };
-            try { return HttpResponse.Text(new JsonObject { ["k"] = Base64Url(key), ["name"] = PcName }.ToJsonString(), "application/json"); }
-            finally { CryptographicOperations.ZeroMemory(key); }
-        }
-        if (request.Method is not ("GET" or "HEAD")) return new HttpResponse { Status = 405, Body = "Method not allowed"u8.ToArray() };
-        string path = request.Path is "/" or "/start" ? "/index.html" : System.Text.RegularExpressions.Regex.Replace(request.Path, "^/v[0-9]+/", "/");
-        switch (path)
-        {
-            case "/ca.mobileconfig": return Profile();
-            case "/status":
-                var status = new JsonObject { ["app"] = "Notlar", ["protocol"] = SyncKeys.Protocol, ["name"] = PcName, ["host"] = LocalName, ["time"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ["version"] = Updater.CurrentLabel };
-                var statusResponse = HttpResponse.Text(status.ToJsonString(), "application/json");
-                statusResponse.Headers["Access-Control-Allow-Origin"] = "*";
-                return statusResponse;
-        }
-        string name = path.TrimStart('/');
-        if (name.Contains('/') || name.Contains("..")) return HttpResponse.NotFound();
-        var bytes = WebFile(name);
-        if (bytes == null) return HttpResponse.NotFound();
-        var response = HttpResponse.File(bytes, Types.TryGetValue(Path.GetExtension(name), out var type) ? type : "application/octet-stream");
-        if (name == "sw.js") response.Headers["Service-Worker-Allowed"] = "/";
-        return response;
-    }
-    private HttpResponse? HandlePlain(HttpRequest request)
-    {
-        if (request.Method is not ("GET" or "HEAD")) return new HttpResponse { Status = 405, Body = "Method not allowed"u8.ToArray() };
-        return request.Path switch
-        {
-            "/" or "/index.html" => HttpResponse.Html(SetupPage()),
-            "/ca.mobileconfig" => Profile(),
-            "/ca.cer" => HttpResponse.File(Certs!.RootDer, "application/x-x509-ca-cert", "notlar-" + Certs.HostName + ".cer"),
-            "/icon.png" => WebFile("icon.png") is byte[] icon ? HttpResponse.File(icon, "image/png") : HttpResponse.NotFound(),
-            _ => HttpResponse.NotFound(),
-        };
-    }
-    private HttpResponse Profile() => HttpResponse.File(Encoding.UTF8.GetBytes(Certs!.MobileConfig()), "application/x-apple-aspen-config", "notlar-" + Certs.HostName + ".mobileconfig");
-    // The page the phone opens first, over plain HTTP: it installs the certificate and explains the next steps.
-    private string SetupPage()
-    {
-        string E(string s) => System.Net.WebUtility.HtmlEncode(s);
-        string dir = L10n.Current.RightToLeft ? "rtl" : "ltr";
-        var steps = new[] { L10n.T("SetupStep1"), L10n.T("SetupStep2"), L10n.T("SetupStep3"), L10n.T("SetupStep4", StartUrl) };
-        var sb = new StringBuilder();
-        sb.Append("<!doctype html><html lang=\"").Append(L10n.Current.Code).Append("\" dir=\"").Append(dir).Append("\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\"><title>").Append(E(L10n.T("AppName"))).Append("</title>");
-        sb.Append("<style>body{margin:0;background:#202022;color:#F1F0ED;font:17px/1.5 -apple-system,'Segoe UI',sans-serif;padding:32px 22px calc(32px + env(safe-area-inset-bottom))}h1{font-size:26px;margin:0 0 6px}p{color:#A3A2A7;margin:0 0 22px}ol{padding-inline-start:22px}li{margin:0 0 16px}a.b{display:block;text-align:center;background:#E7BB62;color:#29241C;font-weight:600;border-radius:12px;padding:15px;text-decoration:none;margin:8px 0 6px}code{background:#333337;border-radius:6px;padding:2px 6px;font-size:15px;word-break:break-all}button.b{width:100%;border:0;font:inherit;font-size:17px;cursor:pointer}.r{min-height:1.5em;line-height:1.5}.r.ok{color:#8fd19e}.r.bad{color:#e27d7d}.f{font-size:12px;color:#A3A2A7;word-break:break-all;margin-top:26px}</style></head><body>");
-        sb.Append("<h1>").Append(E(L10n.T("SetupTitle"))).Append("</h1><p>").Append(E(L10n.T("SetupIntro", PcName))).Append("</p><ol>");
-        sb.Append("<li>").Append(E(steps[0])).Append("<a class=\"b\" href=\"/ca.mobileconfig\">").Append(E(L10n.T("SetupInstallButton"))).Append("</a></li>");
-        sb.Append("<li>").Append(E(steps[1])).Append("</li><li>").Append(E(steps[2])).Append("</li>");
-        sb.Append("<li>").Append(E(steps[3]).Replace(E(StartUrl), "<a href=\"" + E(StartUrl) + "\"><code>" + E(StartUrl) + "</code></a>")).Append("</li></ol>");
-        // The check fetches /status over HTTPS: it only succeeds once the certificate is installed and fully trusted.
-        sb.Append("<button class=\"b\" id=\"check\">").Append(E(L10n.T("SetupCheckButton"))).Append("</button><p id=\"result\" class=\"r\"></p>");
-        sb.Append("<p id=\"fix\" hidden><a class=\"b\" href=\"/ca.mobileconfig\">").Append(E(L10n.T("SetupReinstallButton"))).Append("</a><br><span class=\"f\">").Append(E(L10n.T("SetupReinstallHelp"))).Append("</span></p>");
-        sb.Append("<p id=\"go\" hidden><a class=\"b\" href=\"").Append(E(StartUrl)).Append("\">").Append(E(L10n.T("SetupOpenApp"))).Append("</a></p>");
-        sb.Append("<div class=\"f\">").Append(E(L10n.T("SetupFingerprint"))).Append("<br>").Append(E(Certs!.RootFingerprint)).Append("</div>");
-        // The check runs by itself when the page opens and again on demand. A phone that gets this page but fails the
-        // HTTPS check has lost trust in the certificate: the page then leads straight to reinstalling it, so the fix is
-        // one tap plus the iOS trust switch rather than a search for what went wrong.
-        string J(string value) => System.Text.Json.JsonSerializer.Serialize(value);
-        sb.Append("<script>const r=document.getElementById('result'),fix=document.getElementById('fix'),go=document.getElementById('go');")
-          .Append("async function check(){r.textContent='…';r.className='r';fix.hidden=go.hidden=true;try{const s=await fetch(").Append(J(AppUrl + "status")).Append(",{cache:'no-store'});if(!s.ok)throw 0;r.textContent=").Append(J(L10n.T("SetupCheckOk"))).Append(";r.className='r ok';go.hidden=false;}catch(e){r.textContent=").Append(J(L10n.T("SetupCheckFail"))).Append(";r.className='r bad';fix.hidden=false;}}")
-          .Append("document.getElementById('check').onclick=check;check();</script></body></html>");
-        return sb.ToString();
+        lock (sessions) sessions.Remove(session);
+        if (session.Device != null && session.EndReason != "replaced")
+            LogEvent(remote, L10n.T("SyncLogSessionEnded", session.Device.Name, session.EndReason, (int)session.Duration.TotalSeconds));
+        StatusChanged?.Invoke();
     }
 
     // ---- WebSocket ----
     private async Task HandleSocket(HttpRequest request, WebSocket socket, CancellationToken stop)
     {
         if (request.Path != "/sync") { await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, "unknown path", CancellationToken.None); return; }
-        var session = new SyncSession(this, host, socket, Settings.Key(), request.Remote);
+        var session = new SyncSession(this, host, socket, Settings.Key(), request.Remote, request.Local);
         lock (sessions) sessions.Add(session);
         try { await session.RunAsync(stop); }
-        finally { SessionEnded(session); session.Dispose(); }
+        finally { SessionEnded(session, request.Remote); session.Dispose(); }
     }
-    public void Dispose() { Stop(); Certs?.Root.Dispose(); Certs?.Server.Dispose(); }
+    public void Dispose() { Stop(); addressTimer?.Dispose(); renewalTimer?.Dispose(); Certs?.Root.Dispose(); Certs?.Server.Dispose(); }
 }
