@@ -75,8 +75,8 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .folder-row .chev { width: 18px; height: 18px; color: var(--muted); stroke-width: 2.2; flex: none; }
 .empty { color: var(--muted); text-align: center; margin-top: 40vh; font-size: 20px; }
 
-/* The bar sits lower than the Notes app's: its row ends 22 pt above the screen edge, just clear of the home indicator. */
-.toolbar { display: flex; align-items: center; padding: 2px 12px max(2px, calc(env(safe-area-inset-bottom) - 12px)); background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--separator); }
+/* The bar sits lower than the Notes app's: its row ends 14 pt above the screen edge, right above the home indicator. */
+.toolbar { display: flex; align-items: center; padding: 2px 12px max(2px, calc(env(safe-area-inset-bottom) - 20px)); background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--separator); }
 .count { flex: 1; text-align: center; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toolbar-side { width: 88px; display: flex; }
 .toolbar-side.right { justify-content: flex-end; }
