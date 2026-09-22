@@ -1,7 +1,7 @@
 // Small interface helpers: one work queue so taps never race each other, toasts, the bottom action sheet,
 // screen switching, and date formatting in the phone's language.
 import { T, locale } from './lang.js';
-import { $ } from './state.js';
+import { S, $ } from './state.js';
 
 let queue = Promise.resolve();
 export function run(fn) { queue = queue.then(fn).catch(e => { console.error(e); toast(e.message || T('failed')); }); return queue; }
@@ -18,8 +18,9 @@ export function sheet(title, actions) {
 $('sheet').querySelector('.sheet-cancel').addEventListener('click', () => $('sheet').hidden = true);
 $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('sheet').hidden = true; });
 
-export function show(screen) { for (const s of ['install', 'pair', 'list', 'editor']) $(s).hidden = s !== screen; }
-export function setStatus(text, busy = false) { const s = $('syncStatus'); s.textContent = text; s.className = 'status' + (busy ? ' busy' : ''); }
+export function show(screen) { for (const s of ['install', 'pair', 'folders', 'list', 'editor']) $(s).hidden = s !== screen; }
+// What the link is doing, shown in the list's bottom bar in place of the note count until the notes are up to date.
+export function setStatus(text, kind = 'ok') { S.status = { text, kind }; document.dispatchEvent(new Event('status')); }
 export function autosize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
 // Opened in Safari rather than from the Home Screen: explain the two taps that make it an app.
@@ -30,16 +31,11 @@ export const needsInstall = () => !navigator.standalone && !installSkipped && /i
 export const fmt = {
   time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }),
   day: new Intl.DateTimeFormat(locale, { weekday: 'long' }),
-  date: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }),
-  month: new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }),
+  date: new Intl.DateTimeFormat(locale, { dateStyle: 'short' }),
   full: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
 };
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 const daysAgo = iso => (startOfDay(new Date()) - startOfDay(new Date(iso))) / 86400000;
 export function dateLabel(iso) { const d = new Date(iso), diff = daysAgo(iso); if (diff < 1) return fmt.time.format(d); if (diff < 7) return fmt.day.format(d); return fmt.date.format(d); }
-export function sectionOf(n) {
-  if (n.Pinned && !n.Deleted) return T('pinned');
-  const diff = daysAgo(n.Updated);
-  if (diff < 1) return T('today'); if (diff < 2) return T('yesterday'); if (diff < 7) return T('previous7'); if (diff < 30) return T('previous30');
-  return fmt.month.format(new Date(n.Updated));
-}
+// Only pinned notes get sections ("Pinned" and the folder's own name); otherwise the list is one card, as in Notes.
+export function sectionOf(n, pinnedAny, folder) { return pinnedAny ? (n.Pinned ? T('pinned') : folder) : null; }

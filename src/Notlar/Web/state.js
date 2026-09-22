@@ -11,6 +11,8 @@ export const S = {
   current: null,                 // the note open in the editor
   folder: 'all',                 // 'all' | 'archive' | 'trash'
   selecting: false, selected: new Set(),
+  status: null,                  // { text, kind: 'ok' | 'busy' | 'offline' } from the link
+  shown: 0,                      // how many notes the list currently shows
 };
 export const inTrash = () => S.folder === 'trash';
 export const inArchive = () => S.folder === 'archive';

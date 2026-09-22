@@ -188,9 +188,6 @@
       </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style x:Key="DangerMenuItem" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"><Setter Property="Foreground" Value="{DynamicResource Danger}"/></Style>
-    <Style TargetType="Separator">
-      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Margin="8,5" Background="{DynamicResource Rule}"/></ControlTemplate></Setter.Value></Setter>
-    </Style>
     <ContextMenu x:Key="TextMenu">
       <MenuItem Header="{local:T Cut}" Command="ApplicationCommands.Cut" InputGestureText="Ctrl+X"/>
       <MenuItem Header="{local:T Copy}" Command="ApplicationCommands.Copy" InputGestureText="Ctrl+C"/>

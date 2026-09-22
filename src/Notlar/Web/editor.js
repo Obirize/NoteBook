@@ -66,9 +66,11 @@ export async function bulk(action) {
 }
 function edited(prop, value) { const n = S.current; run(async () => { if (!n || n.Deleted) return; await commitDraft(n); n[prop] = value; touch(n); $('noteDate').textContent = fmt.full.format(new Date(n.Updated)); await localSave(n); }); }
 // The share sheet gets the note as text, plus its photos and videos when the phone can share files.
+export const noteText = n => [n.Title.trim(), Checklist.preview(n.Text)].filter(Boolean).join('\n\n');
+export function shareText(n) { if (navigator.share) navigator.share({ title: n.Title, text: noteText(n) }).catch(() => {}); }
 function shareNote() {
   const n = S.current; if (!n) return;
-  const text = [n.Title.trim(), Checklist.preview(n.Text)].filter(Boolean).join('\n\n');
+  const text = noteText(n);
   const files = [...noteFiles.values()].map(f => f.file);
   const data = files.length && navigator.canShare?.({ files }) ? { title: n.Title, text, files } : { title: n.Title, text };
   if (navigator.share) navigator.share(data).catch(() => {}); else shareFiles(files);

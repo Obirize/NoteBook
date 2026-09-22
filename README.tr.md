@@ -87,7 +87,7 @@ Kaynaklar: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/sy
 
 ## Arşiv
 
-Listenin üstündeki klasör satırında üç seçenek var: *Tüm notlar*, *Arşiv* ve *Son silinenler*. Not araç çubuğundaki klasör düğmesi (Ctrl+E), kartın sağ tık menüsü ya da seçim modundaki toplu çubuk notları arşive taşır; aynı düğme arşivde geri getirir. Arşivdeki notlar düzenlenebilir ve arşiv içinde aranabilir, her değişiklik gibi telefona eşitlenir ve hiçbir zaman silinmez. Telefonda arşiv, sol altta *Son silinenler*'in yanındadır; notun "…" menüsü, arşivde sola kaydırma ve seçim modu aynı işi yapar. *Son silinenler*'den geri yüklenen not her zaman *Tüm notlar*'a döner.
+Listenin üstündeki klasör satırında üç seçenek var: *Tüm notlar*, *Arşiv* ve *Son silinenler*. Not araç çubuğundaki klasör düğmesi (Ctrl+E), kartın sağ tık menüsü ya da seçim modundaki toplu çubuk notları arşive taşır; aynı düğme arşivde geri getirir. Arşivdeki notlar düzenlenebilir ve arşiv içinde aranabilir, her değişiklik gibi telefona eşitlenir ve hiçbir zaman silinmez. Telefonda uygulama Notlar gibi açılır: bir *Klasörler* ekranı (*Notlar*, *Arşiv*, *Son Silinenler*, sayılarıyla) tek bir kart halindeki listeye götürür; alt çubukta not sayısı (notlar güncel olana kadar bağlantının ne yaptığı) yazar; bir satırı sola kaydırınca paylaş, taşı ve sil (çöpte geri yükle ve kalıcı sil) çıkar, uzun kaydırma sonuncuyu çalıştırır. "…" menüsünde *Notları Seç*, *Şimdi eşitle* ve *Yeniden eşleştir* var; çöpte onun yerine *Düzenle* durur. *Son silinenler*'den geri yüklenen not her zaman *Tüm notlar*'a döner.
 
 ## Yapılacaklar listesi
 

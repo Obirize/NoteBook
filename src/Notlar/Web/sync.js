@@ -30,7 +30,7 @@ async function ensureLink() {
     visible: () => !document.hidden, online: () => navigator.onLine !== false, busy: () => receiving != null || uploading,
     onOpen: ws => ws.send(JSON.stringify({ t: 'hello', protocol: 1, device: S.device, name: T('device'), hb: true, diag: link.diag() })),
     onFrame: (ws, data) => run(async () => { if (!link.owns(ws)) return; try { await handle(ws, data); } catch (error) { link.drop('error'); link.retry(); throw error; } }),
-    onStatus: (kind, host) => { if (kind === 'connecting') setStatus(T('connecting'), true); else if (kind === 'ready') setStatus(T('syncing'), true); else setStatus(offlineText()); },
+    onStatus: (kind, host) => { if (kind === 'connecting') setStatus(T('connecting'), 'busy'); else if (kind === 'ready') setStatus(T('syncing'), 'busy'); else setStatus(offlineText(), 'offline'); },
     onDrop: () => { receiving = null; },
     onHidden: () => run(flushAll),
     catchUp: () => run(async () => { await flushAll(); send(await manifest()); }),
@@ -49,7 +49,7 @@ async function flushNote(n) { sendTimers.delete(n.Id); if (!isReady()) return; s
 export async function flushAll() { for (const n of S.notes) if (await get('pending', n.Id)) await flushNote(n); }
 export function cancelPendingSends() { for (const t of sendTimers.values()) clearTimeout(t); }
 export async function announcePurge(n) { S.purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); }
-export async function syncNow() { setStatus(T('syncing'), true); (await ensureLink()).decide('manual'); }
+export async function syncNow() { setStatus(T('syncing'), 'busy'); (await ensureLink()).decide('manual'); }
 
 // ---------- messages ----------
 export async function manifest() { const files = await request('files', 'readonly', s => s.getAllKeys()); return { t: 'manifest', notes: S.notes.map(n => ({ id: n.Id, rev: n.Revision, updated: Date.parse(n.Updated) })), purged: S.purges, files }; }

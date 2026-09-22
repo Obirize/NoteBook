@@ -87,7 +87,7 @@ References: [DataProtectionScope](https://learn.microsoft.com/en-us/dotnet/api/s
 
 ## Archive
 
-The folder row above the list has three entries: *All notes*, *Archive* and *Recently deleted*. The folder button in the note toolbar (Ctrl+E), the card's right‑click menu or the bulk bar in select mode moves notes into the archive; the same control in the archive brings them back. Archived notes stay editable and searchable inside the archive, sync to the phone like any other change, and never expire. On the phone the archive sits next to *Recently deleted* at the bottom left; a note's "…" menu, a swipe in the archive and select mode do the same moves. Restoring a note from *Recently deleted* always puts it back in *All notes*.
+The folder row above the list has three entries: *All notes*, *Archive* and *Recently deleted*. The folder button in the note toolbar (Ctrl+E), the card's right‑click menu or the bulk bar in select mode moves notes into the archive; the same control in the archive brings them back. Archived notes stay editable and searchable inside the archive, sync to the phone like any other change, and never expire. On the phone the app opens like Notes: a *Folders* screen (*Notes*, *Archive*, *Recently deleted* with their counts) leads to a list that is one card of rows, the note count in the bottom bar (or what the link is doing until the notes are up to date), and a swipe on a row that reveals share, move and delete (restore and delete for good in the trash) — a long swipe fires the last one. The "…" menu holds *Select Notes*, *Sync now* and *Pair again*; the trash has *Edit* instead. Restoring a note from *Recently deleted* always puts it back in *All notes*.
 
 ## Checklists
 

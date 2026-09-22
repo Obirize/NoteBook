@@ -230,11 +230,7 @@ public partial class MainWindow
         var save = new MenuItem { Header = L10n.T("AttachmentSaveAs") }; save.Click += (_, _) => SaveAttachmentCopy(attachment); menu.Items.Add(save);
         var pick = new MenuItem { Header = L10n.T(isPicked ? "UnpickAttachment" : "PickAttachment") }; pick.Click += (_, _) => PickAttachment(attachment); menu.Items.Add(pick);
         var saveAll = new MenuItem { Header = L10n.T("SaveAllAttachments") }; saveAll.Click += (_, _) => SaveAttachmentsClick(this, new RoutedEventArgs()); menu.Items.Add(saveAll);
-        if (!trash)
-        {
-            menu.Items.Add(new Separator());
-            var remove = new MenuItem { Header = L10n.T("AttachmentRemove"), Style = (Style)FindResource("DangerMenuItem") }; remove.Click += (_, _) => RemoveAttachment(attachment); menu.Items.Add(remove);
-        }
+        if (!trash) { var remove = new MenuItem { Header = L10n.T("AttachmentRemove"), Style = (Style)FindResource("DangerMenuItem") }; remove.Click += (_, _) => RemoveAttachment(attachment); menu.Items.Add(remove); }
         tile.ContextMenu = menu;
         if (present && attachment.IsImage) LoadThumbnail(attachment, picture, icon);
         else if (attachment.IsVideo && attachment.Thumb != null) ShowThumb(attachment.Thumb, picture, icon);
