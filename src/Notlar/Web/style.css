@@ -57,7 +57,6 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .row-sub { color: var(--muted); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
 .row-sub b { font-weight: 400; margin-right: 8px; }
 .row-thumb { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; background: var(--card-2); flex: none; }
-.row-pin { color: var(--accent); width: 16px; height: 16px; flex: none; }
 /* Swipe actions: share, folder and trash, revealed as the row slides; a long swipe fires the last one. */
 .row-actions { position: absolute; top: 0; bottom: 0; right: 0; display: flex; visibility: hidden; }
 .row.swiping .row-actions { visibility: visible; }

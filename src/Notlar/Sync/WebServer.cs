@@ -99,8 +99,6 @@ public sealed class WebServer : IDisposable
                     // A client that rejects the certificate sends a TLS alert (AuthenticationException); one that simply hangs
                     // up mid-handshake (the phone abandoning its slower attempt) is an IOException and means nothing.
                     catch (AuthenticationException) { Trace?.Invoke(remote, "tls-failed"); throw; }
-                    catch (IOException) { Trace?.Invoke(remote, "tls-aborted"); throw; }
-                    // (the exception type is not logged: the phone side decides trust, and every failure looks the same from here)
                     stream = tls;
                 }
                 using (stream)

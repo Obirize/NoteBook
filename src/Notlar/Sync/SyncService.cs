@@ -84,17 +84,21 @@ public sealed partial class SyncService : IDisposable
     }
     // A phone that keeps failing the TLS handshake has lost trust in the certificate; the window and the tray say so.
     public event Action? TrustProblem;
-    private readonly List<DateTime> tlsFailures = []; private DateTime trustWarned;
-    private void NoteTlsFailure()
+    private readonly Dictionary<System.Net.IPAddress, List<DateTime>> tlsFailures = []; private DateTime trustWarned;
+    private void NoteTlsFailure(System.Net.IPAddress remote)
     {
         var now = DateTime.UtcNow;
-        lock (tlsFailures) { tlsFailures.Add(now); tlsFailures.RemoveAll(t => now - t > TimeSpan.FromMinutes(5)); if (tlsFailures.Count < 3 || now - trustWarned < TimeSpan.FromMinutes(30)) return; trustWarned = now; }
+        lock (tlsFailures)
+        {
+            if (!tlsFailures.TryGetValue(remote, out var times)) tlsFailures[remote] = times = [];
+            times.Add(now); times.RemoveAll(t => now - t > TimeSpan.FromMinutes(5));
+            if (times.Count < 3 || now - trustWarned < TimeSpan.FromMinutes(30)) return; trustWarned = now;
+        }
         TrustProblem?.Invoke();
     }
     private void Trace(System.Net.IPAddress remote, string what)
     {
-        if (what == "tls-failed" && !System.Net.IPAddress.IsLoopback(remote)) NoteTlsFailure();
-        if (what == "tls-aborted") return;
+        if (what == "tls-failed" && !System.Net.IPAddress.IsLoopback(remote)) NoteTlsFailure(remote);
         // Static files and status probes are noise; what matters is whether the phone gets through and how far it gets.
         if ((what.StartsWith("GET /v", StringComparison.Ordinal) || what.StartsWith("GET /status", StringComparison.Ordinal)) && what.EndsWith(" 200", StringComparison.Ordinal)) return;
         LogEvent(remote, what switch
@@ -248,7 +252,7 @@ public sealed partial class SyncService : IDisposable
     }
     internal void DeviceSeen(SyncSession session, string id, string name)
     {
-        lock (tlsFailures) tlsFailures.Clear();
+        lock (tlsFailures) tlsFailures.Remove(session.Remote);   // this address got in, so its failures were not about trust
         List<SyncSession> stale; lock (sessions) stale = sessions.Where(s => s != session && s.Device?.Id == id).ToList();
         foreach (var other in stale) other.Close("replaced");
         var device = Settings.Devices.FirstOrDefault(d => d.Id == id);

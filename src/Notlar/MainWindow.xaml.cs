@@ -54,7 +54,7 @@ public partial class MainWindow
             phoneSync?.Dispose();
             saveTimer.Stop(); SystemEvents.SessionSwitch -= SessionSwitch; SystemEvents.PowerModeChanged -= PowerChanged;
             loading = true; TitleInput.Clear(); BodyInput.Clear(); ClearUndo(BodyInput); ClearUndo(TitleInput); SearchInput.Clear(); NoteList.ItemsSource = null;
-            current = null; lastDeleted = []; thumbnails.Clear(); AttachmentPanel.Children.Clear();
+            current = null; lastDeleted = []; thumbnails.Clear(); noThumb.Clear(); AttachmentPanel.Children.Clear();
         };
         SourceInitialized += (_, _) => { int rounded = 2; DwmSetWindowAttribute(new WindowInteropHelper(this).Handle, 33, ref rounded, 4); };
         WindowPlacement.Attach(this);

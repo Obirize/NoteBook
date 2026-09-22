@@ -9,10 +9,13 @@ namespace Notlar;
 // The editor: autosave, undo and the checklist behaviour of the body text box.
 public partial class MainWindow
 {
-    private void Touch()
+    // A change worth saving. `stamp: false` is for changes the user did not make (a picture the app worked out by
+    // itself): the phone still takes the new revision, but the note keeps the date it was really edited.
+    private void Touch(bool stamp = true)
     {
         if (current == null) return;
-        current.Updated = DateTimeOffset.UtcNow; current.Revision++;
+        if (stamp) current.Updated = DateTimeOffset.UtcNow;
+        current.Revision++;
         dirty = true; saveTimer.Stop(); saveTimer.Start(); StatusText.Text = L10n.T("Saving");
     }
     private static void ClearUndo(TextBox box) { box.IsUndoEnabled = false; box.IsUndoEnabled = true; }

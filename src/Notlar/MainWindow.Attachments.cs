@@ -233,59 +233,67 @@ public partial class MainWindow
         if (!trash) { var remove = new MenuItem { Header = L10n.T("AttachmentRemove"), Style = (Style)FindResource("DangerMenuItem") }; remove.Click += (_, _) => RemoveAttachment(attachment); menu.Items.Add(remove); }
         tile.ContextMenu = menu;
         if (present && attachment.IsImage) LoadThumbnail(attachment, picture, icon);
-        else if (attachment.IsVideo && attachment.Thumb != null) ShowThumb(attachment.Thumb, picture, icon);
-        else if (present && attachment.IsVideo) _ = MakeVideoThumb(attachment, picture, icon);
+        else if (attachment.Thumb != null) Show(Cached(attachment.Id, () => Decode(attachment.Thumb)), picture, icon);
+        else if (present && attachment.IsVideo && noThumb.Add(attachment.Id)) _ = MakeVideoThumb(attachment, picture, icon);
         return tile;
     }
-    private static void ShowThumb(byte[] jpeg, Image target, TextBlock placeholder)
-    {
-        try
-        {
-            var image = new BitmapImage(); image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad; image.StreamSource = new MemoryStream(jpeg); image.EndInit(); image.Freeze();
-            target.Source = image; placeholder.Visibility = Visibility.Collapsed;
-        }
-        catch (Exception ex) when (ex is NotSupportedException or FileFormatException or ArgumentException) { }
-    }
     // The first frame of a video the PC can decode, stored with the attachment so the phone gets it too. Formats
-    // Windows cannot play (some iPhone HEVC clips) are left to the phone, which makes the picture on its side.
+    // Windows cannot play (some iPhone HEVC clips) are left to the phone, which makes the picture on its side; either
+    // way one attempt per attachment per run, and one at a time, because it decrypts the whole file to a temporary copy.
+    private readonly HashSet<string> noThumb = [];
+    private static readonly SemaphoreSlim oneThumb = new(1, 1);
     private async Task MakeVideoThumb(Attachment attachment, Image target, TextBlock placeholder)
     {
         string? temp = null;
+        await oneThumb.WaitAsync();
         try
         {
+            if (attachment.Thumb != null || current == null || !current.Attachments.Contains(attachment)) return;
             temp = await Task.Run(() => session.Attachments.WriteTemporary(attachment));
             var jpeg = await VideoThumbnail.FirstFrameAsync(temp);
             if (jpeg == null || current == null || !current.Attachments.Contains(attachment)) return;
-            attachment.Thumb = jpeg; ShowThumb(jpeg, target, placeholder);
-            // A new revision so the phone takes the picture; the note's date is not the user's business here.
-            current.Revision++; dirty = true; saveTimer.Stop(); saveTimer.Start();
+            attachment.Thumb = jpeg; Show(Cached(attachment.Id, () => Decode(jpeg)), target, placeholder);
+            Touch(stamp: false);   // a new revision so the phone takes the picture, but not a new date: nobody edited the note
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException) { }
-        finally { if (temp != null) AttachmentStore.DeleteTemporary(temp); }
+        finally { oneThumb.Release(); if (temp != null) AttachmentStore.DeleteTemporary(temp); }
+    }
+    private static BitmapSource? Decode(byte[] jpeg, int width = 0, int height = 0)
+    {
+        try
+        {
+            var image = new BitmapImage();
+            image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad; image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile; image.StreamSource = new MemoryStream(jpeg);
+            if (width > 0) image.DecodePixelWidth = width; else if (height > 0) image.DecodePixelHeight = height;
+            image.EndInit(); image.Freeze();
+            return image;
+        }
+        catch (Exception ex) when (ex is NotSupportedException or FileFormatException or ArgumentException or InvalidOperationException) { return null; }
+    }
+    // Decoded pictures are kept by attachment id: the tiles are rebuilt on every render and on every phone hello.
+    private BitmapSource? Cached(string id, Func<BitmapSource?> decode)
+    {
+        if (thumbnails.TryGetValue(id, out var bitmap)) return bitmap;
+        if (decode() is not { } made) return null;
+        if (thumbnails.Count > 200) thumbnails.Clear();
+        return thumbnails[id] = made;
+    }
+    private static void Show(BitmapSource? bitmap, Image target, TextBlock placeholder)
+    {
+        if (bitmap == null) return;
+        target.Source = bitmap; placeholder.Visibility = Visibility.Collapsed;
     }
     private void LoadThumbnail(Attachment attachment, Image target, TextBlock placeholder)
     {
-        if (thumbnails.TryGetValue(attachment.Id, out var cached)) { target.Source = cached; placeholder.Visibility = Visibility.Collapsed; return; }
+        if (thumbnails.TryGetValue(attachment.Id, out var cached)) { Show(cached, target, placeholder); return; }
         _ = Task.Run(() =>
         {
-            BitmapSource bitmap;
-            try
-            {
-                using var stream = new MemoryStream(session.Attachments.ReadAll(attachment));
-                var image = new BitmapImage();
-                image.BeginInit(); image.CacheOption = BitmapCacheOption.OnLoad; image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile; image.StreamSource = stream;
-                if (attachment.Width >= attachment.Height) image.DecodePixelWidth = 264; else image.DecodePixelHeight = 264;
-                image.EndInit(); image.Freeze();
-                bitmap = image;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or NotSupportedException or FileFormatException or ArgumentException or InvalidOperationException or ObjectDisposedException) { return; }
+            BitmapSource? bitmap;
+            try { bitmap = Decode(session.Attachments.ReadAll(attachment), attachment.Width >= attachment.Height ? 264 : 0, attachment.Width >= attachment.Height ? 0 : 264); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or ObjectDisposedException) { return; }
+            if (bitmap == null) return;
             // Decoding ran on the pool; the control belongs to the UI thread.
-            Dispatcher.InvokeAsync(() =>
-            {
-                if (thumbnails.Count > 200) thumbnails.Clear();
-                thumbnails[attachment.Id] = bitmap;
-                target.Source = bitmap; placeholder.Visibility = Visibility.Collapsed;
-            });
+            Dispatcher.InvokeAsync(() => Show(Cached(attachment.Id, () => bitmap), target, placeholder));
         });
     }
 }

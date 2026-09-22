@@ -5,57 +5,54 @@ import { T, locale } from './lang.js';
 import * as Checklist from './checklist.js';
 import { decryptFile } from './crypto.js';
 import { S, $, inFolder, inTrash, inArchive, folderTitle } from './state.js';
-import { run, sheet, show, dateLabel, sectionOf } from './ui.js';
+import { run, sheet, show, dateLabel, onStatus, thumbUrl, ICON } from './ui.js';
 import { get } from './store.js';
 import { openNote, newNote, deleteNote, restoreNote, archiveNote, purgeNote, bulk, shareText } from './editor.js';
 import { syncNow } from './sync.js';
 
 const thumbUrls = new Map();
-const ICON = {
-  share: '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>',
-  folder: '<svg viewBox="0 0 24 24"><path d="M3 7.5V6a1 1 0 0 1 1-1h5.2l2 2H20a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>',
-  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
-};
+let status = null, shown = 0;   // what the link is doing, and how many notes the list is showing
 
-export function renderFolders() {
+function renderFolders() {
   const counts = { all: 0, archive: 0, trash: 0 };
   for (const n of S.notes) counts[n.Deleted ? 'trash' : n.Archived ? 'archive' : 'all']++;
   for (const el of document.querySelectorAll('.folder-count')) el.textContent = counts[el.dataset.count];
 }
 export function renderList() {
   const q = $('search').value.trim().toLocaleLowerCase(locale), selecting = S.selecting, selected = S.selected;
-  const shown = S.notes.filter(n => inFolder(n) && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
+  const list = S.notes.filter(n => inFolder(n) && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
     .sort((a, b) => Number(b.Pinned) - Number(a.Pinned) || Date.parse(b.Updated) - Date.parse(a.Updated));
-  $('listTitle').textContent = folderTitle();
-  $('folderBack').hidden = selecting; $('edit').hidden = !inTrash() || selecting || shown.length === 0; $('more').hidden = selecting || inTrash();
+  const title = folderTitle();
+  $('listTitle').textContent = title;
+  $('folderBack').hidden = selecting; $('edit').hidden = !inTrash() || selecting || list.length === 0; $('more').hidden = selecting || inTrash();
   $('selectDone').hidden = !selecting; $('trashInfo').hidden = !inTrash();
   $('list').classList.toggle('selecting', selecting);
   $('selectBar').hidden = !selecting; $('list').querySelector('.toolbar:not(#selectBar)').hidden = selecting;
-  for (const id of [...selected]) if (!shown.some(n => n.Id === id)) selected.delete(id);
-  $('selectAll').textContent = selected.size === shown.length && shown.length > 0 ? T('deselectAll') : T('selectAll');
+  for (const id of [...selected]) if (!list.some(n => n.Id === id)) selected.delete(id);
+  $('selectAll').textContent = selected.size === list.length && list.length > 0 ? T('deselectAll') : T('selectAll');
   $('selectDelete').disabled = $('selectRestore').disabled = $('selectArchive').disabled = selected.size === 0;
   $('selectRestore').hidden = !inTrash(); $('selectArchive').hidden = inTrash();
   $('selectDelete').textContent = inTrash() ? T('deletePermanently') : T('delete');
   $('selectArchive').textContent = inArchive() ? T('unarchive') : T('archiveNote');
-  S.shown = shown.length; renderCount();
-  $('empty').hidden = shown.length > 0; $('empty').textContent = q ? T('noResults') : inTrash() ? T('noDeleted') : inArchive() ? T('noArchived') : T('noNotes');
+  shown = list.length; renderCount();
+  $('empty').hidden = list.length > 0; $('empty').textContent = q ? T('noResults') : inTrash() ? T('noDeleted') : inArchive() ? T('noArchived') : T('noNotes');
   const sections = $('sections'); sections.replaceChildren();
-  const pinnedAny = !inTrash() && shown.some(n => n.Pinned);
+  // Only pinned notes get sections ("Pinned" and the folder's own name); otherwise the list is one card, as in Notes.
+  const pinnedAny = !inTrash() && list.some(n => n.Pinned);
   let group = null, lastSection;
-  for (const n of shown) {
-    const section = sectionOf(n, pinnedAny, folderTitle());
-    if (!group || section !== lastSection) { if (section) { const h = document.createElement('div'); h.className = 'section-title'; h.textContent = section; sections.append(h); } group = document.createElement('div'); group.className = 'group'; sections.append(group); lastSection = section; }
+  for (const n of list) {
+    const section = pinnedAny ? (n.Pinned ? T('pinned') : title) : null;
+    if (section !== lastSection) { if (section) { const h = document.createElement('div'); h.className = 'section-title'; h.textContent = section; sections.append(h); } group = document.createElement('div'); group.className = 'group'; sections.append(group); lastSection = section; }
     group.append(row(n));
   }
-  renderFolders();
 }
 // The bottom bar shows the count, or what the link is doing until the notes are up to date.
 function renderCount() {
-  const c = $('count'), st = S.status;
+  const c = $('count');
   if (S.selecting) c.textContent = S.selected.size === 0 ? T('selectPrompt') : T('selectedCount', S.selected.size);
-  else if (st && st.kind !== 'ok') c.textContent = st.text;
-  else c.textContent = S.shown === 0 ? T('countNone') : T('countMany', S.shown);
-  c.classList.toggle('busy', !S.selecting && st?.kind === 'busy');
+  else if (status && status.kind !== 'ok') c.textContent = status.text;
+  else c.textContent = shown === 0 ? T('countNone') : T('countMany', shown);
+  c.classList.toggle('busy', !S.selecting && status?.kind === 'busy');
 }
 function row(n) {
   const el = document.createElement('div'); el.className = 'row';
@@ -72,7 +69,7 @@ function row(n) {
   text.append(title, sub); inner.append(text);
   const image = n.Attachments.find(a => a.MediaType.startsWith('image/')), clip = n.Attachments.find(a => a.Thumb);
   if (image) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; inner.append(img); thumbnail(image).then(url => { if (url) img.src = url; else img.remove(); }); }
-  else if (clip) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; img.src = 'data:image/jpeg;base64,' + clip.Thumb; inner.append(img); }
+  else if (clip) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; img.src = thumbUrl(clip.Id, clip.Thumb); inner.append(img); }
   el.append(inner);
   if (!S.selecting) swipe(el, inner, actionsFor(n));
   inner.addEventListener('click', () => {
@@ -95,13 +92,18 @@ function actionsFor(n) {
   ];
 }
 // Swipe a row to the left to reveal the actions; past the halfway point the last one fires, like the Notes list.
+// The buttons are drawn the first time a row is touched: a list of three hundred notes would otherwise build nine
+// hundred of them on every keystroke in the search field, for the one row that is ever swiped.
 function swipe(el, inner, actions) {
-  const bar = document.createElement('div'); bar.className = 'row-actions';
-  for (const a of actions) { const b = document.createElement('button'); b.className = 'row-action ' + a.kind; b.setAttribute('aria-label', a.label); b.innerHTML = ICON[a.kind]; b.addEventListener('click', a.run); bar.append(b); }
-  el.prepend(bar);
-  const width = 74 * actions.length, last = actions[actions.length - 1];
-  let startX = 0, startY = 0, dx = 0, active = false, open = false;
-  inner.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = open ? -width : 0; active = false; inner.style.transition = 'none'; }, { passive: true });
+  const last = actions[actions.length - 1];
+  let bar = null, width = 0, startX = 0, startY = 0, dx = 0, active = false, open = false;
+  function buttons() {
+    if (bar) return;
+    bar = document.createElement('div'); bar.className = 'row-actions';
+    for (const a of actions) { const b = document.createElement('button'); b.className = 'row-action ' + a.kind; b.setAttribute('aria-label', a.label); b.innerHTML = ICON[a.kind]; b.addEventListener('click', a.run); bar.append(b); }
+    el.prepend(bar); width = bar.offsetWidth;
+  }
+  inner.addEventListener('touchstart', e => { buttons(); startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = open ? -width : 0; active = false; inner.style.transition = 'none'; }, { passive: true });
   inner.addEventListener('touchmove', e => {
     const mx = e.touches[0].clientX - startX, my = e.touches[0].clientY - startY;
     if (!active && Math.abs(mx) > 8 && Math.abs(mx) > Math.abs(my)) active = true;
@@ -123,21 +125,21 @@ async function thumbnail(a) {
 
 // ---------- wiring ----------
 function goto(folder) { S.folder = folder; S.selected.clear(); S.selecting = false; show('list'); renderList(); $('list').querySelector('.page').scrollTop = 0; }
-export function showFolders() { renderFolders(); show('folders'); }
+function showFolders() { renderFolders(); show('folders'); }
+const startSelect = () => { S.selecting = true; S.selected.clear(); renderList(); };
 for (const b of document.querySelectorAll('.folder-row')) b.addEventListener('click', () => goto(b.dataset.folder));
 $('folderBack').addEventListener('click', showFolders);
 $('search').addEventListener('input', renderList);
-$('compose').addEventListener('click', () => run(newNote));
-$('composeFolders').addEventListener('click', () => run(newNote));
-$('edit').addEventListener('click', () => { S.selecting = true; S.selected.clear(); renderList(); });
+for (const b of document.querySelectorAll('[data-compose]')) b.addEventListener('click', () => run(newNote));
+$('edit').addEventListener('click', startSelect);
 $('selectDone').addEventListener('click', () => { S.selecting = false; S.selected.clear(); renderList(); });
 $('selectAll').addEventListener('click', () => { const ids = S.notes.filter(inFolder).map(n => n.Id); if (S.selected.size === ids.length && ids.length > 0) S.selected.clear(); else for (const id of ids) S.selected.add(id); renderList(); });
 $('selectDelete').addEventListener('click', () => { if (inTrash()) sheet(T('purgeManyConfirm', S.selected.size), [{ label: T('deletePermanently'), danger: true, run: () => run(() => bulk('purge')) }]); else run(() => bulk('delete')); });
 $('selectRestore').addEventListener('click', () => run(() => bulk('restore')));
 $('selectArchive').addEventListener('click', () => run(() => bulk(inArchive() ? 'unarchive' : 'archive')));
 $('more').addEventListener('click', () => sheet(null, [
-  ...(S.shown ? [{ label: T('selectNotes'), run: () => { S.selecting = true; S.selected.clear(); renderList(); } }] : []),
+  ...(shown ? [{ label: T('selectNotes'), run: startSelect }] : []),
   { label: T('syncNow'), run: () => run(syncNow) },
   { label: T('repair'), run: () => { show('pair'); $('pairCode').focus(); } },
 ]));
-document.addEventListener('status', renderCount);
+onStatus(s => { status = s; renderCount(); });

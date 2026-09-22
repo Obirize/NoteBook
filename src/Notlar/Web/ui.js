@@ -1,7 +1,8 @@
 // Small interface helpers: one work queue so taps never race each other, toasts, the bottom action sheet,
 // screen switching, and date formatting in the phone's language.
 import { T, locale } from './lang.js';
-import { S, $ } from './state.js';
+import { $ } from './state.js';
+import { un64 } from './crypto.js';
 
 let queue = Promise.resolve();
 export function run(fn) { queue = queue.then(fn).catch(e => { console.error(e); toast(e.message || T('failed')); }); return queue; }
@@ -20,8 +21,25 @@ $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('shee
 
 export function show(screen) { for (const s of ['install', 'pair', 'folders', 'list', 'editor']) $(s).hidden = s !== screen; }
 // What the link is doing, shown in the list's bottom bar in place of the note count until the notes are up to date.
-export function setStatus(text, kind = 'ok') { S.status = { text, kind }; document.dispatchEvent(new Event('status')); }
+// What the link is doing, for whoever shows it (the list's bottom bar). One listener, wired by the module that draws it.
+let statusListener = null;
+export function onStatus(fn) { statusListener = fn; }
+export function setStatus(text, kind = 'ok') { statusListener?.({ text, kind }); }
 export function autosize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+// The drawings the app reuses outside the static markup, and the preview picture of a video: the note carries it as
+// base64, and one object URL per attachment lets the browser keep the decoded picture between renders.
+export const ICON = {
+  share: '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>',
+  folder: '<svg viewBox="0 0 24 24"><path d="M3 7.5V6a1 1 0 0 1 1-1h5.2l2 2H20a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+};
+const thumbUrls = new Map();
+export function thumbUrl(id, base64) {
+  if (!thumbUrls.has(id)) thumbUrls.set(id, URL.createObjectURL(new Blob([un64(base64)], { type: 'image/jpeg' })));
+  return thumbUrls.get(id);
+}
 
 // Opened in Safari rather than from the Home Screen: explain the two taps that make it an app.
 export let installSkipped = false; try { installSkipped = sessionStorage.getItem('skipInstall') === '1'; } catch { }
@@ -37,5 +55,3 @@ export const fmt = {
 function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
 const daysAgo = iso => (startOfDay(new Date()) - startOfDay(new Date(iso))) / 86400000;
 export function dateLabel(iso) { const d = new Date(iso), diff = daysAgo(iso); if (diff < 1) return fmt.time.format(d); if (diff < 7) return fmt.day.format(d); return fmt.date.format(d); }
-// Only pinned notes get sections ("Pinned" and the folder's own name); otherwise the list is one card, as in Notes.
-export function sectionOf(n, pinnedAny, folder) { return pinnedAny ? (n.Pinned ? T('pinned') : folder) : null; }

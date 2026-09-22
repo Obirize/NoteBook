@@ -16,6 +16,7 @@ public sealed class SyncSession : IDisposable
     private readonly WebSocket socket;
     private readonly SyncKeys keys;
     private readonly System.Net.IPAddress remote, local;
+    internal System.Net.IPAddress Remote => remote;
     private readonly SemaphoreSlim sendLock = new(1, 1);
     private readonly CancellationTokenSource closed = new();
     private readonly List<Note> pendingNotes = []; private readonly List<PurgeStamp> pendingPurges = [];

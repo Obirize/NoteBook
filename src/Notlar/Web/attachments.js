@@ -2,11 +2,11 @@
 // sharing and removing live), a select mode for saving or removing several at once, and adding new ones from
 // the camera roll. Files are encrypted before they touch storage; decrypted copies exist only in memory.
 import { encryptFile, decryptFile } from './crypto.js';
+import { ICON, thumbUrl } from './ui.js';
 import { T } from './lang.js';
 import { S, $, MAX_FILE } from './state.js';
 import { run, toast, sheet } from './ui.js';
 import { get, put, touch } from './store.js';
-import { b64, un64 } from './crypto.js';
 import { localSave, send, manifest, isReady } from './sync.js';
 import { commitDraft } from './editor.js';
 
@@ -26,6 +26,8 @@ export async function renderAttachments(n) {
     const check = document.createElement('span'); check.className = 'tile-check'; check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>';
     const pending = document.createElement('span'); pending.className = 'tile-pending'; pending.textContent = T('fromPc');
     tile.append(pending, badge, check);
+    // A video's picture is in the note itself, so the tile shows it even before the file has come over from the PC.
+    if (a.Thumb) { const img = document.createElement('img'); img.alt = ''; img.src = thumbUrl(a.Id, a.Thumb); tile.prepend(img); }
     tile.addEventListener('click', () => { if (selecting) { if (picked.has(a.Id)) picked.delete(a.Id); else picked.add(a.Id); tile.classList.toggle('picked', picked.has(a.Id)); updateBar(); } else run(() => openViewer(n, index)); });
     box.append(tile);
     get('files', a.Id).then(async encrypted => {
@@ -35,30 +37,38 @@ export async function renderAttachments(n) {
       noteFiles.set(a.Id, { url, file: new File([plain], a.Name, { type: a.MediaType }) });
       pending.remove();
       if (a.MediaType.startsWith('image/')) { const img = document.createElement('img'); img.src = url; img.alt = ''; tile.prepend(img); }
-      else if (a.MediaType.startsWith('video/')) {
-        const img = document.createElement('img'); img.alt = ''; tile.prepend(img);
-        if (a.Thumb) img.src = thumbUrl(a.Thumb);
-        else videoFrame(url).then(async jpeg => { if (!jpeg || !n.Attachments.includes(a)) return; a.Thumb = jpeg; img.src = thumbUrl(jpeg); if (!n.draft) { n.Revision++; await localSave(n, true); } }).catch(() => {});
+      // Videos added on this phone get their picture as they are added; this is for the ones that arrived without one.
+      else if (a.MediaType.startsWith('video/') && !a.Thumb && !thumbTried.has(a.Id)) {
+        thumbTried.add(a.Id);
+        videoFrame(url).then(async jpeg => {
+          if (!jpeg || !n.Attachments.includes(a)) return;
+          a.Thumb = jpeg;
+          const img = document.createElement('img'); img.alt = ''; img.src = thumbUrl(a.Id, jpeg); tile.prepend(img);
+          if (!n.draft) { n.Revision++; await localSave(n); }
+        }).catch(() => {});
       }
       else { const name = document.createElement('span'); name.className = 'tile-name'; name.textContent = a.Name; tile.prepend(name); }
     });
   });
   updateBar();
 }
-const thumbUrl = thumb => 'data:image/jpeg;base64,' + (typeof thumb === 'string' ? thumb : b64(thumb));
-// One frame of a video as a small JPEG (base64), drawn through a canvas; the PC shows the same picture.
+const thumbTried = new Set();   // attachments this run has already tried to make a picture for
+// One frame of a video as a small JPEG (base64), drawn through a canvas; the PC shows the same picture. The element
+// is emptied whatever happens: a video left with its source holds the whole decoded clip in memory.
 export async function videoFrame(url) {
   const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
-  await new Promise((ok, no) => { v.onloadedmetadata = ok; v.onerror = no; setTimeout(no, 8000); });
-  try { await v.play(); } catch { }
-  await new Promise(ok => { v.onseeked = ok; v.currentTime = Math.min(0.3, (v.duration || 1) / 2); setTimeout(ok, 3000); });
-  v.pause();
-  const scale = 320 / (v.videoWidth || 320), canvas = document.createElement('canvas');
-  canvas.width = 320; canvas.height = Math.max(1, Math.round((v.videoHeight || 180) * scale));
-  canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
-  v.removeAttribute('src'); v.load();
-  const data = canvas.toDataURL('image/jpeg', 0.7);
-  return data.length > 2000 ? data.slice(data.indexOf(',') + 1) : null;
+  try {
+    await new Promise((ok, no) => { v.onloadedmetadata = ok; v.onerror = no; setTimeout(no, 8000); });
+    try { await v.play(); } catch { }
+    await new Promise(ok => { v.onseeked = ok; v.currentTime = Math.min(0.3, (v.duration || 1) / 2); setTimeout(ok, 3000); });
+    v.pause();
+    const scale = 320 / (v.videoWidth || 320), canvas = document.createElement('canvas');
+    canvas.width = 320; canvas.height = Math.max(1, Math.round((v.videoHeight || 180) * scale));
+    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL('image/jpeg', 0.7);
+    return data.length > 2000 ? data.slice(data.indexOf(',') + 1) : null;
+  }
+  finally { v.removeAttribute('src'); v.load(); }
 }
 export function shareFiles(files) {
   if (files.length && navigator.canShare?.({ files })) navigator.share({ files }).catch(() => {});
@@ -90,13 +100,13 @@ async function openViewer(n, index) {
   const a = n.Attachments[index]; const ready = noteFiles.get(a.Id);
   const l = $('lightbox'); l.replaceChildren();
   const bar = document.createElement('div'); bar.className = 'viewer-bar';
-  const close = document.createElement('button'); close.className = 'icon-button'; close.setAttribute('aria-label', T('done')); close.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'; close.addEventListener('click', () => { l.hidden = true; l.replaceChildren(); });
+  const close = document.createElement('button'); close.className = 'icon-button'; close.setAttribute('aria-label', T('done')); close.innerHTML = ICON.close; close.addEventListener('click', () => { l.hidden = true; l.replaceChildren(); });
   const name = document.createElement('span'); name.className = 'viewer-name'; name.textContent = a.Name;
-  const share = document.createElement('button'); share.className = 'icon-button'; share.setAttribute('aria-label', T('saveShare')); share.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 12v8h14v-8"/></svg>';
+  const share = document.createElement('button'); share.className = 'icon-button'; share.setAttribute('aria-label', T('saveShare')); share.innerHTML = ICON.share;
   share.addEventListener('click', () => { if (ready) shareFiles([ready.file]); });
   bar.append(close, name, share);
   if (!n.Deleted) {
-    const remove = document.createElement('button'); remove.className = 'icon-button danger'; remove.setAttribute('aria-label', T('removeAttachment')); remove.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+    const remove = document.createElement('button'); remove.className = 'icon-button danger'; remove.setAttribute('aria-label', T('removeAttachment')); remove.innerHTML = ICON.trash;
     remove.addEventListener('click', () => sheet(a.Name, [{ label: T('removeAttachmentConfirm'), danger: true, run: () => run(async () => { l.hidden = true; l.replaceChildren(); await removeFiles(n, [a.Id]); }) }]));
     bar.append(remove);
   }
@@ -119,6 +129,12 @@ $('files').addEventListener('change', () => {
       if (!/^(image|video)\//.test(file.type) && !/\.(heic|heif|mov|mp4|m4v|jpe?g|png|gif|webp)$/i.test(file.name)) throw Error(T('pickMedia'));
       toast(T('encrypting', (file.size / 1048576).toFixed(1)));
       const encrypted = await encryptFile(file);
+      // The picture of a video is made here, while the file itself is at hand: no second decryption, no second save.
+      if (encrypted.meta.MediaType.startsWith('video/')) {
+        const url = URL.createObjectURL(file);
+        try { encrypted.meta.Thumb = await videoFrame(url); } catch { } finally { URL.revokeObjectURL(url); }
+        thumbTried.add(encrypted.meta.Id);
+      }
       await put('files', encrypted.meta.Id, encrypted.blob);
       await commitDraft(n); n.Attachments.push(encrypted.meta); touch(n); await localSave(n, true);
     }
