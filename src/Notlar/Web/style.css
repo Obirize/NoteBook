@@ -65,13 +65,6 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .row-action.share { background: #0a84ff; }
 .row-action.folder { background: #5e5ce6; }
 .row-action.trash { background: var(--danger); }
-.folders { margin-top: 4px; }
-.folder-row { display: flex; align-items: center; gap: 12px; width: 100%; height: 44px; padding: 0 12px 0 16px; color: var(--text); text-align: start; }
-.folder-row + .folder-row { border-top: 1px solid var(--separator); }
-.folder-row > svg:first-child { color: var(--accent); flex: none; }
-.folder-row span:first-of-type { flex: 1; }
-.folder-count { color: var(--muted); }
-.folder-row .chev { width: 18px; height: 18px; color: var(--muted); stroke-width: 2.2; flex: none; }
 .empty { color: var(--muted); text-align: center; margin-top: 40vh; font-size: 20px; }
 
 .toolbar { display: flex; align-items: center; padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); background: var(--bar); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--separator); }

@@ -18,7 +18,7 @@ export function sheet(title, actions) {
 $('sheet').querySelector('.sheet-cancel').addEventListener('click', () => $('sheet').hidden = true);
 $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('sheet').hidden = true; });
 
-export function show(screen) { for (const s of ['install', 'pair', 'folders', 'list', 'editor']) $(s).hidden = s !== screen; }
+export function show(screen) { for (const s of ['install', 'pair', 'list', 'editor']) $(s).hidden = s !== screen; }
 // What the link is doing, shown in the list's bottom bar in place of the note count until the notes are up to date.
 export function setStatus(text, kind = 'ok') { S.status = { text, kind }; document.dispatchEvent(new Event('status')); }
 export function autosize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
