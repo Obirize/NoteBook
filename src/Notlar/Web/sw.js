@@ -1,4 +1,4 @@
-const CACHE='notebook-phone-v24';
+const CACHE='notebook-phone-v25';
 const FILES=['/','/index.html','/start','/v3/app.js','/v3/state.js','/v3/ui.js','/v3/store.js','/v3/sync.js','/v3/link.js','/v3/list.js','/v3/editor.js','/v3/attachments.js','/v3/crypto.js','/v3/lang.js','/v3/checklist.js','/v3/style.css','/v3/app.webmanifest','/v3/icon.png','/v3/icon-180.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));});
 // Old workers served the previous design cache-first; once this one takes over, open pages reload into the new one.

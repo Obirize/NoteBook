@@ -6,7 +6,7 @@ import { ICON, thumbUrl } from './ui.js';
 import { T } from './lang.js';
 import { S, $, MAX_FILE } from './state.js';
 import { run, toast, sheet } from './ui.js';
-import { get, put, touch } from './store.js';
+import { get, put, touch, persist } from './store.js';
 import { localSave, send, manifest, isReady } from './sync.js';
 import { commitDraft } from './editor.js';
 
@@ -27,7 +27,8 @@ export async function renderAttachments(n) {
     const pending = document.createElement('span'); pending.className = 'tile-pending'; pending.textContent = T('fromPc');
     tile.append(pending, badge, check);
     // A video's picture is in the note itself, so the tile shows it even before the file has come over from the PC.
-    if (a.Thumb) { const img = document.createElement('img'); img.alt = ''; img.src = thumbUrl(a.Id, a.Thumb); tile.prepend(img); }
+    const ready = a.Thumb && thumbUrl(a.Id, a.Thumb);
+    if (ready) { const img = document.createElement('img'); img.alt = ''; img.src = ready; tile.prepend(img); }
     tile.addEventListener('click', () => { if (selecting) { if (picked.has(a.Id)) picked.delete(a.Id); else picked.add(a.Id); tile.classList.toggle('picked', picked.has(a.Id)); updateBar(); } else run(() => openViewer(n, index)); });
     box.append(tile);
     get('files', a.Id).then(async encrypted => {
@@ -40,12 +41,15 @@ export async function renderAttachments(n) {
       // Videos added on this phone get their picture as they are added; this is for the ones that arrived without one.
       else if (a.MediaType.startsWith('video/') && !a.Thumb && !thumbTried.has(a.Id)) {
         thumbTried.add(a.Id);
-        videoFrame(url).then(async jpeg => {
+        // Its own address for the file: the one above is revoked the next time the note is drawn, which would cut
+        // the reading short. The picture is kept on this phone only; the PC gets it with the note's next change.
+        const own = URL.createObjectURL(plain);
+        videoFrame(own).then(async jpeg => {
           if (!jpeg || !n.Attachments.includes(a)) return;
           a.Thumb = jpeg;
           const img = document.createElement('img'); img.alt = ''; img.src = thumbUrl(a.Id, jpeg); tile.prepend(img);
-          if (!n.draft) { n.Revision++; await localSave(n); }
-        }).catch(() => {});
+          if (!n.draft) await persist(n);
+        }).catch(() => {}).finally(() => URL.revokeObjectURL(own));
       }
       else { const name = document.createElement('span'); name.className = 'tile-name'; name.textContent = a.Name; tile.prepend(name); }
     });

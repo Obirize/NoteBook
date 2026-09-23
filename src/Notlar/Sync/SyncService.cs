@@ -90,8 +90,10 @@ public sealed partial class SyncService : IDisposable
         var now = DateTime.UtcNow;
         lock (tlsFailures)
         {
+            foreach (var (address, old) in tlsFailures.ToList())
+            { old.RemoveAll(t => now - t > TimeSpan.FromMinutes(5)); if (old.Count == 0) tlsFailures.Remove(address); }
             if (!tlsFailures.TryGetValue(remote, out var times)) tlsFailures[remote] = times = [];
-            times.Add(now); times.RemoveAll(t => now - t > TimeSpan.FromMinutes(5));
+            times.Add(now);
             if (times.Count < 3 || now - trustWarned < TimeSpan.FromMinutes(30)) return; trustWarned = now;
         }
         TrustProblem?.Invoke();

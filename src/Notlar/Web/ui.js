@@ -20,7 +20,6 @@ $('sheet').querySelector('.sheet-cancel').addEventListener('click', () => $('she
 $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('sheet').hidden = true; });
 
 export function show(screen) { for (const s of ['install', 'pair', 'folders', 'list', 'editor']) $(s).hidden = s !== screen; }
-// What the link is doing, shown in the list's bottom bar in place of the note count until the notes are up to date.
 // What the link is doing, for whoever shows it (the list's bottom bar). One listener, wired by the module that draws it.
 let statusListener = null;
 export function onStatus(fn) { statusListener = fn; }
@@ -37,7 +36,11 @@ export const ICON = {
 };
 const thumbUrls = new Map();
 export function thumbUrl(id, base64) {
-  if (!thumbUrls.has(id)) thumbUrls.set(id, URL.createObjectURL(new Blob([un64(base64)], { type: 'image/jpeg' })));
+  // A picture that cannot be read is worth no picture; it must not take the screen that was drawing it down with it.
+  if (!thumbUrls.has(id)) {
+    try { thumbUrls.set(id, URL.createObjectURL(new Blob([un64(base64)], { type: 'image/jpeg' }))); }
+    catch { thumbUrls.set(id, null); }
+  }
   return thumbUrls.get(id);
 }
 

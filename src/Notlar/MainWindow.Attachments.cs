@@ -253,7 +253,9 @@ public partial class MainWindow
             var jpeg = await VideoThumbnail.FirstFrameAsync(temp);
             if (jpeg == null || current == null || !current.Attachments.Contains(attachment)) return;
             attachment.Thumb = jpeg; Show(Cached(attachment.Id, () => Decode(jpeg)), target, placeholder);
-            Touch(stamp: false);   // a new revision so the phone takes the picture, but not a new date: nobody edited the note
+            // Saved, but with no new revision: nobody edited the note, and a phantom edit here would fight a real
+            // one made on the phone meanwhile. The phone gets the picture with the note's next change.
+            dirty = true; saveTimer.Stop(); saveTimer.Start();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException) { }
         finally { oneThumb.Release(); if (temp != null) AttachmentStore.DeleteTemporary(temp); }

@@ -69,7 +69,7 @@ function row(n) {
   text.append(title, sub); inner.append(text);
   const image = n.Attachments.find(a => a.MediaType.startsWith('image/')), clip = n.Attachments.find(a => a.Thumb);
   if (image) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; inner.append(img); thumbnail(image).then(url => { if (url) img.src = url; else img.remove(); }); }
-  else if (clip) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; img.src = thumbUrl(clip.Id, clip.Thumb); inner.append(img); }
+  else if (clip && thumbUrl(clip.Id, clip.Thumb)) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; img.src = thumbUrl(clip.Id, clip.Thumb); inner.append(img); }
   el.append(inner);
   if (!S.selecting) swipe(el, inner, actionsFor(n));
   inner.addEventListener('click', () => {
@@ -126,6 +126,8 @@ async function thumbnail(a) {
 // ---------- wiring ----------
 function goto(folder) { S.folder = folder; S.selected.clear(); S.selecting = false; show('list'); renderList(); $('list').querySelector('.page').scrollTop = 0; }
 function showFolders() { renderFolders(); show('folders'); }
+// A note arrived or left: refresh whichever screen the user is looking at.
+export function render() { if (!$('list').hidden) renderList(); else if (!$('folders').hidden) renderFolders(); }
 const startSelect = () => { S.selecting = true; S.selected.clear(); renderList(); };
 for (const b of document.querySelectorAll('.folder-row')) b.addEventListener('click', () => goto(b.dataset.folder));
 $('folderBack').addEventListener('click', showFolders);

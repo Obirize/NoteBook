@@ -6,7 +6,7 @@ import { T } from './lang.js';
 import { S, $, MAX_FILE } from './state.js';
 import { run, toast, show, setStatus, fmt } from './ui.js';
 import { request, get, put, del, same, persist, savePurges, forget } from './store.js';
-import { renderList } from './list.js';
+import { renderList, render } from './list.js';
 import { openNote, closeEditor } from './editor.js';
 import { renderAttachments } from './attachments.js';
 import { createLink } from './link.js';
@@ -69,7 +69,7 @@ async function receiveNote(m) {
   if (old) S.notes[S.notes.indexOf(old)] = n; else S.notes.push(n);
   await persist(n); await put('base', n.Id, { rev: m.rev, blob: m.blob }); await del('pending', n.Id);
   if (S.current?.Id === n.Id) { S.current = n; if (!$('editor').hidden && document.activeElement !== $('title') && document.activeElement !== $('body')) await openNote(n); }
-  if (!$('list').hidden) renderList();
+  render();
 }
 async function transfer(ids) {
   uploading = true;
@@ -120,7 +120,7 @@ async function handle(ws, data) {
       const n = S.notes.find(x => x.Id === m.id);
       if (n && n.Revision <= m.rev) { await forget(n); if (S.current?.Id === n.Id) closeEditor(); }
       if (!S.purges.some(p => p.id === m.id && p.rev >= m.rev)) { S.purges = S.purges.filter(p => p.id !== m.id); S.purges.push({ id: m.id, rev: m.rev }); await savePurges(); }
-      if (!$('list').hidden) renderList(); break;
+      render(); break;
     }
     case 'flush': case 'done': await wantFiles(); lastSynced = new Date(); setStatus(T('updated')); break;
     case 'want-files': await transfer(m.ids); break;
@@ -130,7 +130,7 @@ async function handle(ws, data) {
       if (!r || r.id !== m.id || r.have !== r.size) throw Error(T('incompleteFile'));
       const a = S.notes.flatMap(n => n.Attachments).find(a => a.Id === r.id); if (!a) break;
       const blob = new Blob(r.parts); await decryptFile(blob, a); await put('files', a.Id, blob);
-      if (S.current?.Attachments.some(x => x.Id === a.Id)) await renderAttachments(S.current); else if (!$('list').hidden) renderList();
+      if (S.current?.Attachments.some(x => x.Id === a.Id)) await renderAttachments(S.current); else render();
       break;
     }
     case 'rejected': link.drop('rejected'); link.retry(); throw Error(T('rejected'));
