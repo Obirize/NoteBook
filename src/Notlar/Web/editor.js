@@ -8,7 +8,7 @@ import { run, toast, sheet, show, autosize, fmt } from './ui.js';
 import { touch, forget } from './store.js';
 import { localSave, flushAll, cancelPendingSends, announcePurge } from './sync.js';
 import { renderList } from './list.js';
-import { renderAttachments, noteFiles, shareFiles, selectAttachments } from './attachments.js';
+import { renderAttachments, storedOf, shareFiles, shareAttachments, selectAttachments } from './attachments.js';
 
 const bodyEl = $('body');
 
@@ -71,14 +71,14 @@ export function shareText(n, files = []) {
   const data = files.length && navigator.canShare?.({ files }) ? { title: n.Title, text, files } : { title: n.Title, text };
   if (navigator.share) navigator.share(data).catch(() => {}); else shareFiles(files);
 }
-const shareNote = () => { if (S.current) shareText(S.current, [...noteFiles.values()].map(f => f.file)); };
+const shareNote = () => { const n = S.current; if (n) shareAttachments(storedOf(n), n).catch(e => toast(e.message || T('failed'))); };
 
 // ---------- wiring ----------
 $('back').addEventListener('click', () => run(leaveEditor));
 $('share').addEventListener('click', shareNote);
 $('noteMore').addEventListener('click', () => { const n = S.current; if (!n) return; sheet(null, [
   { label: n.Archived ? T('unarchive') : T('archiveNote'), run: () => run(() => archiveNote(n, !n.Archived)) },
-  ...(noteFiles.size ? [{ label: T('selectAttachments'), run: () => selectAttachments(true) }, { label: T('saveAll', noteFiles.size), run: () => shareFiles([...noteFiles.values()].map(f => f.file)) }] : []),
+  ...(storedOf(n).length ? [{ label: T('selectAttachments'), run: () => selectAttachments(true) }, { label: T('saveAll', storedOf(n).length), run: () => shareAttachments(storedOf(n)).catch(e => toast(e.message || T('failed'))) }] : []),
   { label: T('delete'), danger: true, run: () => run(async () => { if (n.draft) { S.current = null; closeEditor(); } else await deleteNote(n); }) },
 ]); });
 $('pin').addEventListener('click', () => run(async () => { const n = S.current; if (!n || n.Deleted) return; await commitDraft(n); n.Pinned = !n.Pinned; touch(n); await localSave(n, true); updatePin(); }));

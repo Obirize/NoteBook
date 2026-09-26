@@ -6,7 +6,7 @@ import * as Checklist from './checklist.js';
 import { decryptFile } from './crypto.js';
 import { S, $, inFolder, inTrash, inArchive, folderTitle } from './state.js';
 import { run, sheet, show, dateLabel, onStatus, thumbUrl, ICON } from './ui.js';
-import { get } from './store.js';
+import { storedFile } from './store.js';
 import { openNote, newNote, deleteNote, restoreNote, archiveNote, purgeNote, bulk, shareText } from './editor.js';
 import { syncNow } from './sync.js';
 
@@ -119,7 +119,7 @@ function swipe(el, inner, actions) {
 }
 async function thumbnail(a) {
   if (thumbUrls.has(a.Id)) return thumbUrls.get(a.Id);
-  const encrypted = await get('files', a.Id); if (!encrypted) return null;
+  const encrypted = await storedFile(a.Id); if (!encrypted) return null;
   try { const url = URL.createObjectURL(await decryptFile(encrypted, a)); thumbUrls.set(a.Id, url); return url; } catch { return null; }
 }
 

@@ -5,15 +5,17 @@ import { random, b64, un64, derive, mac, verifyMac, seal, open, decryptFile } fr
 import { T } from './lang.js';
 import { S, $, MAX_FILE } from './state.js';
 import { run, toast, show, setStatus, fmt } from './ui.js';
-import { request, get, put, del, same, persist, savePurges, forget } from './store.js';
+import { request, get, put, del, same, persist, savePurges, forget, storedIds, storedFile, piecesOf, pieceKey, dropPieces } from './store.js';
 import { renderList, render } from './list.js';
 import { openNote, closeEditor } from './editor.js';
 import { renderAttachments } from './attachments.js';
 import { createLink } from './link.js';
 
-const SEND_DELAY = 400, STALL_WAIT = 30000;
+const SEND_DELAY = 400, STALL_WAIT = 30000, PIECE = 4194304;
 let receiving = null, uploading = false, serverNonce, clientNonce, lastSynced = null, link = null;
-const sendTimers = new Map();
+let fileQueue = Promise.resolve(), uploads = Promise.resolve();
+const inFiles = fn => { fileQueue = fileQueue.then(fn).catch(e => { receiving = null; console.error(e); toast(e.message || T('failed')); }); };
+const sendTimers = new Map(), asked = new Set();   // files requested on this connection and not here yet
 
 export const isReady = () => !!link?.isReady();
 export const send = m => { link?.send(JSON.stringify(m)); };
@@ -29,9 +31,14 @@ async function ensureLink() {
     saveMeta: m => put('meta', 'link', m).catch(() => {}),
     visible: () => !document.hidden, online: () => navigator.onLine !== false, busy: () => receiving != null || uploading,
     onOpen: ws => ws.send(JSON.stringify({ t: 'hello', protocol: 1, device: S.device, name: T('device'), hb: true, diag: link.diag() })),
-    onFrame: (ws, data) => run(async () => { if (!link.owns(ws)) return; try { await handle(ws, data); } catch (error) { link.drop('error'); link.retry(); throw error; } }),
+    onFrame: (ws, data) => {
+      let m = null; if (typeof data === 'string') try { m = JSON.parse(data); } catch { m = { t: 'unreadable' }; }
+      // A file from the PC has a queue of its own: a long download must never keep a tap waiting (taps use run()).
+      const queue = !m || m.t === 'file' || m.t === 'file-end' ? inFiles : run;
+      queue(async () => { if (!link.owns(ws)) return; try { await (m ? handle(ws, m) : receive(null, data)); } catch (error) { link.drop('error'); link.retry(); throw error; } });
+    },
     onStatus: (kind, host) => { if (kind === 'connecting') setStatus(T('connecting'), 'busy'); else if (kind === 'ready') setStatus(T('syncing'), 'busy'); else setStatus(offlineText(), 'offline'); },
-    onDrop: () => { receiving = null; },
+    onDrop: () => { receiving = null; asked.clear(); },
     onHidden: () => run(flushAll),
     catchUp: () => run(async () => { await flushAll(); send(await manifest()); }),
   });
@@ -53,7 +60,13 @@ export async function syncNow() { setStatus(T('syncing'), 'busy'); (await ensure
 
 // ---------- messages ----------
 export async function manifest() { const files = await request('files', 'readonly', s => s.getAllKeys()); return { t: 'manifest', notes: S.notes.map(n => ({ id: n.Id, rev: n.Revision, updated: Date.parse(n.Updated) })), purged: S.purges, files }; }
-async function wantFiles() { const missing = new Set(); for (const a of S.notes.flatMap(n => n.Attachments)) if (!await get('files', a.Id)) missing.add(a.Id); if (missing.size) send({ t: 'want-files', ids: [...missing] }); }
+// Each missing file is asked for once per connection: a note typed while a download runs brings another 'flush',
+// and asking again would make the PC send the same files a second time.
+async function wantFiles() {
+  const have = await storedIds(), missing = new Set(S.notes.flatMap(n => n.Attachments).map(a => a.Id).filter(aid => !have.has(aid) && !asked.has(aid)));
+  for (const aid of missing) asked.add(aid);
+  if (missing.size) send({ t: 'want-files', ids: [...missing] });
+}
 async function receiveNote(m) {
   const n = await open(S.keys, m.id, m.rev, un64(m.blob));
   if (S.purges.some(p => p.id === n.Id && p.rev >= n.Revision)) return;
@@ -75,7 +88,7 @@ async function transfer(ids) {
   uploading = true;
   try {
     for (const aid of ids) {
-      const b = await get('files', aid); if (!b) continue;
+      const b = await storedFile(aid); if (!b) continue;
       send({ t: 'file', id: aid, size: b.size });
       let lastDrain = Date.now(), lastBuffered = Infinity;
       for (let at = 0; at < b.size; at += 262144) {
@@ -92,14 +105,33 @@ async function transfer(ids) {
     }
   } finally { uploading = false; }
 }
-async function handle(ws, data) {
-  if (typeof data !== 'string') {
-    if (!receiving) throw Error(T('unexpectedFile'));
-    receiving.parts.push(data); receiving.have += data.byteLength;
-    if (receiving.have > receiving.size) throw Error(T('sizeExceeded'));
+// A file from the PC, frame by frame: every 4 MB is written to storage as it comes, and at the end each piece is
+// decrypted once to prove the file whole, without keeping the result. Only then does the phone count it as its own.
+async function receive(m, data) {
+  if (!m) {
+    const r = receiving; if (!r) throw Error(T('unexpectedFile'));
+    r.have += data.byteLength; if (r.have > r.size) throw Error(T('sizeExceeded'));
+    r.parts.push(data); r.held += data.byteLength;
+    if (r.held >= PIECE) await savePiece(r);
     return;
   }
-  const m = JSON.parse(data);
+  if (m.t === 'file') {
+    if (m.size < 24 || m.size > MAX_FILE + 65536 || !/^[a-f0-9]{32}$/.test(m.id)) throw Error(T('invalidFile'));
+    receiving = { id: m.id, size: m.size, have: 0, parts: [], held: 0, count: 0 };
+    await dropPieces(m.id);
+    return;
+  }
+  const r = receiving; receiving = null;
+  if (!r || r.id !== m.id || r.have !== r.size) throw Error(T('incompleteFile'));
+  if (r.held) await savePiece(r);
+  const a = S.notes.flatMap(n => n.Attachments).find(a => a.Id === r.id);
+  try { if (!a) throw Error(T('invalidFile')); await decryptFile(await piecesOf(r.id), a, false); }
+  catch (error) { await dropPieces(r.id); if (a) throw error; return; }
+  await put('files', a.Id, { parts: r.count }); asked.delete(a.Id);
+  run(async () => { if (S.current?.Attachments.some(x => x.Id === a.Id)) await renderAttachments(S.current); else render(); });
+}
+async function savePiece(r) { const piece = new Blob(r.parts); r.parts = []; r.held = 0; await put('parts', pieceKey(r.id, r.count++), piece); }
+async function handle(ws, m) {
   switch (m.t) {
     case 'pong': break;
     case 'challenge': serverNonce = un64(m.nonce); clientNonce = random(32); ws.send(JSON.stringify({ t: 'auth', nonce: b64(clientNonce), mac: b64(new Uint8Array(await mac(S.keys, 'client', serverNonce, clientNonce))) })); break;
@@ -123,16 +155,9 @@ async function handle(ws, data) {
       render(); break;
     }
     case 'flush': case 'done': await wantFiles(); lastSynced = new Date(); setStatus(T('updated')); break;
-    case 'want-files': await transfer(m.ids); break;
-    case 'file': if (m.size < 24 || m.size > MAX_FILE + 65536 || !/^[a-f0-9]{32}$/.test(m.id)) throw Error(T('invalidFile')); receiving = { id: m.id, size: m.size, have: 0, parts: [] }; break;
-    case 'file-end': {
-      const r = receiving; receiving = null;
-      if (!r || r.id !== m.id || r.have !== r.size) throw Error(T('incompleteFile'));
-      const a = S.notes.flatMap(n => n.Attachments).find(a => a.Id === r.id); if (!a) break;
-      const blob = new Blob(r.parts); await decryptFile(blob, a); await put('files', a.Id, blob);
-      if (S.current?.Attachments.some(x => x.Id === a.Id)) await renderAttachments(S.current); else render();
-      break;
-    }
+    // Sending files to the PC runs beside everything else too, one request after another.
+    case 'want-files': uploads = uploads.then(() => transfer(m.ids)).catch(e => console.error(e)); break;
+    case 'file': case 'file-end': await receive(m); break;
     case 'rejected': link.drop('rejected'); link.retry(); throw Error(T('rejected'));
   }
 }
