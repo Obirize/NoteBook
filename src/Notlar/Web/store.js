@@ -14,8 +14,14 @@ export function request(store, mode, fn) {
   });
 }
 export const get = (s, k) => request(s, 'readonly', t => t.get(k));
+// Several stores changed in one transaction: one trip to storage instead of one per store.
+export function together(stores, fn) {
+  return new Promise((resolve, reject) => {
+    const tx = S.db.transaction(stores, 'readwrite'); fn(name => tx.objectStore(name));
+    tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error || Error(T('storage')));
+  });
+}
 export const put = (s, k, v) => request(s, 'readwrite', t => t.put(v, k));
-export const del = (s, k) => request(s, 'readwrite', t => t.delete(k));
 
 // An attachment's encrypted file as one Blob, whichever way it was stored; null if this phone does not have it.
 // The pieces stay on disk: the Blob only points at them until something reads a slice.
@@ -33,9 +39,9 @@ export const dropPieces = aid => request('parts', 'readwrite', s => s.delete(pie
 
 export function touch(n) { n.Revision++; n.Updated = new Date().toISOString(); }
 export const same = (a, b) => a.Title === b.Title && a.Text === b.Text && a.Pinned === b.Pinned && !!a.Archived === !!b.Archived && a.Deleted === b.Deleted && JSON.stringify(a.Attachments) === JSON.stringify(b.Attachments);
-export const persist = async n => put('notes', n.Id, { id: n.Id, rev: n.Revision, blob: await seal(S.keys, n) });
+export const persist = async n => { S.version++; await put('notes', n.Id, { id: n.Id, rev: n.Revision, blob: await seal(S.keys, n) }); };
 export const savePurges = () => put('meta', 'purges', S.purges);
-export async function forget(n) { await del('notes', n.Id); await del('pending', n.Id); S.notes = S.notes.filter(x => x !== n); }
+export async function forget(n) { S.version++; await together(['notes', 'pending'], s => { s('notes').delete(n.Id); s('pending').delete(n.Id); }); S.pending.delete(n.Id); S.notes = S.notes.filter(x => x !== n); }
 
 export async function openDatabase() {
   S.db = await new Promise((resolve, reject) => {
@@ -46,6 +52,7 @@ export async function openDatabase() {
   S.keys = await get('meta', 'keys'); S.device = await get('meta', 'device');
   if (!S.device) { S.device = id(); await put('meta', 'device', S.device); }
   S.purges = await get('meta', 'purges') || [];
+  S.pending = new Set(await request('pending', 'readonly', s => s.getAllKeys()));
   // Pieces of a download that was cut off are useless: the file is asked for again from the start.
   const have = await storedIds();
   for (const aid of new Set((await request('parts', 'readonly', s => s.getAllKeys())).map(k => k.slice(0, k.indexOf('/'))))) if (!have.has(aid)) await dropPieces(aid);

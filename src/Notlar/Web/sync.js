@@ -5,7 +5,7 @@ import { random, b64, un64, derive, mac, verifyMac, seal, open, decryptFile } fr
 import { T } from './lang.js';
 import { S, $, MAX_FILE } from './state.js';
 import { run, toast, show, setStatus, fmt } from './ui.js';
-import { request, get, put, del, same, persist, savePurges, forget, storedIds, storedFile, piecesOf, pieceKey, dropPieces } from './store.js';
+import { request, get, put, same, persist, savePurges, forget, together, storedIds, storedFile, piecesOf, pieceKey, dropPieces } from './store.js';
 import { renderList, render } from './list.js';
 import { openNote, closeEditor } from './editor.js';
 import { renderAttachments } from './attachments.js';
@@ -48,12 +48,13 @@ async function ensureLink() {
 // ---------- local edits ----------
 // Saved at once; sent to the PC after a short pause so a burst of keystrokes travels as one revision.
 export async function localSave(n, immediate = false) {
-  await persist(n); await put('pending', n.Id, true);
+  await persist(n); await put('pending', n.Id, true); S.pending.add(n.Id);
   clearTimeout(sendTimers.get(n.Id));
   if (immediate) await flushNote(n); else sendTimers.set(n.Id, setTimeout(() => run(() => flushNote(n)), SEND_DELAY));
 }
 async function flushNote(n) { sendTimers.delete(n.Id); if (!isReady()) return; send({ t: 'note', id: n.Id, rev: n.Revision, blob: b64(await seal(S.keys, n)), base: await get('base', n.Id) }); send({ t: 'flush' }); }
-export async function flushAll() { for (const n of S.notes) if (await get('pending', n.Id)) await flushNote(n); }
+// Which notes wait for the PC is kept in memory: asking storage note by note made leaving a note slower with every note.
+export async function flushAll() { for (const n of S.notes) if (S.pending.has(n.Id)) await flushNote(n); }
 export function cancelPendingSends() { for (const t of sendTimers.values()) clearTimeout(t); }
 export async function announcePurge(n) { S.purges.push({ id: n.Id, rev: n.Revision }); await savePurges(); send({ t: 'purge', id: n.Id, rev: n.Revision }); send({ t: 'flush' }); }
 export async function syncNow() { setStatus(T('syncing'), 'busy'); (await ensureLink()).decide('manual'); }
@@ -74,13 +75,15 @@ async function receiveNote(m) {
   if (m.replyRev != null) {
     // The PC's answer to something we sent: remember it as the base; keep our newer local edits if any.
     await put('base', n.Id, { rev: m.rev, blob: m.blob });
-    if (old && old.Revision > m.replyRev && await get('pending', old.Id)) return;
+    if (old && old.Revision > m.replyRev && S.pending.has(old.Id)) return;
   } else {
     if (old && old.Revision > n.Revision) return;
-    if (old && await get('pending', old.Id) && !same(old, n)) return;
+    if (old && S.pending.has(old.Id) && !same(old, n)) return;
   }
   if (old) S.notes[S.notes.indexOf(old)] = n; else S.notes.push(n);
-  await persist(n); await put('base', n.Id, { rev: m.rev, blob: m.blob }); await del('pending', n.Id);
+  // The PC sealed it exactly as this phone stores notes, so it is kept as it came: no second encryption, one write.
+  await together(['notes', 'base', 'pending'], s => { s('notes').put({ id: n.Id, rev: n.Revision, blob: un64(m.blob) }, n.Id); s('base').put({ rev: m.rev, blob: m.blob }, n.Id); s('pending').delete(n.Id); });
+  S.pending.delete(n.Id);
   if (S.current?.Id === n.Id) { S.current = n; if (!$('editor').hidden && document.activeElement !== $('title') && document.activeElement !== $('body')) await openNote(n); }
   render();
 }
@@ -141,7 +144,7 @@ async function handle(ws, m) {
     case 'manifest': {
       for (const n of S.notes) {
         const peer = m.notes.find(x => x.id === n.Id);
-        if (!m.purged.some(p => p.id === n.Id && p.rev >= n.Revision) && (!peer || n.Revision > peer.rev || (n.Revision === peer.rev && (Date.parse(n.Updated) !== peer.updated || await get('pending', n.Id)))))
+        if (!m.purged.some(p => p.id === n.Id && p.rev >= n.Revision) && (!peer || n.Revision > peer.rev || (n.Revision === peer.rev && (Date.parse(n.Updated) !== peer.updated || S.pending.has(n.Id)))))
           send({ t: 'note', id: n.Id, rev: n.Revision, blob: b64(await seal(S.keys, n)), base: await get('base', n.Id) });
       }
       for (const p of S.purges) send({ t: 'purge', ...p });

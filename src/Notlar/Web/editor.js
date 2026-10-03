@@ -4,16 +4,16 @@ import { id } from './crypto.js';
 import { T } from './lang.js';
 import * as Checklist from './checklist.js';
 import { S, $, isEmpty, folderTitle } from './state.js';
-import { run, toast, sheet, show, autosize, fmt } from './ui.js';
+import { run, toast, sheet, show, reveal, slide, autosize, fmt } from './ui.js';
 import { touch, forget } from './store.js';
 import { localSave, flushAll, cancelPendingSends, announcePurge } from './sync.js';
-import { renderList } from './list.js';
+import { renderList, listBehind } from './list.js';
 import { renderAttachments, storedOf, shareFiles, shareAttachments, selectAttachments } from './attachments.js';
 
 const bodyEl = $('body');
 
 export async function openNote(n) {
-  S.current = n; show('editor');
+  S.current = n; show('editor', 'push');
   $('backLabel').textContent = folderTitle();
   $('noteDate').textContent = fmt.full.format(new Date(n.Updated));
   $('title').value = n.Title; Checklist.setBody(bodyEl, n.Text); autosize($('title'));
@@ -26,7 +26,8 @@ export async function openNote(n) {
   $('editor').querySelector('.page').scrollTop = 0;
 }
 function updatePin() { const n = S.current; $('pin').style.color = n?.Pinned ? 'var(--accent)' : 'var(--muted)'; $('pin').setAttribute('aria-label', n?.Pinned ? T('unpin') : T('pin')); }
-export function closeEditor() { S.current = null; $('editor').style.transform = ''; show('list'); renderList(); }
+// The list is brought up to date before it slides back in, so it shows the note as it now is.
+export function closeEditor() { S.current = null; if (listBehind()) renderList(); show('list', 'pop'); }
 
 // A new note is only a draft until something is typed or attached; an untouched draft simply disappears on the way back.
 export async function newNote() {
@@ -114,10 +115,26 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit);
   for (const el of [$('title'), bodyEl]) { el.addEventListener('focus', () => setTimeout(fit, 50)); el.addEventListener('blur', () => setTimeout(fit, 80)); }
 }
-// Swiping in from the left edge of a note goes back, as in the Notes app.
+// Swiping in from the left edge of a note goes back, as in the Notes app: the note follows the finger with the list
+// showing underneath, and on release slides the rest of the way, or back if the swipe was short and slow.
 {
-  const editor = $('editor'); let startX = 0, startY = 0, dragging = false, dx = 0;
-  editor.addEventListener('touchstart', e => { const t = e.touches[0]; dragging = t.clientX < 28; startX = t.clientX; startY = t.clientY; dx = 0; }, { passive: true });
-  editor.addEventListener('touchmove', e => { if (!dragging) return; const t = e.touches[0]; dx = Math.max(0, t.clientX - startX); if (Math.abs(t.clientY - startY) > 60 && dx < 30) { dragging = false; editor.classList.remove('dragging'); editor.style.transform = ''; return; } editor.classList.add('dragging'); editor.style.transform = `translateX(${dx}px)`; }, { passive: true });
-  editor.addEventListener('touchend', () => { if (!dragging) return; dragging = false; editor.classList.remove('dragging'); if (dx > 90) { editor.style.transform = 'translateX(100%)'; setTimeout(() => run(leaveEditor), 120); } else editor.style.transform = ''; });
+  const editor = $('editor'), list = $('list'); let startX = 0, startY = 0, dragging = false, moved = false, dx = 0, lastX = 0, lastT = 0, speed = 0;
+  const place = () => { const p = Math.min(1, dx / editor.offsetWidth); editor.style.transform = `translateX(${dx}px)`; list.style.transform = `translateX(${-30 * (1 - p)}%)`; list.style.opacity = .6 + .4 * p; };
+  const reset = () => { editor.style.transform = list.style.transform = list.style.opacity = ''; list.hidden = true; };
+  editor.addEventListener('touchstart', e => { const t = e.touches[0]; dragging = t.clientX < 28; moved = false; startX = lastX = t.clientX; startY = t.clientY; lastT = e.timeStamp; dx = speed = 0; }, { passive: true });
+  editor.addEventListener('touchmove', e => {
+    if (!dragging) return; const t = e.touches[0];
+    dx = Math.max(0, t.clientX - startX);
+    if (Math.abs(t.clientY - startY) > 60 && dx < 30) { dragging = false; if (moved) reset(); return; }
+    if (e.timeStamp > lastT) speed = (t.clientX - lastX) / (e.timeStamp - lastT); lastX = t.clientX; lastT = e.timeStamp;
+    if (!moved && dx > 0) { moved = true; if (listBehind()) renderList(); reveal('list'); }
+    if (moved) place();
+  }, { passive: true });
+  const release = () => {
+    if (!dragging) return; dragging = false; if (!moved) return;
+    const start = { top: { transform: editor.style.transform }, under: { transform: list.style.transform, opacity: +list.style.opacity } };
+    if (dx > editor.offsetWidth * 0.4 || (speed > 0.4 && dx > 30)) slide(editor, list, false, () => { editor.hidden = true; run(leaveEditor); }, start);
+    else slide(editor, list, true, () => { list.hidden = true; }, start);
+  };
+  editor.addEventListener('touchend', release); editor.addEventListener('touchcancel', release);
 }

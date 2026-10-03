@@ -18,7 +18,12 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); height: 100%; overscroll-behavior-y: none; }
 body { -webkit-user-select: none; user-select: none; }
-button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; transition: opacity .25s, background-color .25s; }
+/* A pressed button dims at once and comes back gently, as in iOS; rows and sheet buttons light up instead. */
+button:active { opacity: .35; transition: none; }
+.sheet-body button:active, .sheet-cancel:active, .folder-row:active { opacity: 1; background-color: var(--card-2); }
+.row-action:active, .tile:active { opacity: .7; }
+.primary:active { opacity: .7; }
 input, textarea { font: inherit; color: inherit; background: transparent; border: 0; outline: none; -webkit-user-select: text; user-select: text; }
 svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 svg .dot { fill: currentColor; stroke: none; }
@@ -86,8 +91,6 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .row-check svg { width: 14px; height: 14px; stroke: #1c1c1e; stroke-width: 3; }
 .selecting .row-check { display: flex; }
 .row.checked .row-check { background: var(--accent); border-color: var(--accent); }
-#editor { transition: transform .18s ease-out; }
-#editor.dragging { transition: none; }
 
 .note { padding: 4px 20px 0; }
 .note-date { text-align: center; color: var(--muted); font-size: 11px; margin: 4px 0 8px; }
@@ -150,5 +153,18 @@ summary { cursor: pointer; padding: 6px 0; }
 .sheet-body button.danger { color: var(--danger); }
 .sheet-body .sheet-title { color: var(--muted); font-size: 13px; text-align: center; padding: 14px; }
 .sheet-cancel { display: block; width: 100%; margin-top: 8px; background: var(--card); border-radius: 14px; padding: 17px; font-size: 20px; font-weight: 600; text-align: center; }
+/* The sheet rises while the page behind it darkens, and drops away again when it closes. */
+.sheet:not([hidden]) { animation: fade-in .25s ease-out; }
+.sheet:not([hidden]) > * { animation: rise .38s cubic-bezier(.32,.72,0,1); }
+.sheet.closing { animation: fade-out .2s ease-in forwards; pointer-events: none; }   /* taps go straight through a sheet on its way out */
+.sheet.closing > * { animation: drop .2s ease-in forwards; }
+@keyframes fade-in { from { background-color: transparent; } }
+@keyframes fade-out { to { background-color: transparent; } }
+@keyframes rise { from { transform: translateY(480px); } }
+@keyframes drop { to { transform: translateY(480px); } }
 .lightbox { position: fixed; inset: 0; background: #000; z-index: 20; display: flex; flex-direction: column; align-items: stretch; }
+.toast:not([hidden]) { animation: toast-in .25s ease-out; }
+.toast.leaving { opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .sheet, .sheet > *, .toast { animation: none !important; transition: none !important; } }
 .toast { position: fixed; left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); background: var(--card-2); color: var(--text); border-radius: 12px; padding: 12px 16px; font-size: 14px; text-align: center; z-index: 30; box-shadow: 0 6px 24px rgba(0,0,0,.5); }

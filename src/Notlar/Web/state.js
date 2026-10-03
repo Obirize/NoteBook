@@ -8,6 +8,8 @@ export const MAX_FILE = 256 * 1024 * 1024;
 export const S = {
   db: null, keys: null, device: null,
   notes: [], purges: [],
+  version: 0,                   // goes up with every change to the notes; the list redraws only when it is behind
+  pending: new Set(),            // ids of notes the PC has not acknowledged yet (mirrors the "pending" store)
   current: null,                 // the note open in the editor
   folder: 'all',                 // 'all' | 'archive' | 'trash'
   selecting: false, selected: new Set(),

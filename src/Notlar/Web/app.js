@@ -14,6 +14,8 @@ $('pairButton').addEventListener('click', () => run(() => pairWithCode($('pairCo
 $('pairCode').addEventListener('input', () => { const v = $('pairCode').value.replace(/\D/g, '').slice(0, 6); $('pairCode').value = v.length > 3 ? v.slice(0, 3) + ' ' + v.slice(3) : v; });
 $('pairLinkButton').addEventListener('click', () => run(() => pair($('pairLink').value)));
 $('skipInstall').addEventListener('click', () => { skipInstall(); if (S.keys) start(); else show('pair'); });
+// iOS shows a button's pressed look only on pages that listen for touches.
+document.addEventListener('touchstart', () => {}, { passive: true });
 for (const page of document.querySelectorAll('.page')) page.addEventListener('scroll', () => page.previousElementSibling.classList.toggle('scrolled', page.scrollTop > 4), { passive: true });
 
 applyLang();

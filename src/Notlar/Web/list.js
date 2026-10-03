@@ -5,7 +5,7 @@ import { T, locale } from './lang.js';
 import * as Checklist from './checklist.js';
 import { decryptFile } from './crypto.js';
 import { S, $, inFolder, inTrash, inArchive, folderTitle } from './state.js';
-import { run, sheet, show, dateLabel, onStatus, thumbUrl, ICON } from './ui.js';
+import { run, sheet, show, calm, dateLabel, onStatus, thumbUrl, ICON } from './ui.js';
 import { storedFile } from './store.js';
 import { openNote, newNote, deleteNote, restoreNote, archiveNote, purgeNote, bulk, shareText } from './editor.js';
 import { syncNow } from './sync.js';
@@ -18,7 +18,10 @@ function renderFolders() {
   for (const n of S.notes) counts[n.Deleted ? 'trash' : n.Archived ? 'archive' : 'all']++;
   for (const el of document.querySelectorAll('.folder-count')) el.textContent = counts[el.dataset.count];
 }
+let drawn = -1;   // the notes' version the list shows
+export const listBehind = () => drawn !== S.version;
 export function renderList() {
+  drawn = S.version;
   const q = $('search').value.trim().toLocaleLowerCase(locale), selecting = S.selecting, selected = S.selected;
   const list = S.notes.filter(n => inFolder(n) && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
     .sort((a, b) => Number(b.Pinned) - Number(a.Pinned) || Date.parse(b.Updated) - Date.parse(a.Updated));
@@ -71,7 +74,7 @@ function row(n) {
   if (image) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; inner.append(img); thumbnail(image).then(url => { if (url) img.src = url; else img.remove(); }); }
   else if (clip && thumbUrl(clip.Id, clip.Thumb)) { const img = document.createElement('img'); img.className = 'row-thumb'; img.alt = ''; img.src = thumbUrl(clip.Id, clip.Thumb); inner.append(img); }
   el.append(inner);
-  if (!S.selecting) swipe(el, inner, actionsFor(n));
+  if (!S.selecting) swipe(el, inner, actionsFor(n, el));
   inner.addEventListener('click', () => {
     if (el.dataset.swiped) return;
     if (S.selecting) { if (S.selected.has(n.Id)) S.selected.delete(n.Id); else S.selected.add(n.Id); renderList(); return; }
@@ -80,16 +83,23 @@ function row(n) {
   return el;
 }
 // The swipe actions of the folder: share, move and delete in the lists; restore and delete for good in the trash.
-function actionsFor(n) {
+// Every one but share takes the note out of this list, so its row folds away first.
+function actionsFor(n, el) {
+  const away = fn => () => fold(el).then(() => run(fn));
   if (inTrash()) return [
-    { kind: 'folder', label: T('restore'), run: () => run(() => restoreNote(n)) },
-    { kind: 'trash', label: T('deletePermanently'), run: () => sheet(T('purgeConfirm'), [{ label: T('deletePermanently'), danger: true, run: () => run(() => purgeNote(n)) }]) },
+    { kind: 'folder', label: T('restore'), run: away(() => restoreNote(n)) },
+    { kind: 'trash', label: T('deletePermanently'), run: () => sheet(T('purgeConfirm'), [{ label: T('deletePermanently'), danger: true, run: away(() => purgeNote(n)) }]) },
   ];
   return [
     { kind: 'share', label: T('saveShare'), run: () => shareText(n) },
-    { kind: 'folder', label: inArchive() ? T('unarchive') : T('archiveNote'), run: () => run(() => archiveNote(n, !inArchive())) },
-    { kind: 'trash', label: T('delete'), run: () => run(() => deleteNote(n)) },
+    { kind: 'folder', label: inArchive() ? T('unarchive') : T('archiveNote'), run: away(() => archiveNote(n, !inArchive())) },
+    { kind: 'trash', label: T('delete'), run: away(() => deleteNote(n)) },
   ];
+}
+// A row leaving the list closes up instead of vanishing between two frames, as in Notes.
+function fold(el) {
+  if (calm() || !el.isConnected) return Promise.resolve();
+  return el.animate([{ height: el.offsetHeight + 'px', opacity: 1 }, { height: '0px', opacity: 0 }], { duration: 240, easing: 'ease-in-out', fill: 'forwards' }).finished.catch(() => {});
 }
 // Swipe a row to the left to reveal the actions; past the halfway point the last one fires, like the Notes list.
 // The buttons are drawn the first time a row is touched: a list of three hundred notes would otherwise build nine
@@ -124,10 +134,15 @@ async function thumbnail(a) {
 }
 
 // ---------- wiring ----------
-function goto(folder) { S.folder = folder; S.selected.clear(); S.selecting = false; show('list'); renderList(); $('list').querySelector('.page').scrollTop = 0; }
-function showFolders() { renderFolders(); show('folders'); }
-// A note arrived or left: refresh whichever screen the user is looking at.
-export function render() { if (!$('list').hidden) renderList(); else if (!$('folders').hidden) renderFolders(); }
+function goto(folder) { S.folder = folder; S.selected.clear(); S.selecting = false; renderList(); const page = $('list').querySelector('.page'); page.dataset.top = 0; show('list', 'push'); page.scrollTop = 0; }
+function showFolders() { renderFolders(); show('folders', 'pop'); }
+// A note arrived or left: refresh whichever screen the user is looking at. Notes arriving one after another (the
+// first sync brings hundreds) are drawn together, at most every 150 ms, not once per note.
+let drawSoon = null;
+export function render() {
+  S.version++;
+  drawSoon ??= setTimeout(() => { drawSoon = null; if (!$('list').hidden) renderList(); else if (!$('folders').hidden) renderFolders(); }, 150);
+}
 const startSelect = () => { S.selecting = true; S.selected.clear(); renderList(); };
 for (const b of document.querySelectorAll('.folder-row')) b.addEventListener('click', () => goto(b.dataset.folder));
 $('folderBack').addEventListener('click', showFolders);
