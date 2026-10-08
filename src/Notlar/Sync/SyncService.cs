@@ -13,7 +13,8 @@ public interface ISyncHost
     Task<(Manifest Manifest, string NotebookId)> ManifestAsync();
     Task<List<Note>> NotesAsync(IReadOnlyList<string> ids);
     Task<Attachment?> AttachmentAsync(string id);
-    Task<SyncMerge.Result> ApplyAsync(List<Note> notes, List<PurgeStamp> purges, string deviceName);
+    // plain: notes the session found to be ordinary edits (see SyncSession.Flush), applied whatever their revision.
+    Task<SyncMerge.Result> ApplyAsync(List<Note> notes, List<PurgeStamp> purges, string deviceName, IReadOnlySet<string> plain);
     Task DeviceSeenAsync(string id, string name);
     AttachmentStore Attachments { get; }
 }
@@ -36,12 +37,8 @@ public sealed partial class SyncService : IDisposable
     // Per phone and note: the fingerprint of the version we last applied from it, and the conflict copy (with the
     // baseline it diverged from) its later submissions go to. A phone typing faster than our replies, or one that
     // never saw a reply before it went to sleep, then edits its own work rather than spawning copy after copy.
-    private readonly Dictionary<(string Device, string Note), string> applied = [];
-    private readonly Dictionary<(string Device, string Note), (string Baseline, string Copy)> conflictCopies = [];
-    internal string? Applied(string device, string note) { lock (applied) return applied.TryGetValue((device, note), out var f) ? f : null; }
-    internal void RecordApplied(string device, string note, string fingerprint) { lock (applied) applied[(device, note)] = fingerprint; }
-    internal (string Baseline, string Copy)? ConflictCopy(string device, string note) { lock (applied) return conflictCopies.TryGetValue((device, note), out var c) ? c : null; }
-    internal void RecordConflictCopy(string device, string note, string baseline, string copy) { lock (applied) conflictCopies[(device, note)] = (baseline, copy); }
+    // Kept on disk (SyncMemory.cs), so this still holds after the PC app restarts.
+    internal SyncMemory Memory { get; }
     // What phones did here, newest first, dated, and mirrored to sync-log.txt so a gap can be read the next day.
     private readonly List<string> log = [];
     private const int LogLines = 60, LogFileLines = 300;
@@ -151,6 +148,7 @@ public sealed partial class SyncService : IDisposable
     {
         this.dataDirectory = dataDirectory; this.host = host;
         Settings = SyncSettings.Load(dataDirectory);
+        Memory = new SyncMemory(Path.Combine(SyncDirectory, "memory.bin"));
     }
     public string SyncDirectory => SyncSettings.DirectoryFor(dataDirectory);
     public int Port => secure?.Port ?? Settings.Port;

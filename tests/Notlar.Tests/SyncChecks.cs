@@ -14,7 +14,7 @@ static class SyncChecks
         public Task<(Manifest Manifest,string NotebookId)> ManifestAsync() => Task.FromResult((Manifest.Of(Book,Attachments),Book.Id));
         public Task<List<Note>> NotesAsync(IReadOnlyList<string> ids) => Task.FromResult(Book.Notes.Where(n=>ids.Contains(n.Id)).Select(SyncMerge.Clone).ToList());
         public Task<Attachment?> AttachmentAsync(string id) => Task.FromResult(Book.Notes.SelectMany(n=>n.Attachments).FirstOrDefault(a=>a.Id==id));
-        public Task<SyncMerge.Result> ApplyAsync(List<Note> notes,List<PurgeStamp> purges,string name) => Task.FromResult(SyncMerge.Apply(Book,notes,purges,name));
+        public Task<SyncMerge.Result> ApplyAsync(List<Note> notes,List<PurgeStamp> purges,string name,IReadOnlySet<string> plain) => Task.FromResult(SyncMerge.Apply(Book,notes,purges,name,plain));
         public Task DeviceSeenAsync(string id,string name) => Task.CompletedTask;
     }
     public static void Run(string root, Action<bool,string> check)
@@ -38,6 +38,13 @@ static class SyncChecks
         SyncMerge.Apply(book,[],[new(note.Id,99)],"phone");
         SyncMerge.Apply(book,[note],[],"phone");
         check(!book.Notes.Any(n=>n.Id==note.Id),"Purge prevents stale note resurrection");
+        // What the PC learned from a phone (last version applied, where its stale edits go) outlives a restart of the app.
+        string memoryPath=Path.Combine(root,"memory-test","memory.bin");
+        var memory=new SyncMemory(memoryPath);memory.RecordApplied("phone","note","print");memory.RecordConflictCopy("phone","note","base","copy");memory.Save();
+        var reloaded=new SyncMemory(memoryPath);
+        check(reloaded.Applied("phone","note")=="print" && reloaded.ConflictCopy("phone","note")==("base","copy") && !File.ReadAllText(memoryPath).Contains("print"),"Sync memory survives a restart and is stored protected");
+        File.WriteAllBytes(memoryPath,[1,2,3]);
+        check(new SyncMemory(memoryPath).Applied("phone","note")==null,"An unreadable sync memory file just starts empty");
         var host=new Host(Path.Combine(root,"sync-test"));
         var media=host.Attachments.Import(new MemoryStream(Encoding.UTF8.GetBytes("desktop attachment")),"desktop.png","image/png");
         host.Book.Notes.Add(new Note { Title="Desktop",Text="from PC",Attachments=[media] });
@@ -105,6 +112,6 @@ static class SyncChecks
         // A video's preview picture travels with the note and survives every copy the app makes of an attachment.
         var clip=new Attachment { Name="clip.mp4",MediaType="video/mp4",Key=new byte[32],Sha256=new byte[32],Thumb=[1,2,3] };
         check(SyncMerge.Clone(new Note { Attachments=[clip] }).Attachments[0].Thumb!.SequenceEqual(clip.Thumb!) && clip.IsVideo,"The thumbnail of a video is kept when a note is cloned for sync");
-        check(host.Book.Notes.Count(n=>n.Text.StartsWith("typing"))==1 && host.Book.Notes.Single(n=>n.Text.StartsWith("typing")).Text=="typing ab","Fast typing from one phone lands as one note, not as conflict copies");
+        check(!host.Book.Notes.Any(n=>n.Title.Contains("conflict copy") && (n.Text.StartsWith("typing")||n.Text.StartsWith("p"))) && host.Book.Notes.Count(n=>n.Text=="phone after a stale counter")==1,"Fast typing, and revision counters that equal or trail the PC's, land in the one note, not as conflict copies");
     }
 }

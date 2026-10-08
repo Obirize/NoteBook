@@ -57,4 +57,15 @@ c.send({t:'note',id:fast1.Id,rev:8,blob:b64(await seal(keys,fast1)),base:baselin
 c.send({t:'note',id:fast2.Id,rev:9,blob:b64(await seal(keys,fast2)),base:baseline});c.send({t:'flush'});
 let flushes=0,copies=0;while(flushes<2){const m=await c.next();if(m.t==='flush')flushes++;if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id!==desktop.Id&&n.Text.startsWith('typing'))copies++;}}
 assert.equal(copies,0);
+// The revision numbers of the two sides are counters, not a verdict: the phone edits the PC's latest version while
+// its own counter happens to equal (then trail) the PC's. That is an ordinary edit, never a conflict copy and never dropped.
+const other2=await client(keys);other2.send({t:'note',id:desktop.Id,rev:20,blob:b64(await seal(keys,{...desktop,Revision:20,Text:'pc twenty'}))});other2.send({t:'flush'});while((await other2.next()).t!=='flush'){}other2.ws.close();
+c.send({t:'manifest',notes:[],purged:[],files:[]});let latest=null;
+while(true){const m=await c.next();if(m.t==='note'&&m.id===desktop.Id)latest={rev:m.rev,blob:m.blob};if(m.t==='done')break;}
+assert.equal((await open(keys,desktop.Id,latest.rev,un64(latest.blob))).Text,'pc twenty');
+const edits=[[20,'phone twenty'],[21,'phone twenty-one'],[5,'phone after a stale counter']];let cascade=0,last=null;
+for(const [rev,text] of edits){c.send({t:'note',id:desktop.Id,rev,blob:b64(await seal(keys,{...desktop,Revision:rev,Text:text})),base:latest});c.send({t:'flush'});
+  while(true){const m=await c.next();if(m.t==='flush')break;if(m.t==='note'){const n=await open(keys,m.id,m.rev,un64(m.blob));if(n.Id!==desktop.Id&&n.Text.startsWith('p'))cascade++;if(n.Id===desktop.Id)last=n;}}}
+assert.equal(cascade,0,'no conflict copies while one phone edits the latest version');
+assert.equal(last.Text,'phone after a stale counter');assert(last.Revision>21,'the PC keeps counting up');
 assert(found);c.ws.close();console.log('PASS checklist markers match the PC, pairing code exchange (wrong code refused, one-time use), fast typing without self-conflict, HTTPS resources, wrong-key rejection, mutual HMAC, C#/WebCrypto notes and attachments both ways, offline conflict preservation');

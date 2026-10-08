@@ -85,13 +85,14 @@ public sealed class Manifest
     };
 }
 
-// Applies notes that arrived from another device. Rules: the higher revision wins; an equal revision with different
-// content means both devices edited the same version, so the older one is kept as a separate "conflict" note rather
-// than lost; a purge removes a note only if that device did not edit it afterwards.
+// Applies notes that arrived from another device. A note the sync session already judged an ordinary edit ("plain":
+// it started from what the PC holds) replaces the PC's version. For the rest the revisions decide: the higher one
+// wins; an equal revision with different content means both devices edited the same version, so the older one is kept
+// as a separate "conflict" note rather than lost. A purge removes a note only if that device did not edit it afterwards.
 public static class SyncMerge
 {
     public sealed class Result { public int Added, Updated, Conflicts, Purged; public List<string> Changed = []; }
-    public static Result Apply(Notebook book, IEnumerable<Note> incoming, IEnumerable<PurgeStamp> purges, string deviceName)
+    public static Result Apply(Notebook book, IEnumerable<Note> incoming, IEnumerable<PurgeStamp> purges, string deviceName, IReadOnlySet<string>? plain = null)
     {
         var result = new Result();
         var now = DateTimeOffset.UtcNow;
@@ -101,6 +102,15 @@ public static class SyncMerge
             if (purged != null && note.Revision <= purged.Revision) continue;
             var existing = book.Notes.FirstOrDefault(n => n.Id == note.Id);
             if (existing == null) { book.Notes.Add(note); result.Added++; result.Changed.Add(note.Id); continue; }
+            if (plain?.Contains(note.Id) == true)
+            {
+                bool same = SameContent(note, existing);
+                if (same && note.Revision <= existing.Revision) continue;
+                // A changed note always moves the PC's count past both numbers, so every later comparison sees it as newer.
+                long revision = same ? note.Revision : Math.Max(note.Revision, existing.Revision + 1);
+                Copy(note, existing); existing.Revision = revision; result.Updated++; result.Changed.Add(existing.Id);
+                continue;
+            }
             if (note.Revision < existing.Revision || (note.Revision == existing.Revision && note.Updated <= existing.Updated && SameContent(note, existing))) continue;
             if (note.Revision == existing.Revision && !SameContent(note, existing))
             {

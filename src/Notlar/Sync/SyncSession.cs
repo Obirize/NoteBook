@@ -190,30 +190,37 @@ public sealed class SyncSession : IDisposable
         var submitted = notes.GroupBy(n => n.Id).ToDictionary(g => g.Key, g => g.Max(n => n.Revision));
         var current = await host.NotesAsync(originals);
         string device = Device?.Id ?? "?";
+        // Edits judged here to be ordinary are applied as they are: the two sides count revisions separately, so the
+        // phone's number may equal or trail the PC's without any conflict. Comparing those numbers again in Apply
+        // turned one phone's typing into a chain of conflict copies.
+        var plain = new HashSet<string>();
         foreach (var note in notes)
         {
             var existing = current.FirstOrDefault(n => n.Id == note.Id);
-            if (existing == null || SyncMerge.SameContent(existing, note)) continue;
+            if (existing == null || SyncMerge.SameContent(existing, note)) { plain.Add(note.Id); continue; }
             // The PC's version is what this very phone gave us earlier: the phone is simply continuing its own work.
             string existingPrint = SyncMerge.Fingerprint(existing);
-            if (existingPrint == service.Applied(device, note.Id)) continue;
-            // No baseline, or the PC still holds the version the phone started from: a plain update.
-            if (!bases.TryGetValue(note.Id, out var baseline) || SyncMerge.SameContent(existing, baseline)) continue;
+            if (existingPrint == service.Memory.Applied(device, note.Id)) { plain.Add(note.Id); continue; }
+            // No baseline: nothing to judge by, so the revision numbers decide in Apply, as they always did.
+            if (!bases.TryGetValue(note.Id, out var baseline)) continue;
+            // The PC still holds the version the phone started from: a plain update.
+            if (SyncMerge.SameContent(existing, baseline)) { plain.Add(note.Id); continue; }
             // Someone else changed the note meanwhile. The phone's version becomes a copy; while the phone keeps
             // sending edits built on that same stale baseline, they all go into that one copy.
             string baselinePrint = SyncMerge.Fingerprint(baseline);
-            var prior = service.ConflictCopy(device, note.Id);
+            var prior = service.Memory.ConflictCopy(device, note.Id);
             var copy = prior?.Baseline == baselinePrint ? (await host.NotesAsync([prior.Value.Copy])).FirstOrDefault() : null;
             string original = note.Id;
             note.Title = L10n.T("ConflictCopyTitle", note.DisplayTitle, Device?.Name ?? "phone");
             if (copy != null) { note.Id = copy.Id; note.Revision = copy.Revision + 1; }
-            else { note.Id = Guid.NewGuid().ToString("N"); note.Revision = 1; service.RecordConflictCopy(device, original, baselinePrint, note.Id); }
+            else { note.Id = Guid.NewGuid().ToString("N"); note.Revision = 1; service.Memory.RecordConflictCopy(device, original, baselinePrint, note.Id); }
             note.Deleted = false; note.DeletedAt = null; note.Archived = false;
-            current = current.Where(n => n.Id != note.Id).Append(SyncMerge.Clone(note)).ToList();
+            current = current.Where(n => n.Id != note.Id).Append(SyncMerge.Clone(note)).ToList(); plain.Add(note.Id);
         }
         bases.Clear();
-        var result = await host.ApplyAsync(notes, purges, Device?.Name ?? "?");
-        foreach (var note in notes) service.RecordApplied(device, note.Id, SyncMerge.Fingerprint(note));
+        var result = await host.ApplyAsync(notes, purges, Device?.Name ?? "?", plain);
+        foreach (var note in notes) service.Memory.RecordApplied(device, note.Id, SyncMerge.Fingerprint(note));
+        service.Memory.Save();
         // Other phones (not this one) learn about the change; conflict copies go back to this phone too.
         if (result.Changed.Count > 0) service.NotifyChanged(result.Changed, purges, this);
         await SendNotes(result.Changed.Concat(originals).Distinct().ToList(), token, submitted);
