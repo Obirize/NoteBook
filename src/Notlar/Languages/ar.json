@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "تعذّر حفظ النسخة. تحقّق من الموقع.",
   "AttachmentOpenFailed": "تعذّر فتح المرفق. قد يكون الملف مفقودًا أو تالفًا.",
   "AttachmentMissing": "الملف مفقود",
+  "AttachmentComing": "قادم من الهاتف… {0}%",
   "AttachmentCountOne": "مرفق واحد",
   "AttachmentCountMany": "{0} مرفقات",
   "AttachmentViewerHint": "Esc للإغلاق · المسافة للتشغيل أو الإيقاف المؤقت",

@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "प्रति सहेजी नहीं जा सकी। स्थान जाँचें।",
   "AttachmentOpenFailed": "अनुलग्नक खोला नहीं जा सका। फ़ाइल गायब या क्षतिग्रस्त हो सकती है।",
   "AttachmentMissing": "फ़ाइल गायब",
+  "AttachmentComing": "फ़ोन से आ रहा है… {0}%",
   "AttachmentCountOne": "1 अनुलग्नक",
   "AttachmentCountMany": "{0} अनुलग्नक",
   "AttachmentViewerHint": "Esc बंद करता है · Space चलाता या रोकता है",

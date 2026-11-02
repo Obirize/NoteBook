@@ -8,7 +8,7 @@ import { run, toast, show, setStatus, fmt } from './ui.js';
 import { request, get, put, same, persist, savePurges, forget, together, storedIds, storedFile, piecesOf, pieceKey, dropPieces } from './store.js';
 import { renderList, render } from './list.js';
 import { openNote, closeEditor } from './editor.js';
-import { renderAttachments } from './attachments.js';
+import { renderAttachments, markSending, sendingStopped } from './attachments.js';
 import { createLink } from './link.js';
 
 const SEND_DELAY = 400, STALL_WAIT = 30000, PIECE = 4194304;
@@ -33,12 +33,15 @@ async function ensureLink() {
     onOpen: ws => ws.send(JSON.stringify({ t: 'hello', protocol: 1, device: S.device, name: T('device'), hb: true, diag: link.diag() })),
     onFrame: (ws, data) => {
       let m = null; if (typeof data === 'string') try { m = JSON.parse(data); } catch { m = { t: 'unreadable' }; }
+      // Files the PC asks for go out beside everything else, one request after another: a photo is already on its
+      // way while the next one picked is still being encrypted.
+      if (m?.t === 'want-files') { if (link.owns(ws) && Array.isArray(m.ids)) upload(m.ids); return; }
       // A file from the PC has a queue of its own: a long download must never keep a tap waiting (taps use run()).
       const queue = !m || m.t === 'file' || m.t === 'file-end' ? inFiles : run;
       queue(async () => { if (!link.owns(ws)) return; try { await (m ? handle(ws, m) : receive(null, data)); } catch (error) { link.drop('error'); link.retry(); throw error; } });
     },
     onStatus: (kind, host) => { if (kind === 'connecting') setStatus(T('connecting'), 'busy'); else if (kind === 'ready') setStatus(T('syncing'), 'busy'); else setStatus(offlineText(), 'offline'); },
-    onDrop: () => { receiving = null; asked.clear(); },
+    onDrop: () => { receiving = null; asked.clear(); sendingStopped(); },
     onHidden: () => run(flushAll),
     catchUp: () => run(async () => { await flushAll(); send(await manifest()); }),
   });
@@ -87,11 +90,14 @@ async function receiveNote(m) {
   if (S.current?.Id === n.Id) { S.current = n; if (!$('editor').hidden && document.activeElement !== $('title') && document.activeElement !== $('body')) await openNote(n); }
   render();
 }
+function upload(ids) { markSending(ids, true); uploads = uploads.then(() => transfer(ids)).catch(e => console.error(e)); }
 async function transfer(ids) {
   uploading = true;
   try {
     for (const aid of ids) {
-      const b = await storedFile(aid); if (!b) continue;
+      const b = await storedFile(aid);
+      // A file this phone does not have either: saying so lets the PC stop showing it as on its way.
+      if (!b) { send({ t: 'file-missing', id: aid }); markSending([aid], false); continue; }
       send({ t: 'file', id: aid, size: b.size });
       let lastDrain = Date.now(), lastBuffered = Infinity;
       for (let at = 0; at < b.size; at += 262144) {
@@ -104,9 +110,9 @@ async function transfer(ids) {
         }
         if (!link.sendBinary(await b.slice(at, at + 262144).arrayBuffer())) return;
       }
-      send({ t: 'file-end', id: aid });
+      send({ t: 'file-end', id: aid }); markSending([aid], false);
     }
-  } finally { uploading = false; }
+  } finally { uploading = false; markSending(ids, false); }
 }
 // A file from the PC, frame by frame: every 4 MB is written to storage as it comes, and at the end each piece is
 // decrypted once to prove the file whole, without keeping the result. Only then does the phone count it as its own.
@@ -158,8 +164,6 @@ async function handle(ws, m) {
       render(); break;
     }
     case 'flush': case 'done': await wantFiles(); lastSynced = new Date(); setStatus(T('updated')); break;
-    // Sending files to the PC runs beside everything else too, one request after another.
-    case 'want-files': uploads = uploads.then(() => transfer(m.ids)).catch(e => console.error(e)); break;
     case 'file': case 'file-end': await receive(m); break;
     case 'rejected': link.drop('rejected'); link.retry(); throw Error(T('rejected'));
   }

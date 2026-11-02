@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "コピーを保存できませんでした。保存先を確認してください。",
   "AttachmentOpenFailed": "添付ファイルを開けませんでした。ファイルが見つからないか破損している可能性があります。",
   "AttachmentMissing": "ファイルがありません",
+  "AttachmentComing": "スマートフォンから受信中… {0}%",
   "AttachmentCountOne": "添付 1 件",
   "AttachmentCountMany": "添付 {0} 件",
   "AttachmentViewerHint": "Esc で閉じる · スペースで再生または一時停止",

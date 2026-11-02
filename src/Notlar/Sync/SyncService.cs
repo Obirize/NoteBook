@@ -250,6 +250,13 @@ public sealed partial class SyncService : IDisposable
         List<SyncSession> open; lock (sessions) open = sessions.Where(s => s != origin && s.Device != null).ToList();
         foreach (var session in open) _ = session.PushAsync(noteIds, purges);
     }
+    // Files a phone has been asked for and is still sending, with how far each has come (percent). The window shows
+    // them as on their way rather than missing, and hears of every change.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, int> incoming = new();
+    public event Action<string>? IncomingChanged;
+    public int? Incoming(string id) => incoming.TryGetValue(id, out int percent) ? percent : null;
+    internal void Expect(string id, int percent) { incoming[id] = percent; IncomingChanged?.Invoke(id); }
+    internal void Settle(string id) { if (incoming.TryRemove(id, out _)) IncomingChanged?.Invoke(id); }
     internal void DeviceSeen(SyncSession session, string id, string name)
     {
         lock (tlsFailures) tlsFailures.Remove(session.Remote);   // this address got in, so its failures were not about trust

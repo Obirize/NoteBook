@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "Não foi possível salvar a cópia. Verifique o local.",
   "AttachmentOpenFailed": "Não foi possível abrir o anexo. O arquivo pode estar ausente ou danificado.",
   "AttachmentMissing": "Arquivo ausente",
+  "AttachmentComing": "Vindo do telefone… {0}%",
   "AttachmentCountOne": "1 anexo",
   "AttachmentCountMany": "{0} anexos",
   "AttachmentViewerHint": "Esc fecha · Espaço reproduz ou pausa",

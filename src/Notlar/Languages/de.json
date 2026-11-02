@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "Die Kopie konnte nicht gespeichert werden. Prüfe den Speicherort.",
   "AttachmentOpenFailed": "Der Anhang konnte nicht geöffnet werden. Die Datei fehlt möglicherweise oder ist beschädigt.",
   "AttachmentMissing": "Datei fehlt",
+  "AttachmentComing": "Kommt vom Telefon … {0} %",
   "AttachmentCountOne": "1 Anhang",
   "AttachmentCountMany": "{0} Anhänge",
   "AttachmentViewerHint": "Esc schließt · Leertaste spielt ab oder pausiert",

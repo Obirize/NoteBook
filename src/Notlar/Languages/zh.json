@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "无法保存副本。请检查位置。",
   "AttachmentOpenFailed": "无法打开附件。文件可能缺失或已损坏。",
   "AttachmentMissing": "文件缺失",
+  "AttachmentComing": "正在从手机接收… {0}%",
   "AttachmentCountOne": "1 个附件",
   "AttachmentCountMany": "{0} 个附件",
   "AttachmentViewerHint": "Esc 关闭 · 空格键播放或暂停",

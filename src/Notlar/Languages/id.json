@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "Salinan tidak dapat disimpan. Periksa lokasinya.",
   "AttachmentOpenFailed": "Lampiran tidak dapat dibuka. File mungkin hilang atau rusak.",
   "AttachmentMissing": "File hilang",
+  "AttachmentComing": "Sedang dikirim dari ponsel… {0}%",
   "AttachmentCountOne": "1 lampiran",
   "AttachmentCountMany": "{0} lampiran",
   "AttachmentViewerHint": "Esc menutup · Spasi memutar atau menjeda",

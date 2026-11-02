@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "Не удалось сохранить копию. Проверьте расположение.",
   "AttachmentOpenFailed": "Не удалось открыть вложение. Файл может отсутствовать или быть повреждён.",
   "AttachmentMissing": "Файл отсутствует",
+  "AttachmentComing": "Передаётся с телефона… {0}%",
   "AttachmentCountOne": "1 вложение",
   "AttachmentCountMany": "Вложений: {0}",
   "AttachmentViewerHint": "Esc закрывает · Пробел — воспроизведение или пауза",

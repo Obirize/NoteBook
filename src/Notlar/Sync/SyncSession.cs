@@ -9,7 +9,7 @@ namespace Notlar.Sync;
 
 
 // One connected phone. Messages are JSON text frames ("t" names the type); attachment bytes are binary frames.
-public sealed class SyncSession : IDisposable
+public sealed partial class SyncSession : IDisposable
 {
     private readonly SyncService service;
     private readonly ISyncHost host;
@@ -22,8 +22,7 @@ public sealed class SyncSession : IDisposable
     private readonly List<Note> pendingNotes = []; private readonly List<PurgeStamp> pendingPurges = [];
     private readonly Dictionary<string, Note> bases = [];
     private Manifest? theirs;
-    private (string Id, long Size, FileStream Stream)? receiving;
-    private const int FileChunk = 256 * 1024, MaxText = 8 * 1024 * 1024;
+    private const int MaxText = 8 * 1024 * 1024;
     private static readonly TimeSpan SendDeadline = TimeSpan.FromSeconds(30), CloseGrace = TimeSpan.FromSeconds(2);
     public ConnectedDevice? Device { get; private set; }
     // A phone that sends "hb" in its hello pings while it is on screen; only such sessions are dropped for silence.
@@ -67,7 +66,7 @@ public sealed class SyncSession : IDisposable
         { EndReason = EndReason == "closed by phone" ? "error " + ex.GetType().Name : EndReason; }
         finally
         {
-            if (receiving != null) { receiving.Value.Stream.Dispose(); TryDelete(receiving.Value.Stream.Name); receiving = null; }
+            SettleAll();
             await CloseBounded(WebSocketCloseStatus.NormalClosure, "bye");
         }
     }
@@ -162,20 +161,17 @@ public sealed class SyncSession : IDisposable
                 if (theirs != null)
                 {
                     var (current, _) = await host.ManifestAsync();
-                    var wanted = theirs.Files.Where(f => !current.Files.Contains(f)).ToList();
-                    if (wanted.Count > 0) await Send(new JsonObject { ["t"] = "want-files", ["ids"] = new JsonArray(wanted.Select(w => (JsonNode)w).ToArray()) }, token);
+                    await RequestFiles(theirs.Files.Where(f => !current.Files.Contains(f)), token);
                 }
                 break;
             case "want-files":
                 foreach (var node in message["ids"]?.AsArray() ?? []) if (node?.GetValue<string>() is string fileId) await SendFile(fileId, token);
                 break;
             case "file":
-                if (receiving != null) { receiving.Value.Stream.Dispose(); TryDelete(receiving.Value.Stream.Name); }
-                string fileId2 = message["id"]!.GetValue<string>(); long size = message["size"]!.GetValue<long>();
-                receiving = null;
-                if (fileId2.Length != 32 || !fileId2.All(char.IsAsciiHexDigitLower) || size < 24 || size > 257L * 1024 * 1024 || await host.AttachmentAsync(fileId2) == null) break;
-                Directory.CreateDirectory(host.Attachments.Directory);
-                receiving = (fileId2, size, new FileStream(Path.Combine(host.Attachments.Directory, fileId2 + "." + Guid.NewGuid().ToString("N") + ".bin.part"), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 1 << 16));
+                await StartFile(message);
+                break;
+            case "file-missing":
+                Settle(message["id"]?.GetValue<string>() ?? "");
                 break;
             case "file-end":
                 await FinishFile();
@@ -223,7 +219,9 @@ public sealed class SyncSession : IDisposable
         service.Memory.Save();
         // Other phones (not this one) learn about the change; conflict copies go back to this phone too.
         if (result.Changed.Count > 0) service.NotifyChanged(result.Changed, purges, this);
-        await SendNotes(result.Changed.Concat(originals).Distinct().ToList(), token, submitted);
+        var touched = result.Changed.Concat(originals).Distinct().ToList();
+        await SendNotes(touched, token, submitted);
+        await RequestFiles(await MissingFiles(touched), token);
         await Send(new JsonObject { ["t"] = "flush" }, token);
     }
     private async Task<List<string>> NotesToSend(Manifest theirs, Manifest mine)
@@ -247,44 +245,6 @@ public sealed class SyncSession : IDisposable
         }
         catch (Exception ex) when (ex is WebSocketException or IOException or OperationCanceledException or ObjectDisposedException or InvalidOperationException) { }
     }
-    private async Task SendFile(string id, CancellationToken token)
-    {
-        var attachment = await host.AttachmentAsync(id);
-        if (attachment == null || !host.Attachments.Exists(attachment)) return;
-        string path = host.Attachments.PathFor(attachment);
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 16, FileOptions.SequentialScan);
-        await Send(new JsonObject { ["t"] = "file", ["id"] = id, ["size"] = stream.Length }, token);
-        var buffer = new byte[FileChunk]; int read;
-        while ((read = await stream.ReadAsync(buffer, token)) > 0) await SendFrame(buffer.AsMemory(0, read), WebSocketMessageType.Binary, token);
-        await Send(new JsonObject { ["t"] = "file-end", ["id"] = id }, token);
-    }
-    private async Task ReceiveChunk(byte[] chunk)
-    {
-        if (receiving == null) return;
-        if (receiving.Value.Stream.Length + chunk.Length > receiving.Value.Size) { receiving.Value.Stream.Dispose(); TryDelete(receiving.Value.Stream.Name); receiving = null; return; }
-        await receiving.Value.Stream.WriteAsync(chunk);
-    }
-    // The file is only kept when it decrypts under the key the note carries: a wrong or damaged file never lands.
-    private async Task FinishFile()
-    {
-        if (receiving == null) return;
-        var (id, size, stream) = receiving.Value; receiving = null;
-        string part = stream.Name, final = Path.Combine(host.Attachments.Directory, id + ".bin");
-        try
-        {
-            if (stream.Length != size) return;
-            var attachment = await host.AttachmentAsync(id);
-            if (attachment == null) return;
-            stream.Position = 0;
-            AttachmentStore.Decrypt(stream, Stream.Null, attachment.Key, id);
-            stream.Dispose();
-            File.Move(part, final, true);
-            await host.DeviceSeenAsync(Device?.Id ?? "", Device?.Name ?? "");
-        }
-        catch (Exception ex) when (ex is CryptographicException or IOException) { }
-        finally { stream.Dispose(); TryDelete(part); }
-    }
-    private static void TryDelete(string path) { try { if (File.Exists(path)) File.Delete(path); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { } }
 
     private Task Send(JsonObject message, CancellationToken token) => SendFrame(Encoding.UTF8.GetBytes(message.ToJsonString()), WebSocketMessageType.Text, token);
     // No single frame may wait forever on a phone that stopped reading: 30 s and the session ends.

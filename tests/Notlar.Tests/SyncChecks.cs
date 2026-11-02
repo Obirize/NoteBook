@@ -78,6 +78,7 @@ static class SyncChecks
         start.Environment["NOTEBOOK_TEST_CODE"]=code;
         // Only the isolated test client bypasses TLS trust, using a newly generated test CA.
         start.Environment["NODE_TLS_REJECT_UNAUTHORIZED"]="0";
+        var coming=new List<(string Id,int? Percent)>();service.IncomingChanged+=id=>{lock(coming)coming.Add((id,service.Incoming(id)));};
         using var process=Process.Start(start)!;
         var stdout=process.StandardOutput.ReadToEndAsync();var stderr=process.StandardError.ReadToEndAsync();
         if(!process.WaitForExit(45000)){process.Kill(true);throw new Exception("Sync integration timed out");}
@@ -93,6 +94,10 @@ static class SyncChecks
         using var clipOut=new MemoryStream();host.Attachments.Decrypt(clipMeta,clipOut);var clipBytes=clipOut.ToArray();
         bool exact=clipBytes.Length==2621440+123;for(int i=0;exact&&i<clipBytes.Length;i++)exact=clipBytes[i]==(byte)((i*7+3)&255);
         check(exact,"A multi-chunk video from the phone arrives on the desktop byte for byte (no re-encoding anywhere)");
+        var ghost=phone.Attachments.First(a=>a.Name=="ghost.png");
+        while((service.Incoming(clipMeta.Id)!=null||service.Incoming(ghost.Id)!=null)&&DateTime.UtcNow<deadline)Thread.Sleep(50);
+        lock(coming)check(coming.Any(e=>e.Id==clipMeta.Id&&e.Percent is >0 and <100) && coming.Any(e=>e.Id==ghost.Id&&e.Percent==0) && service.Incoming(clipMeta.Id)==null && service.Incoming(ghost.Id)==null && !host.Attachments.Exists(ghost),
+            "A file on its way from the phone counts along in percent and stops being 'on its way' once it is here, or once the phone says it has none");
         check(host.Book.Notes.Count(n=>n.Title.Contains("conflict copy"))==1 && host.Book.Notes.Single(n=>n.Title.Contains("conflict copy")).Text=="offline phone edit, continued","Divergent base creates one conflict copy, and further edits on the same stale base go into it");
         // The PC keeps a short log of what phones did, and warns when one keeps failing the TLS handshake (lost trust).
         service.LogEvent(System.Net.IPAddress.Parse("192.168.9.9"),"probe");service.LogEvent(System.Net.IPAddress.Loopback,"local");

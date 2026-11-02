@@ -1,6 +1,9 @@
 using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Notlar.Sync;
 
 namespace Notlar;
@@ -15,6 +18,7 @@ public partial class MainWindow : ISyncHost
         phoneSync = new SyncService(Path.GetDirectoryName(session.FilePath)!, this);
         RememberSyncVersions();
         phoneSync.RestartNeeded += () => Dispatcher.BeginInvoke(() => phoneSync?.Restart());
+        phoneSync.IncomingChanged += id => Dispatcher.BeginInvoke(() => ShowIncoming(id));
         phoneSync.TrustProblem += () => Dispatcher.BeginInvoke(() =>
         {
             StatusText.Text = L10n.T("SyncTrustWarning");
@@ -30,6 +34,24 @@ public partial class MainWindow : ISyncHost
         var changed = session.Book.Notes.Where(n => !syncVersions.TryGetValue(n.Id, out var old) || old != JsonSerializer.Serialize(n)).Select(n => n.Id).ToList();
         RememberSyncVersions();
         phoneSync.NotifyChanged(changed, session.Book.Purged.Select(p => new PurgeStamp(p.Id, p.Revision)).ToList());
+    }
+    // A file on its way from a phone: its tile counts along, and becomes the picture once the file is here (or says
+    // the file is missing if the phone could not send it).
+    private readonly Dictionary<string, TextBlock> comingLabels = [];
+    private void ShowIncoming(string id)
+    {
+        if (current?.Attachments.Any(a => a.Id == id) != true) return;
+        if (phoneSync?.Incoming(id) is int percent && comingLabels.TryGetValue(id, out var label)) label.Text = L10n.T("AttachmentComing", percent);
+        else RenderAttachments();
+    }
+    // A turning ring over a dimmed disc, so it reads on a photo as well as on an empty tile.
+    private static FrameworkElement Spinner()
+    {
+        var ring = new System.Windows.Shapes.Ellipse { Width = 28, Height = 28, StrokeThickness = 3, StrokeDashArray = [19, 100], StrokeDashCap = PenLineCap.Round, RenderTransformOrigin = new Point(.5, .5) };
+        ring.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, "Accent");
+        var turn = new RotateTransform(); ring.RenderTransform = turn;
+        turn.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
+        return new Grid { Width = 44, Height = 44, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Children = { new System.Windows.Shapes.Ellipse { Fill = new SolidColorBrush(Color.FromArgb(110, 0, 0, 0)) }, ring } };
     }
     private void PhoneSyncClick(object sender, RoutedEventArgs e)
     {

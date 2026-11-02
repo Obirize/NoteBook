@@ -9,27 +9,39 @@ import { T } from './lang.js';
 import { S, $, MAX_FILE } from './state.js';
 import { run, toast, sheet } from './ui.js';
 import { put, touch, persist, storedIds, storedFile } from './store.js';
-import { localSave, send, manifest, isReady } from './sync.js';
+import { localSave, isReady } from './sync.js';
 import { commitDraft, shareText } from './editor.js';
 
-const noteFiles = new Map();         // attachment id -> { url, file }: the open note's photos, decrypted for their tiles
-const noteUrls = [];
+const noteFiles = new Map();         // attachment id -> { url, file }: the open note's photos, ready for their tiles
 const picked = new Set();            // attachment ids checked in select mode
+const sending = new Set();           // attachment ids on their way to the PC: their tiles turn a spinner
+let waiting = [];                    // { note, tile, file, url }: picked files still being encrypted and saved
 let selecting = false, stored = new Set(), drawing = 0, viewing = 0;
 const THUMB_LIMIT = 100 * 1048576, SHARE_LIMIT = 200 * 1048576;
 // The attachments of a note that are on this phone (the rest are still to come from the PC).
 export const storedOf = n => n.Attachments.filter(a => stored.has(a.Id));
 const quietly = p => p.catch(e => { console.error(e); toast(e.message || T('failed')); });
+const picture = src => { const img = document.createElement('img'); img.alt = ''; img.decoding = 'async'; img.src = src; return img; };
+
+// The spinner on a tile while its file goes to the PC; the link clears them all when it drops.
+export function markSending(ids, on) {
+  for (const id of ids) {
+    if (on) sending.add(id); else sending.delete(id);
+    $('attachments').querySelector(`[data-id="${id}"]`)?.classList.toggle('busy', on);
+  }
+}
+export const sendingStopped = () => markSending([...sending], false);
 
 export async function renderAttachments(n) {
   const turn = ++drawing;
-  for (const url of noteUrls) URL.revokeObjectURL(url); noteUrls.length = 0; noteFiles.clear();
+  // Photos already decrypted stay as they are: adding one more to a note must not decrypt all the others again.
+  for (const [id, shown] of noteFiles) if (!n.Attachments.some(a => a.Id === id)) { URL.revokeObjectURL(shown.url); noteFiles.delete(id); }
   stored = await storedIds();
   for (const id of [...picked]) if (!n.Attachments.some(a => a.Id === id)) picked.delete(id);
   const box = $('attachments'); box.replaceChildren(); box.classList.toggle('selecting', selecting);
   const later = [];                  // pictures to decrypt, one at a time once the grid is drawn
   n.Attachments.forEach((a, index) => {
-    const tile = document.createElement('button'); tile.className = 'tile' + (picked.has(a.Id) ? ' picked' : ''); tile.type = 'button'; tile.setAttribute('aria-label', a.Name);
+    const tile = document.createElement('button'); tile.className = 'tile' + (picked.has(a.Id) ? ' picked' : '') + (sending.has(a.Id) ? ' busy' : ''); tile.type = 'button'; tile.dataset.id = a.Id; tile.setAttribute('aria-label', a.Name);
     const badge = document.createElement('span'); badge.className = 'tile-badge';
     badge.innerHTML = a.MediaType.startsWith('video/') ? '<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>' : a.MediaType.startsWith('image/') ? '' : '<svg viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></svg>';
     const check = document.createElement('span'); check.className = 'tile-check'; check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>';
@@ -37,17 +49,18 @@ export async function renderAttachments(n) {
     tile.append(pending, badge, check);
     // A video's picture is in the note itself, so the tile shows it even before the file has come over from the PC.
     const ready = a.Thumb && thumbUrl(a.Id, a.Thumb);
-    if (ready) { const img = document.createElement('img'); img.alt = ''; img.src = ready; tile.prepend(img); }
+    if (ready) tile.prepend(picture(ready));
     tile.addEventListener('click', () => { if (selecting) { if (picked.has(a.Id)) picked.delete(a.Id); else picked.add(a.Id); tile.classList.toggle('picked', picked.has(a.Id)); updateBar(); } else run(() => openViewer(n, index)); });
     box.append(tile);
     if (!stored.has(a.Id)) return;
-    if (a.MediaType.startsWith('image/')) later.push(async () => {
+    const shown = noteFiles.get(a.Id);
+    if (shown) { pending.remove(); tile.prepend(picture(shown.url)); }
+    else if (a.MediaType.startsWith('image/')) later.push(async () => {
       let plain; try { plain = await decryptFile(await storedFile(a.Id), a); } catch { pending.textContent = T('cantOpen'); return; }
       if (turn !== drawing) return;
-      const url = URL.createObjectURL(plain); noteUrls.push(url);
+      const url = URL.createObjectURL(plain);
       noteFiles.set(a.Id, { url, file: new File([plain], a.Name, { type: a.MediaType }) });
-      pending.remove();
-      const img = document.createElement('img'); img.src = url; img.alt = ''; tile.prepend(img);
+      pending.remove(); tile.prepend(picture(url));
     });
     else {
       pending.remove();
@@ -61,13 +74,14 @@ export async function renderAttachments(n) {
           const jpeg = await videoFrame(own);
           if (!jpeg || !n.Attachments.includes(a)) return;
           a.Thumb = jpeg;
-          if (turn === drawing) { const img = document.createElement('img'); img.alt = ''; img.src = thumbUrl(a.Id, jpeg); tile.prepend(img); }
+          if (turn === drawing) tile.prepend(picture(thumbUrl(a.Id, jpeg)));
           if (!n.draft) await persist(n);
         } finally { URL.revokeObjectURL(own); }
       });
       else if (!ready) { const name = document.createElement('span'); name.className = 'tile-name'; name.textContent = a.Name; tile.prepend(name); }
     }
   });
+  for (const w of waiting) if (w.note === n) box.append(w.tile);
   updateBar();
   (async () => { for (const job of later) { if (turn !== drawing) return; try { await job(); } catch { } } updateBar(); })();
 }
@@ -170,23 +184,43 @@ function openViewer(n, index) {
 $('attach').addEventListener('click', () => $('files').click());
 $('files').addEventListener('change', () => {
   const files = [...$('files').files], n = S.current; $('files').value = '';
+  if (!n || n.Deleted) return;
+  // Each picked file shows at once, turning a spinner, while it is encrypted and saved; a photo shows itself.
+  const mine = files.map(file => {
+    const tile = document.createElement('div'); tile.className = 'tile busy';
+    const url = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    if (url) tile.append(picture(url));
+    return { note: n, tile, file, url };
+  });
+  waiting.push(...mine); for (const w of mine) $('attachments').append(w.tile);
   run(async () => {
-    if (!n || n.Deleted) return;
-    for (const file of files) {
-      if (file.size > MAX_FILE) throw Error(T('tooLarge'));
-      if (!/^(image|video)\//.test(file.type) && !/\.(heic|heif|mov|mp4|m4v|jpe?g|png|gif|webp)$/i.test(file.name)) throw Error(T('pickMedia'));
-      toast(T('encrypting', (file.size / 1048576).toFixed(1)));
-      const encrypted = await encryptFile(file);
-      // The picture of a video is made here, while the file itself is at hand: no second decryption, no second save.
-      if (encrypted.meta.MediaType.startsWith('video/')) {
-        const url = URL.createObjectURL(file);
-        try { encrypted.meta.Thumb = await videoFrame(url); } catch { } finally { URL.revokeObjectURL(url); }
-        thumbTried.add(encrypted.meta.Id);
+    try {
+      for (const w of mine) {
+        const { file } = w;
+        if (file.size > MAX_FILE) throw Error(T('tooLarge'));
+        if (!/^(image|video)\//.test(file.type) && !/\.(heic|heif|mov|mp4|m4v|jpe?g|png|gif|webp)$/i.test(file.name)) throw Error(T('pickMedia'));
+        if (file.size > 20 * 1048576) toast(T('encrypting', (file.size / 1048576).toFixed(1)));
+        const encrypted = await encryptFile(file), meta = encrypted.meta;
+        // The picture of a video is made here, while the file itself is at hand: no second decryption, no second save.
+        if (meta.MediaType.startsWith('video/')) {
+          const url = URL.createObjectURL(file);
+          try { meta.Thumb = await videoFrame(url); } catch { } finally { URL.revokeObjectURL(url); }
+          thumbTried.add(meta.Id);
+        }
+        await put('files', meta.Id, encrypted.blob);
+        // The photo's tile shows the picked file itself: there is nothing to decrypt for it.
+        if (w.url) { noteFiles.set(meta.Id, { url: w.url, file: new File([file], meta.Name, { type: meta.MediaType }) }); w.url = null; }
+        // With the PC there, the file goes to it right away (it asks for it along with the note): the spinner stays.
+        if (isReady()) sending.add(meta.Id);
+        await commitDraft(n); n.Attachments.push(meta); touch(n);
+        waiting = waiting.filter(x => x !== w);
+        if (S.current === n) await renderAttachments(n);
+        await localSave(n, true);
       }
-      await put('files', encrypted.meta.Id, encrypted.blob);
-      await commitDraft(n); n.Attachments.push(encrypted.meta); touch(n); await localSave(n, true);
+      toast(T('attachmentSaved'));
+    } finally {
+      for (const w of mine) if (w.url) URL.revokeObjectURL(w.url);
+      waiting = waiting.filter(x => !mine.includes(x)); for (const w of mine) w.tile.remove();
     }
-    if (isReady()) send(await manifest());
-    await renderAttachments(n); toast(T('attachmentSaved'));
   });
 });

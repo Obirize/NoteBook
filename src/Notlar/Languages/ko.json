@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "사본을 저장할 수 없습니다. 위치를 확인하세요.",
   "AttachmentOpenFailed": "첨부 파일을 열 수 없습니다. 파일이 없거나 손상되었을 수 있습니다.",
   "AttachmentMissing": "파일 없음",
+  "AttachmentComing": "휴대폰에서 받는 중… {0}%",
   "AttachmentCountOne": "첨부 1개",
   "AttachmentCountMany": "첨부 {0}개",
   "AttachmentViewerHint": "Esc 닫기 · 스페이스 재생 또는 일시 정지",

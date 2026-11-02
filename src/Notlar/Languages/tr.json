@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "Kopya kaydedilemedi. Konumu kontrol edin.",
   "AttachmentOpenFailed": "Ek açılamadı. Dosya eksik veya bozuk olabilir.",
   "AttachmentMissing": "Dosya eksik",
+  "AttachmentComing": "Telefondan geliyor… %{0}",
   "AttachmentCountOne": "1 ek",
   "AttachmentCountMany": "{0} ek",
   "AttachmentViewerHint": "Esc kapatır · Boşluk oynatır veya duraklatır",

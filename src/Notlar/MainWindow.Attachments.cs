@@ -187,7 +187,7 @@ public partial class MainWindow
     }
     private void RenderAttachments()
     {
-        AttachmentPanel.Children.Clear();
+        AttachmentPanel.Children.Clear(); comingLabels.Clear();
         var note = current;
         if (note == null) picked.Clear(); else picked.RemoveWhere(id => !note.Attachments.Any(a => a.Id == id));
         AttachmentScroll.Visibility = note != null && note.Attachments.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -201,17 +201,19 @@ public partial class MainWindow
     {
         const double size = 132;
         bool present = session.Attachments.Exists(attachment);
+        int? coming = present ? null : phoneSync?.Incoming(attachment.Id);   // on its way from a phone
         var icons = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
         var content = new Grid { Clip = new RectangleGeometry(new Rect(0, 0, size, size), 10, 10) };
-        var icon = new TextBlock { Text = !present ? "\uE7BA" : attachment.IsVideo ? "\uE714" : "\uEB9F", FontFamily = icons, FontSize = 30, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var icon = new TextBlock { Text = coming != null ? "" : !present ? "\uE7BA" : attachment.IsVideo ? "\uE714" : "\uEB9F", FontFamily = icons, FontSize = 30, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         icon.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
         var picture = new Image { Stretch = Stretch.UniformToFill };
         RenderOptions.SetBitmapScalingMode(picture, BitmapScalingMode.HighQuality);
         var caption = new Border { VerticalAlignment = VerticalAlignment.Bottom, Padding = new Thickness(9, 14, 9, 7), Background = new LinearGradientBrush(Color.FromArgb(0, 0, 0, 0), Color.FromArgb(200, 0, 0, 0), 90) };
         var name = new TextBlock { Text = attachment.Name, FontSize = 11, Foreground = Brushes.White, TextTrimming = TextTrimming.CharacterEllipsis };
-        var detail = new TextBlock { Text = present ? attachment.SizeLabel : L10n.T("AttachmentMissing"), FontSize = 10, Foreground = new SolidColorBrush(Color.FromRgb(0xC8, 0xC7, 0xCC)) };
+        var detail = new TextBlock { Text = present ? attachment.SizeLabel : coming is int percent ? L10n.T("AttachmentComing", percent) : L10n.T("AttachmentMissing"), FontSize = 10, Foreground = new SolidColorBrush(Color.FromRgb(0xC8, 0xC7, 0xCC)) };
         caption.Child = new StackPanel { Children = { name, detail } };
         content.Children.Add(icon); content.Children.Add(picture); content.Children.Add(caption);
+        if (coming != null) { content.Children.Add(Spinner()); comingLabels[attachment.Id] = detail; }
         bool isPicked = picked.Contains(attachment.Id);
         // The check circle: shown on hover and whenever a selection exists; filled with the accent when this tile is picked.
         var check = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(11), BorderThickness = new Thickness(1.5), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(8), Cursor = Cursors.Hand, Visibility = picked.Count > 0 ? Visibility.Visible : Visibility.Hidden, ToolTip = L10n.T("PickAttachmentHint"), Child = new TextBlock { Text = "\uE73E", FontFamily = icons, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Foreground = new SolidColorBrush(Color.FromRgb(0x29, 0x24, 0x1C)), Visibility = isPicked ? Visibility.Visible : Visibility.Collapsed } };

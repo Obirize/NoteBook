@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "Could not save the copy. Check the location.",
   "AttachmentOpenFailed": "Could not open the attachment. The file may be missing or damaged.",
   "AttachmentMissing": "File missing",
+  "AttachmentComing": "Coming from the phone… {0}%",
   "AttachmentCountOne": "1 attachment",
   "AttachmentCountMany": "{0} attachments",
   "AttachmentViewerHint": "Esc closes · Space plays or pauses",

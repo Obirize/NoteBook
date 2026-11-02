@@ -134,6 +134,7 @@
   "AttachmentSaveFailed": "Impossible d’enregistrer la copie. Vérifiez l’emplacement.",
   "AttachmentOpenFailed": "Impossible d’ouvrir la pièce jointe. Le fichier est peut-être manquant ou endommagé.",
   "AttachmentMissing": "Fichier manquant",
+  "AttachmentComing": "Arrive du téléphone… {0} %",
   "AttachmentCountOne": "1 pièce jointe",
   "AttachmentCountMany": "{0} pièces jointes",
   "AttachmentViewerHint": "Échap ferme · Espace lit ou met en pause",
