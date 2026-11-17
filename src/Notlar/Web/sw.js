@@ -1,5 +1,5 @@
-const CACHE='notebook-phone-v28';
-const FILES=['/','/index.html','/start','/v3/app.js','/v3/state.js','/v3/ui.js','/v3/store.js','/v3/sync.js','/v3/link.js','/v3/list.js','/v3/editor.js','/v3/attachments.js','/v3/crypto.js','/v3/lang.js','/v3/checklist.js','/v3/style.css','/v3/app.webmanifest','/v3/icon.png','/v3/icon-180.png'];
+const CACHE='notebook-phone-v29';
+const FILES=['/','/index.html','/start','/v3/app.js','/v3/state.js','/v3/ui.js','/v3/store.js','/v3/sync.js','/v3/link.js','/v3/list.js','/v3/editor.js','/v3/attachments.js','/v3/crypto.js','/v3/lang.js','/v3/checklist.js','/v3/history.js','/v3/style.css','/v3/app.webmanifest','/v3/icon.png','/v3/icon-180.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));});
 // Old workers served the previous design cache-first; once this one takes over, open pages reload into the new one.
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(async keys=>{const old=keys.filter(k=>k!==CACHE);await Promise.all(old.map(k=>caches.delete(k)));await self.clients.claim();if(old.length)for(const c of await self.clients.matchAll({type:'window'}))c.navigate(c.url).catch(()=>{});})));

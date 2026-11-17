@@ -92,7 +92,8 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: .2px; margin: 6px 0 12px
 .selecting .row-check { display: flex; }
 .row.checked .row-check { background: var(--accent); border-color: var(--accent); }
 
-.note { padding: 4px 20px 0; }
+/* Room under the last line, so it never sits right against the bottom bar or the keyboard. */
+.note { padding: 4px 20px 20px; }
 .note-date { text-align: center; color: var(--muted); font-size: 11px; margin: 4px 0 8px; }
 .note-title, .note-body { display: block; width: 100%; resize: none; line-height: 1.45; padding: 0; overflow: hidden; }
 .note-title { font-size: 26px; font-weight: 700; line-height: 1.25; margin-bottom: 4px; }

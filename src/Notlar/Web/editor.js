@@ -3,27 +3,29 @@
 import { id } from './crypto.js';
 import { T } from './lang.js';
 import * as Checklist from './checklist.js';
+import * as History from './history.js';
 import { S, $, isEmpty, folderTitle } from './state.js';
 import { run, toast, sheet, show, reveal, slide, autosize, fmt } from './ui.js';
 import { touch, forget } from './store.js';
 import { localSave, flushAll, cancelPendingSends, announcePurge } from './sync.js';
 import { renderList, listBehind } from './list.js';
-import { renderAttachments, storedOf, shareFiles, shareAttachments, selectAttachments } from './attachments.js';
+import { renderAttachments, knowStored, storedOf, shareFiles, shareAttachments, selectAttachments } from './attachments.js';
 
 const bodyEl = $('body');
 
+// The note is drawn whole before the screen slides in: the first frame must not show the last note's place or photos.
 export async function openNote(n) {
+  await knowStored();
   S.current = n; show('editor', 'push');
   $('backLabel').textContent = folderTitle();
   $('noteDate').textContent = fmt.full.format(new Date(n.Updated));
-  $('title').value = n.Title; Checklist.setBody(bodyEl, n.Text); autosize($('title'));
+  $('title').value = n.Title; Checklist.setBody(bodyEl, n.Text); autosize($('title')); History.resetHistory();
   $('title').readOnly = n.Deleted; bodyEl.contentEditable = n.Deleted ? 'false' : 'true';
   selectAttachments(false);
   $('share').hidden = $('noteMore').hidden = n.Deleted;
   $('editorBar').hidden = n.Deleted; $('trashBar').hidden = !n.Deleted; $('trashNotice').hidden = !n.Deleted;
-  updatePin();
-  await renderAttachments(n);
-  $('editor').querySelector('.page').scrollTop = 0;
+  updatePin(); page.scrollTop = 0;
+  await renderAttachments(n, true);
 }
 function updatePin() { const n = S.current; $('pin').style.color = n?.Pinned ? 'var(--accent)' : 'var(--muted)'; $('pin').setAttribute('aria-label', n?.Pinned ? T('unpin') : T('pin')); }
 // The list is brought up to date before it slides back in, so it shows the note as it now is.
@@ -88,19 +90,34 @@ $('restore').addEventListener('click', () => run(() => restoreNote(S.current)));
 $('purge').addEventListener('click', () => { const n = S.current; sheet(T('purgeConfirm'), [{ label: T('deletePermanently'), danger: true, run: () => run(() => purgeNote(n)) }]); });
 $('title').addEventListener('input', () => { autosize($('title')); edited('Title', $('title').value); });
 $('title').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); bodyEl.focus(); if (bodyEl.firstChild) Checklist.placeCaret(bodyEl.firstChild); } });
-bodyEl.addEventListener('input', () => edited('Text', Checklist.getBody(bodyEl)));
+const bodyChanged = () => { edited('Text', Checklist.getBody(bodyEl)); keepInSight(); };
+// A change the app makes itself (a new line, a check box): kept as one undo step when it happens.
+function ours(change) { const before = History.snapshot(bodyEl); if (!change()) return false; History.remember(bodyEl, 'other', before); bodyChanged(); return true; }
+bodyEl.addEventListener('input', bodyChanged);
 // Only plain text comes in; iOS would otherwise paste styled fragments into the note.
-bodyEl.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
+bodyEl.addEventListener('paste', e => { e.preventDefault(); History.remember(bodyEl, 'other'); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
 bodyEl.addEventListener('keydown', e => {
   if (S.current?.Deleted) return;
-  if (e.key === 'Enter' && !e.shiftKey && Checklist.enter(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); }
-  else if (e.key === 'Backspace' && Checklist.backspace(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); }
+  // Redo from a keyboard: the browser no longer offers it itself, since its undo is answered by the app.
+  const key = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && (key === 'y' || key === 'z' && e.shiftKey)) { e.preventDefault(); if (History.redo(bodyEl)) bodyChanged(); }
+  else if (e.key === 'Enter' && !e.shiftKey && ours(() => Checklist.enter(bodyEl))) e.preventDefault();
+  else if (e.key === 'Backspace' && ours(() => Checklist.backspace(bodyEl))) e.preventDefault();
 });
-// The on-screen keyboard reports a new line through beforeinput rather than a key; handle it the same way.
-bodyEl.addEventListener('beforeinput', e => { if (S.current?.Deleted) return; if ((e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') && Checklist.enter(bodyEl)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); } });
+// The on-screen keyboard reports a new line through beforeinput rather than a key; handle it the same way. Undo and
+// redo (shaking the phone, or the keyboard's buttons) come this way too and are answered from the app's own list.
+const KIND = { insertText: 'typing', insertCompositionText: 'typing', insertReplacementText: 'typing', deleteContentBackward: 'deleting', deleteContentForward: 'deleting' };
+bodyEl.addEventListener('beforeinput', e => {
+  if (S.current?.Deleted) return;
+  if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') {
+    if (!e.cancelable) return;
+    e.preventDefault(); if ((e.inputType === 'historyUndo' ? History.undo : History.redo)(bodyEl)) bodyChanged();
+  } else if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') { if (ours(() => Checklist.enter(bodyEl))) e.preventDefault(); }
+  else History.remember(bodyEl, KIND[e.inputType] || 'other');
+});
 // A tap on an item's circle flips it without opening the keyboard.
-bodyEl.addEventListener('pointerdown', e => { if (!S.current?.Deleted && Checklist.tapToggle(bodyEl, e)) { e.preventDefault(); edited('Text', Checklist.getBody(bodyEl)); } });
-$('checklist').addEventListener('click', () => { if (!S.current || S.current.Deleted) return; bodyEl.focus(); Checklist.toggleSelection(bodyEl); edited('Text', Checklist.getBody(bodyEl)); });
+bodyEl.addEventListener('pointerdown', e => { if (!S.current?.Deleted && ours(() => Checklist.tapToggle(bodyEl, e))) e.preventDefault(); });
+$('checklist').addEventListener('click', () => { if (!S.current || S.current.Deleted) return; bodyEl.focus(); ours(() => { Checklist.toggleSelection(bodyEl); return true; }); });
 // While typing, "Done" replaces the top-bar icons, as in Notes.
 const typing = () => document.activeElement === $('title') || document.activeElement === bodyEl;
 for (const el of [$('title'), bodyEl]) {
@@ -109,11 +126,52 @@ for (const el of [$('title'), bodyEl]) {
 }
 $('done').addEventListener('click', () => document.activeElement?.blur());
 // The bottom bar follows the keyboard: the editor shrinks to the visible part of the screen while a field has focus.
+// iOS also slides the whole page up when the tapped line would end under the keyboard, and the two moves fought: the
+// note sat too low for a moment, then the tapped line stayed hidden until iOS scrolled to it a second later. So the
+// caret's line is lifted above where the keyboard will reach as soon as the caret lands (the keyboard's height is
+// remembered from last time), and kept in sight from then on, the way the Notes app does.
+const page = $('editor').querySelector('.page'), GAP = 12;
+let keyboard = 0, lifting = false;
+try { keyboard = +localStorage.getItem('keyboard') || 0; } catch { }
+function caretBottom() {
+  if (document.activeElement === $('title')) return $('title').getBoundingClientRect().bottom;
+  const sel = getSelection(); if (!sel?.rangeCount || !bodyEl.contains(sel.focusNode)) return null;
+  const r = document.createRange(); r.setStart(sel.focusNode, sel.focusOffset);
+  // An empty line has no caret box of its own; its block stands in for it.
+  const box = r.getClientRects()[0] || Checklist.currentBlock(bodyEl)?.getBoundingClientRect();
+  return box ? box.bottom : null;
+}
+// Scrolls the note just enough for the caret to sit a little above `limit` (a height on the screen).
+function lift(limit) { const b = caretBottom(); if (b != null && b > limit - GAP) page.scrollTop += b - (limit - GAP); }
+const keepInSight = () => { if ($('editor').classList.contains('keyboard')) lift(page.getBoundingClientRect().bottom); };
 if (window.visualViewport) {
+  const v = window.visualViewport, e = $('editor');
+  // The screen's height without a keyboard. iOS keeps the page that tall under the keyboard; other phones shrink it.
+  let full = window.innerHeight;
+  const expected = () => keyboard || Math.round(full * 0.45);
   // With the keyboard up the home-indicator area is under the keyboard, so the bar drops its safe-area padding too.
-  const fit = () => { const v = window.visualViewport, e = $('editor'); const up = typing() && !e.hidden && v.height < window.innerHeight - 80; e.classList.toggle('keyboard', up); if (up) { e.style.top = v.offsetTop + 'px'; e.style.height = v.height + 'px'; } else { e.style.top = ''; e.style.height = ''; } };
-  window.visualViewport.addEventListener('resize', fit); window.visualViewport.addEventListener('scroll', fit);
-  for (const el of [$('title'), bodyEl]) { el.addEventListener('focus', () => setTimeout(fit, 50)); el.addEventListener('blur', () => setTimeout(fit, 80)); }
+  const fit = () => {
+    if (!typing()) full = window.innerHeight;
+    const up = typing() && !e.hidden && v.height < full - 80, was = e.classList.contains('keyboard');
+    e.classList.toggle('keyboard', up);
+    if (up) {
+      e.style.top = v.offsetTop + 'px'; e.style.height = v.height + 'px';
+      keyboard = full - v.height; try { localStorage.setItem('keyboard', keyboard); } catch { }
+    } else { e.style.top = ''; e.style.height = ''; }
+    if (up || !typing()) { page.style.paddingBottom = ''; lifting = false; }
+    if (up && !was) keepInSight();
+  };
+  v.addEventListener('resize', fit); v.addEventListener('scroll', fit);
+  for (const el of [$('title'), bodyEl]) {
+    // Room below the last line, so even the note's last line can be lifted before the keyboard covers it.
+    el.addEventListener('focus', () => { if (!e.classList.contains('keyboard')) { lifting = true; page.style.paddingBottom = expected() + 'px'; } fit(); });
+    el.addEventListener('blur', fit);
+  }
+  // The caret lands a moment after the focus; that is when its line can be lifted.
+  document.addEventListener('selectionchange', () => {
+    if (!lifting || !typing()) return; lifting = false;
+    lift(full - expected() - $('editorBar').offsetHeight);
+  });
 }
 // Swiping in from the left edge of a note goes back, as in the Notes app: the note follows the finger with the list
 // showing underneath, and on release slides the rest of the way, or back if the swipe was short and slow.

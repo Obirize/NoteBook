@@ -20,10 +20,19 @@ function renderFolders() {
 }
 let drawn = -1;   // the notes' version the list shows
 export const listBehind = () => drawn !== S.version;
+// Search ignores case and marks, as the Notes app does: "instagram" finds "Instagram" (Turkish would lower its I to
+// ı), and "sablon" finds "şablon". Each note's folded text is kept until the note changes.
+const plain = s => s.toLocaleLowerCase(locale).replace(/ı/g, 'i').normalize('NFD').replace(/\p{M}/gu, '');
+const folded = new WeakMap();
+function searchable(n) {
+  const text = n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' '), kept = folded.get(n);
+  if (kept?.text === text) return kept.value;
+  const value = plain(text); folded.set(n, { text, value }); return value;
+}
 export function renderList() {
   drawn = S.version;
-  const q = $('search').value.trim().toLocaleLowerCase(locale), selecting = S.selecting, selected = S.selected;
-  const list = S.notes.filter(n => inFolder(n) && (!q || (n.Title + ' ' + n.Text + ' ' + n.Attachments.map(a => a.Name).join(' ')).toLocaleLowerCase(locale).includes(q)))
+  const q = plain($('search').value.trim()), selecting = S.selecting, selected = S.selected;
+  const list = S.notes.filter(n => inFolder(n) && (!q || searchable(n).includes(q)))
     .sort((a, b) => Number(b.Pinned) - Number(a.Pinned) || Date.parse(b.Updated) - Date.parse(a.Updated));
   const title = folderTitle();
   $('listTitle').textContent = title;

@@ -32,11 +32,13 @@ export function markSending(ids, on) {
 }
 export const sendingStopped = () => markSending([...sending], false);
 
-export async function renderAttachments(n) {
+// Which files are on this phone, asked for ahead of a draw that must happen at once (opening a note).
+export async function knowStored() { stored = await storedIds(); }
+export async function renderAttachments(n, known = false) {
+  if (!known) await knowStored();
   const turn = ++drawing;
   // Photos already decrypted stay as they are: adding one more to a note must not decrypt all the others again.
   for (const [id, shown] of noteFiles) if (!n.Attachments.some(a => a.Id === id)) { URL.revokeObjectURL(shown.url); noteFiles.delete(id); }
-  stored = await storedIds();
   for (const id of [...picked]) if (!n.Attachments.some(a => a.Id === id)) picked.delete(id);
   const box = $('attachments'); box.replaceChildren(); box.classList.toggle('selecting', selecting);
   const later = [];                  // pictures to decrypt, one at a time once the grid is drawn
